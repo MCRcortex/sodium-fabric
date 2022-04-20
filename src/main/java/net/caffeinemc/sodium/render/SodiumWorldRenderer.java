@@ -201,7 +201,7 @@ public class SodiumWorldRenderer {
 
         profiler.swap("visible_chunk_tick");
 
-        this.renderSectionManager.tickVisibleRenders();
+        //this.renderSectionManager.tickVisibleRenders();
 
         profiler.pop();
 
