@@ -43,7 +43,7 @@ public class ChunkBuildEngine {
         mappings = ChunkRenderPassManager.createDefaultMappings();
         this.sectionCache = new ClonedChunkSectionCache(world);
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 14; i++) {
             Thread thread = new Thread(this::worker, "Chunk Render Builder Thread #" + i);
             thread.setPriority(Math.max(0, Thread.NORM_PRIORITY - 2));
             thread.start();

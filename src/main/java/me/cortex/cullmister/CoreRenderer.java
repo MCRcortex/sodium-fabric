@@ -15,7 +15,7 @@ import static org.lwjgl.opengl.GL11C.glClear;
 import static org.lwjgl.opengl.GL30.GL_DEPTH_ATTACHMENT;
 import static org.lwjgl.opengl.GL42.glMemoryBarrier;
 import static org.lwjgl.opengl.GL45.glNamedFramebufferTexture;
-
+//TODO: TRY OPTIMIZING WITH CONDITIONAL RENDERING ON THE REGIONS
 public class CoreRenderer {
     public RegionManager regionManager;
     public ComputeCullInterface culler;
@@ -48,6 +48,8 @@ public class CoreRenderer {
             count = 0;
         }
         frame++;
+        if (false)
+            return;
 
         MinecraftClient.getInstance().getProfiler().push("hiz resize");
         hiZ.resize(MinecraftClient.getInstance().getFramebuffer().textureWidth, MinecraftClient.getInstance().getFramebuffer().viewportHeight);
@@ -60,7 +62,7 @@ public class CoreRenderer {
         if (!regionManager.regions.isEmpty()) {
             for (Region r : regionManager.regions.values().stream()//.limit(1)
                     .toList()) {
-                debugLayer.superdebugtestrender(frame, r, renderMatrices, pos.sub(r.pos.x()<<9, r.pos.y()*5*16, r.pos.z()<<9,new Vector3f()));
+                debugLayer.superdebugtestrender(frame-1, r, renderMatrices, pos.sub(r.pos.x()<<9, r.pos.y()*Region.HEIGHT*16, r.pos.z()<<9,new Vector3f()));
             }
         }
         debugLayer.end();

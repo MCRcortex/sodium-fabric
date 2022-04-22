@@ -5,8 +5,12 @@ import it.unimi.dsi.fastutil.ints.*;
 import me.cortex.cullmister.utils.VAO;
 import me.cortex.cullmister.utils.VBO;
 import me.cortex.cullmister.utils.arena.GLSparse;
+import net.caffeinemc.sodium.render.buffer.VertexRange;
 import net.caffeinemc.sodium.render.chunk.RenderSectionManager;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
+import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
+import net.caffeinemc.sodium.render.chunk.passes.DefaultRenderPasses;
+import net.caffeinemc.sodium.render.chunk.state.ChunkModel;
 import net.caffeinemc.sodium.util.NativeBuffer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.VertexFormat;
@@ -14,7 +18,9 @@ import net.minecraft.util.math.ChunkSectionPos;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
 
+import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.stream.Collectors;
 
 import static org.lwjgl.opengl.ARBDirectStateAccess.nglClearNamedBufferData;
 import static org.lwjgl.opengl.GL11.GL_SHORT;
@@ -29,6 +35,7 @@ import static org.lwjgl.opengl.GL44.GL_DYNAMIC_STORAGE_BIT;
 import static org.lwjgl.opengl.GL45.*;
 
 public class Region {
+    public static final int HEIGHT = 20;
     public static class DrawData {
         public VBO drawCommands = new VBO();
         public VBO drawMeta = new VBO();
@@ -54,11 +61,11 @@ public class Region {
 
     public Region(RegionPos pos) {
         this.pos = pos;
-        glNamedBufferStorage(chunkMeta.id, 32*5*32*Section.SIZE, GL_DYNAMIC_STORAGE_BIT|GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
-        glNamedBufferStorage(drawData.drawMeta.id, 3*4*32*5*32, GL_DYNAMIC_STORAGE_BIT);
+        glNamedBufferStorage(chunkMeta.id, 32*HEIGHT*32*Section.SIZE, GL_DYNAMIC_STORAGE_BIT|GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
+        glNamedBufferStorage(drawData.drawMeta.id, 3*4*32*HEIGHT*32, GL_DYNAMIC_STORAGE_BIT);
         glNamedBufferData(drawData.drawCounts.id, 4*4, GL_DYNAMIC_DRAW);//4 counts
         glNamedBufferData(drawData.drawMetaCount.id, 4, GL_DYNAMIC_DRAW);//1 count
-        glNamedBufferStorage(drawData.drawCommands.id, 5*4*100000, GL_DYNAMIC_STORAGE_BIT);
+        glNamedBufferStorage(drawData.drawCommands.id, HEIGHT*4*100000, GL_DYNAMIC_STORAGE_BIT);
 
         nglClearNamedBufferData(drawData.drawCounts.id, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, 0);
         nglClearNamedBufferData(drawData.drawMetaCount.id, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, 0);
@@ -148,6 +155,14 @@ public class Region {
             vertexData.free(section.vertexDataPosition);
             section.vertexDataPosition = null;
         }
+
+        Map<ChunkRenderPass, VertexRange[]> passMapper = result.geometry().models().stream().collect(Collectors.toMap(ChunkModel::getRenderPass, ChunkModel::getModelRanges));
+        if (passMapper.isEmpty())
+            throw new IllegalStateException();
+        section.CUTOUT = passMapper.getOrDefault(DefaultRenderPasses.CUTOUT, null);
+        section.CUTOUT_MIPPED = passMapper.getOrDefault(DefaultRenderPasses.CUTOUT_MIPPED, null);
+        section.SOLID = passMapper.getOrDefault(DefaultRenderPasses.SOLID, null);
+        section.TRANSLUCENT = passMapper.getOrDefault(DefaultRenderPasses.TRANSLUCENT, null);
 
         section.size = new Vector3f(result.data().bounds.x2 - result.data().bounds.x1, result.data().bounds.y2 - result.data().bounds.y1, result.data().bounds.z2 - result.data().bounds.z1);
         section.offset = new Vector3f(result.data().bounds.x1 - result.pos().getMinX(), result.data().bounds.y1 - result.pos().getMinY(), result.data().bounds.z1 - result.pos().getMinZ()).add(0.5f, 0.5f, 0.5f);

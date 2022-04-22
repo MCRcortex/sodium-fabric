@@ -1,6 +1,8 @@
 package me.cortex.cullmister;
 
+import it.unimi.dsi.fastutil.PriorityQueue;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import me.cortex.cullmister.region.Region;
 import me.cortex.cullmister.region.RegionPos;
@@ -24,6 +26,7 @@ public class RegionManager {
 
     ObjectOpenHashSet<ChunkSectionPos> chunkSectionsNonImportant = new ObjectOpenHashSet<>();
     ObjectOpenHashSet<ChunkSectionPos> chunkSectionsImportant = new ObjectOpenHashSet<>();
+    PriorityQueue<TerrainBuildResult> workResultsLocal = new ObjectArrayFIFOQueue<>();
     public void tick(int frame) {
         if (builder == null) {
             return;
@@ -34,16 +37,19 @@ public class RegionManager {
         chunkSectionsNonImportant.clear();
 
         synchronized (builder.outflowWorkQueue) {
-            while (!builder.outflowWorkQueue.isEmpty()) {
-                TerrainBuildResult result = builder.outflowWorkQueue.dequeue();
-                //TODO: FIX, THIS IS A HACK
-                if (result.geometry().vertices() == null) {
-                    result.delete();
-                    continue;
-                }
-                getRegion(result.pos()).updateMeshes(result);
+            while (!builder.outflowWorkQueue.isEmpty())
+                workResultsLocal.enqueue(builder.outflowWorkQueue.dequeue());
+        }
+
+        while (!workResultsLocal.isEmpty()) {
+            TerrainBuildResult result = workResultsLocal.dequeue();
+            //TODO: FIX, THIS IS A HACK
+            if (result.geometry().vertices() == null) {
                 result.delete();
+                continue;
             }
+            getRegion(result.pos()).updateMeshes(result);
+            result.delete();
         }
     }
 

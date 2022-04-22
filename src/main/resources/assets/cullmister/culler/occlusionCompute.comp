@@ -55,7 +55,7 @@ void chunk_visible(float distance) {
     drawCommands[cidx].instanceCount = 1;
     drawCommands[cidx].firstIndex = 0;
     drawCommands[cidx].baseInstance = instanceDataIdx;
-    drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].SOLID.count * 6;
+    drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].SOLID.count;
     drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].SOLID.offset;
     /*
 
@@ -138,6 +138,7 @@ void main (){
         float d = textureLod(depthTex,vec2(clipmax.x,clipmin.y),miplevel).r;
         float depth = max(max(a,b),max(c,d));
         if(clipmin.z < depth) {
+            //barrier();
             chunk_visible((clipmin.z+clipmax.z)/2);
         }
     }

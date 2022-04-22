@@ -37,7 +37,11 @@ public class Section {
         new Vector3i(pos.x(), pos.y(), pos.z()).getToAddress(ptr);
         ptr += 12;
         ptr += 4;
-        new Vector2i((int) (vertexDataPosition.offset/20), (int) ((vertexDataPosition.size/20)/4)).getToAddress(ptr);
+        if (SOLID == null || SOLID[0] == null) {
+            new Vector2i(0, 0).getToAddress(ptr);
+        } else {
+            new Vector2i((int) (SOLID[0].firstVertex()+(vertexDataPosition.offset/20)),(SOLID[0].vertexCount()/4)*6).getToAddress(ptr);
+        }
     }
 
 

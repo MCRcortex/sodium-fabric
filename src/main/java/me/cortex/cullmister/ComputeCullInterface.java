@@ -4,6 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import me.cortex.cullmister.region.Region;
 import me.cortex.cullmister.utils.CShader;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
+import net.minecraft.client.MinecraftClient;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
@@ -63,12 +64,16 @@ public class ComputeCullInterface {
 
     //Enqueue process
     public void process(Region region) {
+        MinecraftClient.getInstance().getProfiler().push("Binding");
         prepAndBind(region);
-        cullShader.setUniform("viewModelProjectionTranslate", baseMat.translate((region.pos.x()<<9)-cam_pos.x, (region.pos.y()*5*16)-cam_pos.y, (region.pos.z()<<9)-cam_pos.z, new Matrix4f()));
+        cullShader.setUniform("viewModelProjectionTranslate", baseMat.translate((region.pos.x()<<9)-cam_pos.x, (region.pos.y()*Region.HEIGHT*16)-cam_pos.y, (region.pos.z()<<9)-cam_pos.z, new Matrix4f()));
+        MinecraftClient.getInstance().getProfiler().swap("dispatch");
         cullShader.dispatch((int) Math.ceil((double) region.sectionCount/32),1,1);
         //long ptr = region.drawData.drawMetaCount.mappedNamedPtrRanged(0,4,GL_MAP_READ_BIT);
         //System.out.println(MemoryUtil.memGetInt(ptr));
         //region.drawData.drawMetaCount.unmapNamed();
+
+        MinecraftClient.getInstance().getProfiler().pop();
     }
 
     //End process

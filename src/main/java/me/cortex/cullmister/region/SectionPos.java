@@ -6,7 +6,7 @@ import java.util.Objects;
 
 public record SectionPos(int x, int y, int z) {
     public static SectionPos from(ChunkSectionPos pos) {
-        return new SectionPos(pos.getX()&0b11111, Math.floorMod(pos.getY(), 5), pos.getZ()&0b11111);
+        return new SectionPos(pos.getX()&0b11111, Math.floorMod(pos.getY(), Region.HEIGHT), pos.getZ()&0b11111);
     }
 
     @Override
