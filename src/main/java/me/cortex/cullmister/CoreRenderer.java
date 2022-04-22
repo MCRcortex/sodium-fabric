@@ -1,6 +1,7 @@
 package me.cortex.cullmister;
 
 import me.cortex.cullmister.region.Region;
+import me.cortex.cullmister.region.RegionPos;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
@@ -9,6 +10,7 @@ import org.joml.Vector3f;
 import java.util.stream.Collectors;
 
 import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
+import static org.lwjgl.opengl.GL11.glFinish;
 import static org.lwjgl.opengl.GL11C.glClear;
 import static org.lwjgl.opengl.GL30.GL_DEPTH_ATTACHMENT;
 import static org.lwjgl.opengl.GL45.glNamedFramebufferTexture;
@@ -18,6 +20,7 @@ public class CoreRenderer {
     public ComputeCullInterface culler;
     LayerRenderer debugLayer;
     HiZ hiZ;
+    int frame;
 
     public CoreRenderer() {
         regionManager = new RegionManager();
@@ -34,23 +37,44 @@ public class CoreRenderer {
         regionManager.reset();
     }
 
+    long last;
+    long count;
     public void debugRender(ChunkRenderMatrices renderMatrices, Vector3f pos) {
+        count++;
+        if (last + 1000 < System.currentTimeMillis()) {
+            MinecraftClient.getInstance().getWindow().setTitle("FPS: "+((count*1000)/(System.currentTimeMillis()-last)) + ", sections: " + debugLayer.sectioncount);
+            last = System.currentTimeMillis();
+            count = 0;
+        }
+        frame++;
+
         MinecraftClient.getInstance().getProfiler().push("hiz resize");
         hiZ.resize(MinecraftClient.getInstance().getFramebuffer().textureWidth, MinecraftClient.getInstance().getFramebuffer().viewportHeight);
         MinecraftClient.getInstance().getFramebuffer().beginWrite(true);
         glNamedFramebufferTexture(MinecraftClient.getInstance().getFramebuffer().fbo, GL_DEPTH_ATTACHMENT, hiZ.mipDepthTex, 0);
         glClear(GL_DEPTH_BUFFER_BIT);
+        MinecraftClient.getInstance().getProfiler().swap("finish");
+        glFinish();
         MinecraftClient.getInstance().getProfiler().swap("region");
         debugLayer.being(null);
+
         if (!regionManager.regions.isEmpty()) {
             for (Region r : regionManager.regions.values().stream()//.limit(1)
                     .toList()) {
-                debugLayer.superdebugtestrender(r, renderMatrices, pos.sub(r.pos.x()<<9, r.pos.y()*5*16, r.pos.z()<<9,new Vector3f()));
+                debugLayer.superdebugtestrender(frame, r, renderMatrices, pos.sub(r.pos.x()<<9, r.pos.y()*5*16, r.pos.z()<<9,new Vector3f()));
             }
         }
         debugLayer.end();
         MinecraftClient.getInstance().getProfiler().swap("hiz build");
         hiZ.buildMips();
+        MinecraftClient.getInstance().getProfiler().swap("cull_test");
+        culler.begin(renderMatrices, pos, frame);
+        if (!regionManager.regions.isEmpty()) {
+            regionManager.regions.values().forEach(culler::process);
+        }
+        culler.end();
+        MinecraftClient.getInstance().getProfiler().swap("other");
+
         MinecraftClient.getInstance().getFramebuffer().beginWrite(true);
         //hiZ.debugBlit(4);
 
@@ -60,6 +84,6 @@ public class CoreRenderer {
     }
 
     public void tick() {
-        regionManager.tick(0);
+        regionManager.tick(frame);
     }
 }

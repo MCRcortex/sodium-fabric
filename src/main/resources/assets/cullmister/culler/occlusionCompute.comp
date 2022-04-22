@@ -40,6 +40,9 @@ layout(std430, binding = 4) buffer DrawInstancedData_b {
   Called when a chunk is not occluded
 */
 void chunk_visible(float distance) {
+    atomicCounterAdd(drawInstancedDataCounter, 1);
+    subchunks[gl_GlobalInvocationID.x].lastRenderFrame = renderId;
+    /*
     visibleChunks[atomicCounterAdd(visibleChunkCounter, 1)] = subchunks[gl_GlobalInvocationID.x].id;
     subchunks[gl_GlobalInvocationID.x].lastRenderFrame = renderId;
 
@@ -79,7 +82,7 @@ void chunk_visible(float distance) {
     drawCommands[cidx].baseInstance = instanceDataIdx;
     drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].TRANSLUCENT.count * 6;
     drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].TRANSLUCENT.offset;
-
+    */
 
 }
 
@@ -106,8 +109,7 @@ void main (){
         return;
     if (subchunks[gl_GlobalInvocationID.x].id != gl_GlobalInvocationID.x)
         return;
-    base = (Vec3ItoVec3(subchunks[gl_GlobalInvocationID.x].pos) * 16) +
-       Vec3FtoVec3(subchunks[gl_GlobalInvocationID.x].bboxOffset);
+    base = Vec3FtoVec3(subchunks[gl_GlobalInvocationID.x].bboxOffset);
     size = Vec3FtoVec3(subchunks[gl_GlobalInvocationID.x].bboxSize);
     // clipspace bbox
     vec4 hPos    = viewModelProjectionTranslate * getBoxCorner(0);

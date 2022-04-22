@@ -245,9 +245,11 @@ public class RenderSectionManager {
 
     private boolean unloadSection(int x, int y, int z) {
         RenderSection chunk = this.tree.remove(x, y, z);
-        if (chunk.isBuilt() && chunk.data()!=ChunkRenderData.EMPTY && chunk.data().meshes != null)
-            SodiumWorldRenderer.renderer.regionManager.enqueueRemoval(chunk.getChunkPos());
+        //if (chunk.isBuilt() && chunk.data()!=ChunkRenderData.EMPTY && chunk.data().meshes != null)
+        //    SodiumWorldRenderer.renderer.regionManager.enqueueRemoval(chunk.getChunkPos());
         chunk.delete();
+        //TODO: need to add removal checks
+        SodiumWorldRenderer.renderer.regionManager.enqueueRemoval(chunk.getChunkPos());
         return true;
     }
 

@@ -17,6 +17,7 @@ import org.joml.Random;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL33C;
 import org.lwjgl.opengl.GL45C;
+import org.lwjgl.system.MemoryUtil;
 
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
@@ -92,6 +93,7 @@ public class LayerRenderer {
         GL45C.glBindSampler(0, mipsampler);
         GL45C.glBindSampler(1, lightsampler);
         glEnable(GL_DEPTH_TEST);
+        sectioncount = 0;
     }
 
     public void end() {
@@ -101,15 +103,24 @@ public class LayerRenderer {
         RenderSystem.disableTexture();
     }
 
-    public void superdebugtestrender(Region region, ChunkRenderMatrices renderMatrices, Vector3f pos) {debugdrawer.bind();
+    long sectioncount;
+    public void superdebugtestrender(int renderId, Region region, ChunkRenderMatrices renderMatrices, Vector3f pos) {
+        debugdrawer.bind();
         region.vao.bind();
         MinecraftClient.getInstance().getProfiler().push("sections");
         for (Section s : region.sections.values()) {
             if (s.vertexDataPosition == null)
                 return;
-            debugdrawer.setUniform("viewModelProjectionTranslate", new Matrix4f(renderMatrices.projection()).mul(renderMatrices.modelView()).translate(new Vector3f().set(pos).negate()).translate(s.pos.x()*16, s.pos.y()*16, s.pos.z()*16));
-
-            glDrawElementsBaseVertex(GL_TRIANGLES, (int) ((((s.vertexDataPosition.size / 20) / 4) * 6)), GL_UNSIGNED_INT, 0, (int) (s.vertexDataPosition.offset / 20));
+            MinecraftClient.getInstance().getProfiler().swap("map");
+            long ptr = region.chunkMeta.mappedNamedPtrRanged(((long) s.id *Section.SIZE)+4,4, GL_MAP_READ_BIT);
+            int rendered = MemoryUtil.memGetInt(ptr);
+            region.chunkMeta.unmapNamed();
+            if (rendered == renderId-1) {
+                MinecraftClient.getInstance().getProfiler().swap("draw");
+                debugdrawer.setUniform("viewModelProjectionTranslate", new Matrix4f(renderMatrices.projection()).mul(renderMatrices.modelView()).translate(new Vector3f().set(pos).negate()).translate(s.pos.x() * 16, s.pos.y() * 16, s.pos.z() * 16));
+                glDrawElementsBaseVertex(GL_TRIANGLES, (int) ((((s.vertexDataPosition.size / 20) / 4) * 6)), GL_UNSIGNED_INT, 0, (int) (s.vertexDataPosition.offset / 20));
+                sectioncount++;
+            }
         }
         MinecraftClient.getInstance().getProfiler().pop();
         region.vao.unbind();

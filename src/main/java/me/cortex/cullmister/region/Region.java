@@ -5,11 +5,13 @@ import it.unimi.dsi.fastutil.ints.*;
 import me.cortex.cullmister.utils.VAO;
 import me.cortex.cullmister.utils.VBO;
 import me.cortex.cullmister.utils.arena.GLSparse;
+import net.caffeinemc.sodium.render.chunk.RenderSectionManager;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
 import net.caffeinemc.sodium.util.NativeBuffer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.VertexFormat;
 import net.minecraft.util.math.ChunkSectionPos;
+import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
 
 import java.util.PriorityQueue;
@@ -18,15 +20,19 @@ import static org.lwjgl.opengl.GL11.GL_SHORT;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_SHORT;
 import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.opengl.GL30.GL_MAP_READ_BIT;
+import static org.lwjgl.opengl.GL30.GL_MAP_WRITE_BIT;
 import static org.lwjgl.opengl.GL33.glVertexAttribDivisor;
 import static org.lwjgl.opengl.GL42.glMemoryBarrier;
-import static org.lwjgl.opengl.GL45.nglNamedBufferSubData;
+import static org.lwjgl.opengl.GL44.GL_DYNAMIC_STORAGE_BIT;
+import static org.lwjgl.opengl.GL45.*;
 
 public class Region {
     public static class DrawData {
         public GLSparse drawCommands = new GLSparse();
         public VBO drawMeta = new VBO();
         public VBO drawCounts = new VBO();
+        //TODO: merge this into the count above
         public VBO drawMetaCount = new VBO();
     }
 
@@ -48,7 +54,9 @@ public class Region {
     public Region(RegionPos pos) {
         this.pos = pos;
         buildVAO();
-
+        glNamedBufferStorage(chunkMeta.id, 32*5*32*Section.SIZE, GL_DYNAMIC_STORAGE_BIT|GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
+        glNamedBufferData(drawData.drawCounts.id, 4*4, GL_DYNAMIC_DRAW);//4 counts
+        glNamedBufferData(drawData.drawMetaCount.id, 4, GL_DYNAMIC_DRAW);//4 counts
     }
     public void buildVAO() {
         RenderSystem.IndexBuffer ib = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS, 100000);
@@ -64,6 +72,7 @@ public class Region {
         vao.glVertexAttribPointer(0, 3, GL_FLOAT, false, 3*4,0);
         glVertexAttribDivisor(0, 1);
         vao.unbind();
+
     }
 
 
@@ -103,6 +112,9 @@ public class Region {
                 vertexData.free(section.vertexDataPosition);
                 section.vertexDataPosition = null;
             }
+            long ptr = nglMapNamedBufferRange(chunkMeta.id, (long) Section.SIZE *section.id, 4, GL_MAP_WRITE_BIT);
+            MemoryUtil.memPutInt(ptr, -1);
+            glUnmapNamedBuffer(chunkMeta.id);
 
             if (id == sectionCount-1) {
                 //Free as many sections as possible
@@ -118,7 +130,7 @@ public class Region {
                 freeIds.add(id);
             }
         } else {
-            throw new IllegalStateException();
+            //throw new IllegalStateException();
         }
     }
     //TODO: Optimize sparse buffer update transactions
@@ -131,14 +143,17 @@ public class Region {
             section.vertexDataPosition = null;
         }
 
+        section.size = new Vector3f(result.data().bounds.x2 - result.data().bounds.x1, result.data().bounds.y2 - result.data().bounds.y1, result.data().bounds.z2 - result.data().bounds.z1);
+        section.offset = new Vector3f(result.data().bounds.x1 - result.pos().getMinX(), result.data().bounds.y1 - result.pos().getMinY(), result.data().bounds.z1 - result.pos().getMinZ()).add(0.5f, 0.5f, 0.5f);
         //Enqueue data upload, probably via an upload buffer that is mapped, this is because it can be alot faster
         // than buffersubdata as the gl pipeline must stall until copy is complete
         NativeBuffer buffer = result.geometry().vertices().buffer();
         section.vertexDataPosition = vertexData.alloc(buffer.getLength());
         nglNamedBufferSubData(vertexData.id, section.vertexDataPosition.offset, section.vertexDataPosition.size, MemoryUtil.memAddress(buffer.getDirectBuffer()));
-
+        long ptr = nglMapNamedBufferRange(chunkMeta.id, (long) Section.SIZE *section.id, Section.SIZE, GL_MAP_WRITE_BIT);
+        section.write(ptr);
+        glUnmapNamedBuffer(chunkMeta.id);
         MinecraftClient.getInstance().getProfiler().pop();
-
         //Rewrite updated meta info to chunk meta
     }
 

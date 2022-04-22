@@ -78,8 +78,10 @@ public class RegionManager {
     }
 
     public void enqueueRemoval(ChunkSectionPos pos) {
-        if (!regions.containsKey(RegionPos.from(pos).Long()))
-            throw new IllegalStateException();
+        if (!regions.containsKey(RegionPos.from(pos).Long())) {
+            return;
+            //throw new IllegalStateException();
+        }
 
         Region r = getRegion(pos);
         r.remove(pos);

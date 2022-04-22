@@ -23,7 +23,7 @@ struct Range {
 struct SubChunk {
     uint id;
     uint lastRenderFrame;
-    Vec3F bboxOffset;//Maybe make this include pos offset for speed
+    Vec3F bboxOffset;
     Vec3F bboxSize;
     Vec3I pos;
 
