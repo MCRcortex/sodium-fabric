@@ -65,7 +65,7 @@ public class ComputeCullInterface {
     public void process(Region region) {
         prepAndBind(region);
         cullShader.setUniform("viewModelProjectionTranslate", baseMat.translate((region.pos.x()<<9)-cam_pos.x, (region.pos.y()*5*16)-cam_pos.y, (region.pos.z()<<9)-cam_pos.z, new Matrix4f()));
-        cullShader.dispatch((int) Math.ceil((double) region.sectionCount/64),1,1);
+        cullShader.dispatch((int) Math.ceil((double) region.sectionCount/32),1,1);
         //long ptr = region.drawData.drawMetaCount.mappedNamedPtrRanged(0,4,GL_MAP_READ_BIT);
         //System.out.println(MemoryUtil.memGetInt(ptr));
         //region.drawData.drawMetaCount.unmapNamed();

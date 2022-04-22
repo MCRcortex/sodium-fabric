@@ -3,6 +3,7 @@ package me.cortex.cullmister.region;
 import me.cortex.cullmister.utils.arena.GLSparseRange;
 import net.caffeinemc.sodium.render.buffer.VertexRange;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderBounds;
+import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.lwjgl.system.MemoryUtil;
@@ -35,6 +36,8 @@ public class Section {
         ptr += 12;
         new Vector3i(pos.x(), pos.y(), pos.z()).getToAddress(ptr);
         ptr += 12;
+        ptr += 4;
+        new Vector2i((int) (vertexDataPosition.offset/20), (int) ((vertexDataPosition.size/20)/4)).getToAddress(ptr);
     }
 
 

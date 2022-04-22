@@ -15,10 +15,13 @@ import net.minecraft.client.texture.TextureManager;
 import org.joml.Matrix4f;
 import org.joml.Random;
 import org.joml.Vector3f;
+import org.lwjgl.opengl.GL15C;
 import org.lwjgl.opengl.GL33C;
 import org.lwjgl.opengl.GL45C;
 import org.lwjgl.system.MemoryUtil;
 
+import static org.lwjgl.opengl.ARBIndirectParameters.GL_PARAMETER_BUFFER_ARB;
+import static org.lwjgl.opengl.ARBIndirectParameters.nglMultiDrawElementsIndirectCountARB;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_SHORT;
@@ -26,6 +29,11 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL32C.glDrawElementsBaseVertex;
 import static org.lwjgl.opengl.GL33.*;
 import static org.lwjgl.opengl.GL33.glSamplerParameteri;
+import static org.lwjgl.opengl.GL40.GL_DRAW_INDIRECT_BUFFER;
+import static org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS;
+import static org.lwjgl.opengl.GL42.glMemoryBarrier;
+import static org.lwjgl.opengl.GL42C.GL_ATOMIC_COUNTER_BARRIER_BIT;
+import static org.lwjgl.opengl.GL42C.GL_COMMAND_BARRIER_BIT;
 
 public class LayerRenderer {
     Shader debugdrawer;
@@ -43,6 +51,7 @@ public class LayerRenderer {
         debugdrawer = new Shader("""
                 #version 460
                 uniform mat4 viewModelProjectionTranslate;
+                layout(location = 0) in vec3 Offset;
                 layout(location = 1) in vec3 Pos;
                 layout(location = 2) in vec4 colourA;
                 layout(location = 3) in vec2 textpos;
@@ -54,7 +63,7 @@ public class LayerRenderer {
                 out vec2 v_TexCoord;
                 out vec2 v_LightCoord;
                 void main(){
-                    gl_Position = viewModelProjectionTranslate*vec4((Pos*16 + 8), 1.0);
+                    gl_Position = viewModelProjectionTranslate*vec4((Pos*16 + 8)+Offset, 1.0);
                     v_TexCoord = textpos;
                     v_Color = colourA;
                     v_LightCoord = lightcourd;
@@ -105,23 +114,18 @@ public class LayerRenderer {
 
     long sectioncount;
     public void superdebugtestrender(int renderId, Region region, ChunkRenderMatrices renderMatrices, Vector3f pos) {
-        debugdrawer.bind();
+        MinecraftClient.getInstance().getProfiler().push("bind");
         region.vao.bind();
-        MinecraftClient.getInstance().getProfiler().push("sections");
-        for (Section s : region.sections.values()) {
-            if (s.vertexDataPosition == null)
-                return;
-            MinecraftClient.getInstance().getProfiler().swap("map");
-            long ptr = region.chunkMeta.mappedNamedPtrRanged(((long) s.id *Section.SIZE)+4,4, GL_MAP_READ_BIT);
-            int rendered = MemoryUtil.memGetInt(ptr);
-            region.chunkMeta.unmapNamed();
-            if (rendered == renderId-1) {
-                MinecraftClient.getInstance().getProfiler().swap("draw");
-                debugdrawer.setUniform("viewModelProjectionTranslate", new Matrix4f(renderMatrices.projection()).mul(renderMatrices.modelView()).translate(new Vector3f().set(pos).negate()).translate(s.pos.x() * 16, s.pos.y() * 16, s.pos.z() * 16));
-                glDrawElementsBaseVertex(GL_TRIANGLES, (int) ((((s.vertexDataPosition.size / 20) / 4) * 6)), GL_UNSIGNED_INT, 0, (int) (s.vertexDataPosition.offset / 20));
-                sectioncount++;
-            }
-        }
+        glBindBuffer(GL_PARAMETER_BUFFER_ARB, region.drawData.drawCounts.id);
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, region.drawData.drawCommands.id);
+        debugdrawer.setUniform("viewModelProjectionTranslate", new Matrix4f(renderMatrices.projection()).mul(renderMatrices.modelView()).translate(new Vector3f().set(pos).negate()));
+        //long ptr = region.drawData.drawCounts.mappedNamedPtr(GL15C.GL_READ_ONLY);
+        //System.err.println(MemoryUtil.memGetInt(ptr));
+        //region.drawData.drawCounts.unmapNamed();
+
+        MinecraftClient.getInstance().getProfiler().swap("draw");
+        nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT,0,0,100000,0);
+
         MinecraftClient.getInstance().getProfiler().pop();
         region.vao.unbind();
     }

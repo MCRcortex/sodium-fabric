@@ -16,6 +16,7 @@ import org.lwjgl.system.MemoryUtil;
 
 import java.util.PriorityQueue;
 
+import static org.lwjgl.opengl.ARBDirectStateAccess.nglClearNamedBufferData;
 import static org.lwjgl.opengl.GL11.GL_SHORT;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_SHORT;
@@ -29,7 +30,7 @@ import static org.lwjgl.opengl.GL45.*;
 
 public class Region {
     public static class DrawData {
-        public GLSparse drawCommands = new GLSparse();
+        public VBO drawCommands = new VBO();
         public VBO drawMeta = new VBO();
         public VBO drawCounts = new VBO();
         //TODO: merge this into the count above
@@ -53,10 +54,15 @@ public class Region {
 
     public Region(RegionPos pos) {
         this.pos = pos;
-        buildVAO();
         glNamedBufferStorage(chunkMeta.id, 32*5*32*Section.SIZE, GL_DYNAMIC_STORAGE_BIT|GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
+        glNamedBufferStorage(drawData.drawMeta.id, 3*4*32*5*32, GL_DYNAMIC_STORAGE_BIT);
         glNamedBufferData(drawData.drawCounts.id, 4*4, GL_DYNAMIC_DRAW);//4 counts
-        glNamedBufferData(drawData.drawMetaCount.id, 4, GL_DYNAMIC_DRAW);//4 counts
+        glNamedBufferData(drawData.drawMetaCount.id, 4, GL_DYNAMIC_DRAW);//1 count
+        glNamedBufferStorage(drawData.drawCommands.id, 5*4*100000, GL_DYNAMIC_STORAGE_BIT);
+
+        nglClearNamedBufferData(drawData.drawCounts.id, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, 0);
+        nglClearNamedBufferData(drawData.drawMetaCount.id, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, 0);
+        buildVAO();
     }
     public void buildVAO() {
         RenderSystem.IndexBuffer ib = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS, 100000);
