@@ -90,7 +90,7 @@ public class SodiumWorldRenderer {
         if (this.world == world) {
             return;
         }
-
+        renderer.setWorld(world);
         // If we have a world is already loaded, unload the renderer
         if (this.world != null) {
             this.unloadWorld();
@@ -151,17 +151,24 @@ public class SodiumWorldRenderer {
      * Called prior to any chunk rendering in order to update necessary state.
      */
     public void updateChunks(Camera camera, Frustum frustum, @Deprecated(forRemoval = true) int frame, boolean spectator) {
-        NativeBuffer.reclaim(false);
-        renderer.tick();
+        Profiler profiler = this.client.getProfiler();
+
         this.useEntityCulling = SodiumClientMod.options().performance.useEntityCulling;
 
         if (this.client.options.getViewDistance() != this.renderDistance) {
             this.reload();
         }
 
-        Profiler profiler = this.client.getProfiler();
-        profiler.push("camera_setup");
+        profiler.push("my_tick");
+        renderer.tick();
+        NativeBuffer.reclaim(false);
+        if (false) {
+            profiler.pop();
+            return;
+        }
 
+
+        profiler.swap("camera_setup");
         ClientPlayerEntity player = this.client.player;
 
         if (player == null) {
@@ -187,11 +194,12 @@ public class SodiumWorldRenderer {
         this.lastCameraYaw = yaw;
         this.lastFogDistance = fogDistance;
 
-        profiler.swap("chunk_update");
+        profiler.swap("tracker");
 
         this.chunkTracker.update();
 
         this.renderSectionManager.setFrameIndex(frame);
+        profiler.swap("chunk_update");
         this.renderSectionManager.updateChunks();
 
         if (this.renderSectionManager.isGraphDirty()) {
@@ -214,7 +222,8 @@ public class SodiumWorldRenderer {
      */
     public void drawChunkLayer(RenderLayer renderLayer, MatrixStack matrixStack) {
         ChunkRenderPass renderPass = this.renderPassManager.getRenderPassForLayer(renderLayer);
-        this.renderSectionManager.renderLayer(ChunkRenderMatrices.from(matrixStack), renderPass);
+        if (renderLayer == RenderLayer.getCutout() && false)
+            this.renderSectionManager.renderLayer(ChunkRenderMatrices.from(matrixStack), renderPass);
     }
 
     public void reload() {
@@ -226,7 +235,7 @@ public class SodiumWorldRenderer {
     }
 
 
-    public static CoreRenderer renderer;
+    public static CoreRenderer renderer = new CoreRenderer();
     private void initRenderer() {
         if (this.renderSectionManager != null) {
             this.renderSectionManager.destroy();
@@ -239,9 +248,6 @@ public class SodiumWorldRenderer {
 
         this.renderSectionManager = new RenderSectionManager(SodiumClientMod.DEVICE, this, this.renderPassManager, this.world, this.renderDistance);
         this.renderSectionManager.reloadChunks(this.chunkTracker);
-        if (renderer == null) {
-            renderer = new CoreRenderer(this.world);
-        }
     }
 
     public void renderTileEntities(MatrixStack matrices, BufferBuilderStorage bufferBuilders, Long2ObjectMap<SortedSet<BlockBreakingInfo>> blockBreakingProgressions,

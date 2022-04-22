@@ -197,9 +197,8 @@ public class HiZ {
         RenderSystem.enableDepthTest();
         mipChainShader.bind();
         glDepthFunc(GL_ALWAYS);
-        glActiveTexture(GL_TEXTURE0);
+        RenderSystem.enableTexture();
         glBindTexture(GL_TEXTURE_2D, mipDepthTex);
-        //TODO: CHANGE TO USE TEXTURE UNIT SHIT
         GL45C.glBindTextureUnit(0, mipDepthTex);
         GL45C.glBindSampler(0, sampler);
         dummyVAO.bind();
@@ -209,16 +208,12 @@ public class HiZ {
         int cwidth = width / 2;
         int cheight = height / 2;
         for (int level = 1; level < levels; level++) {
-
             glViewport(0, 0, cwidth, cheight);
             //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, mipDepthTex, level);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, mipDepthTex, level);
             glUniform1i(0, level-1);
             glUniform1i(1, wasEven?1:0);
-
             glDrawArrays(GL_TRIANGLES, 0, 3);
-
-
             wasEven = cwidth % 2 == 0 && cheight % 2 == 0;
             cwidth = Math.max(1, cwidth/2);
             cheight = Math.max(1, cheight/2);
@@ -232,6 +227,9 @@ public class HiZ {
         glBindTexture(GL_TEXTURE_2D, 0);
         glDepthFunc(GL_LEQUAL);
         glViewport(0, 0, width, height);
+        RenderSystem.disableTexture();
+        GL45C.glBindTextureUnit(0, 0);
+        GL45C.glBindSampler(0, 0);
     }
 
 

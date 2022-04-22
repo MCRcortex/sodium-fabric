@@ -15,7 +15,7 @@ public class ShaderPreprocessor {
     public static String load(Path file, Path... includePaths) {
         List<Path> includes = new LinkedList<>(List.of(includePaths));
         try {
-            includes.add(Path.of(ClassLoader.getSystemClassLoader().getResource("assets/cullermister/include").toURI()));
+            includes.add(Path.of(ShaderPreprocessor.class.getResource("/assets/cullmister/include/").toURI()));
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
@@ -25,12 +25,12 @@ public class ShaderPreprocessor {
     private static Path resolveImports(String name, Path requester, List<Path> includes) {
         if (requester.resolve(name).toFile().isFile())
             return requester.resolve(name);
-        String base = name.substring(name.lastIndexOf("/"));
+        String base = name.contains("/")?name.substring(name.lastIndexOf("/")):name;
         for (Path i : includes) {
-            if (i.toFile().isFile())
+            if (i.toFile().isFile()) {
                 if (i.toString().endsWith(base))
                     return i;
-            else
+            } else
                 if (i.resolve(name).toFile().isFile())
                     return i.resolve(name);
         }

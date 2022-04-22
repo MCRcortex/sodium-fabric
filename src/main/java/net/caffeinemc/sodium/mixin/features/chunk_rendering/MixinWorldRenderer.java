@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.FrustumAdapter;
 import net.caffeinemc.sodium.interop.vanilla.mixin.WorldRendererHolder;
+import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.caffeinemc.sodium.world.ChunkStatus;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.GameOptions;
@@ -13,6 +14,7 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Matrix4f;
+import org.joml.Vector3f;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -86,6 +88,10 @@ public abstract class MixinWorldRenderer implements WorldRendererHolder {
      */
     @Overwrite
     private void renderLayer(RenderLayer renderLayer, MatrixStack matrices, double x, double y, double z, Matrix4f matrix) {
+        if (renderLayer == RenderLayer.getCutout()) {
+            SodiumWorldRenderer.renderer.debugRender(ChunkRenderMatrices.from(matrices), new Vector3f((float)x,(float)y,(float) z));
+        }
+
         this.renderer.drawChunkLayer(renderLayer, matrices);
 
         // VANILLA BUG: Binding a RenderLayer for chunk rendering will result in setShaderColor being called,
@@ -150,6 +156,7 @@ public abstract class MixinWorldRenderer implements WorldRendererHolder {
 
     @Inject(method = "reload()V", at = @At("RETURN"))
     private void onReload(CallbackInfo ci) {
+        SodiumWorldRenderer.renderer.reload();
         this.renderer.reload();
     }
 

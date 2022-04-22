@@ -23,7 +23,7 @@ public class RenderSection {
     private ChunkRenderData data = ChunkRenderData.ABSENT;
     private CompletableFuture<?> rebuildTask = null;
 
-    private ChunkUpdateType pendingUpdate;
+    public ChunkUpdateType pendingUpdate;
     private UploadedChunkGeometry uploadedGeometry;
 
     private boolean disposed;

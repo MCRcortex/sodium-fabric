@@ -36,10 +36,12 @@ import net.caffeinemc.sodium.world.ChunkTracker;
 import net.caffeinemc.sodium.world.slice.WorldSliceData;
 import net.caffeinemc.sodium.world.slice.cloned.ClonedChunkSectionCache;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
@@ -243,7 +245,7 @@ public class RenderSectionManager {
 
     private boolean unloadSection(int x, int y, int z) {
         RenderSection chunk = this.tree.remove(x, y, z);
-        if (chunk.isBuilt() && chunk.data()!=ChunkRenderData.EMPTY)
+        if (chunk.isBuilt() && chunk.data()!=ChunkRenderData.EMPTY && chunk.data().meshes != null)
             SodiumWorldRenderer.renderer.regionManager.enqueueRemoval(chunk.getChunkPos());
         chunk.delete();
         return true;
@@ -280,20 +282,27 @@ public class RenderSectionManager {
     }
 
     public void updateChunks() {
+        MinecraftClient.getInstance().getProfiler().push("rebuild tasks");
         var blockingFutures = this.submitRebuildTasks(ChunkUpdateType.IMPORTANT_REBUILD);
 
+        MinecraftClient.getInstance().getProfiler().swap("submit tasks");
         this.submitRebuildTasks(ChunkUpdateType.INITIAL_BUILD);
         this.submitRebuildTasks(ChunkUpdateType.REBUILD);
 
+        MinecraftClient.getInstance().getProfiler().swap("pending uploads");
         // Try to complete some other work on the main thread while we wait for rebuilds to complete
         this.needsUpdate |= this.performPendingUploads();
 
+        MinecraftClient.getInstance().getProfiler().swap("uploads");
         if (!blockingFutures.isEmpty()) {
             this.needsUpdate = true;
             this.regions.uploadChunks(new WorkStealingFutureDrain<>(blockingFutures, this.builder::stealTask), this::onChunkDataChanged);
         }
 
+        MinecraftClient.getInstance().getProfiler().swap("cleanup");
         this.regions.cleanup();
+
+        MinecraftClient.getInstance().getProfiler().pop();
     }
 
     private LinkedList<CompletableFuture<TerrainBuildResult>> submitRebuildTasks(ChunkUpdateType filterType) {
@@ -314,7 +323,9 @@ public class RenderSectionManager {
             if (section.getPendingUpdate() != filterType) {
                 continue;
             }
-            SodiumWorldRenderer.renderer.regionManager.enqueueRebuild(section.getChunkPos(), currentFrame);
+            SodiumWorldRenderer.renderer.regionManager.enqueueRebuild(section.getChunkPos(), filterType.isImportant());
+            section.pendingUpdate = null;
+            /*
             AbstractBuilderTask task = this.createTerrainBuildTask(section);
             CompletableFuture<?> future;
 
@@ -327,7 +338,8 @@ public class RenderSectionManager {
                 future = this.builder.scheduleDeferred(task);
             }
 
-            section.onBuildSubmitted(future);
+             */
+
 
             budget--;
         }
@@ -397,6 +409,10 @@ public class RenderSectionManager {
     }
 
     public void scheduleRebuild(int x, int y, int z, boolean important) {
+        if (y>=-4 && y<20) {
+            //TODO: When this is implmented need to do chunkTracker flag shit
+            //SodiumWorldRenderer.renderer.regionManager.enqueueRebuild(ChunkSectionPos.from(x, y, z), important);
+        }
         this.sectionCache.invalidate(x, y, z);
 
         RenderSection section = this.tree.getSection(x, y, z);

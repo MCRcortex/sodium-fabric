@@ -30,7 +30,7 @@ public class ChunkBuildEngine {
     ClonedChunkSectionCache sectionCache;
     TerrainVertexType vertexType;
     ChunkRenderPassManager mappings;
-
+    boolean isRunning = true;
     final Semaphore inflowWork = new Semaphore(0);
     final ObjectLinkedOpenHashSet<TerrainBuildTask> inflowWorkQueue = new ObjectLinkedOpenHashSet<>();
     final PriorityQueue<TerrainBuildResult> outflowWorkQueue = new ObjectArrayFIFOQueue<>();
@@ -54,7 +54,7 @@ public class ChunkBuildEngine {
 
     //TODO: add a thing that if a new task is added for a chunk section that is already being dispatched,
     // cancel that task
-    public void requestRebuild(ChunkSectionPos pos, int frame) {
+    public void requestRebuild(ChunkSectionPos pos, int frame, boolean important) {
         synchronized (buildTasks) {
             TerrainBuildTask et;
             boolean inc = true;
@@ -64,6 +64,7 @@ public class ChunkBuildEngine {
                     inc = false;
                 }
             }
+            sectionCache.invalidate(pos.getX(), pos.getY(), pos.getZ());
             WorldSliceData data = WorldSliceData.prepare(this.world, pos, this.sectionCache);
             if (data == null) {
                 if (!inc)
@@ -73,7 +74,13 @@ public class ChunkBuildEngine {
             }
             TerrainBuildTask task = new TerrainBuildTask(pos, data, frame);
             synchronized (inflowWorkQueue) {
-                inflowWorkQueue.add(task);
+                if (important) {
+                    if (!inflowWorkQueue.addAndMoveToFirst(task))
+                        throw new IllegalStateException();
+                } else {
+                    if (!inflowWorkQueue.add(task))
+                        throw new IllegalStateException();
+                }
             }
             if (inc)
                 inflowWork.release();
@@ -85,13 +92,15 @@ public class ChunkBuildEngine {
 
     private void worker() {
         TerrainBuildContext context = new TerrainBuildContext(world, vertexType, mappings);
-        while (true) {
+        while (isRunning) {
             TerrainBuildTask work;
             try {
                 inflowWork.acquire();
             } catch (InterruptedException e) {
                 break;
             }
+            if (!isRunning)
+                break;
             synchronized (buildTasks) {
                 synchronized (inflowWorkQueue) {
                     work = inflowWorkQueue.removeFirst();
@@ -99,8 +108,11 @@ public class ChunkBuildEngine {
             }
             try {
                 TerrainBuildResult result = work.performBuild(context, () -> work.canceled);
-                if (work.canceled)
+                if (work.canceled) {
+                    if (result != null)
+                        result.delete();
                     continue;
+                }
                 synchronized (buildTasks) {
                     synchronized (outflowWorkQueue) {
                         outflowWorkQueue.enqueue(result);
@@ -111,6 +123,30 @@ public class ChunkBuildEngine {
                 context.release();
             }
 
+        }
+    }
+
+    public void delete() {
+        isRunning = false;
+        inflowWork.release(100000);
+    }
+
+    public void clear() {
+        synchronized (buildTasks) {
+            synchronized (inflowWorkQueue) {
+                inflowWork.drainPermits();
+                inflowWorkQueue.clear();
+            }
+            for (TerrainBuildTask task : buildTasks.values()) {
+                task.canceled = true;
+            }
+            buildTasks.clear();
+            synchronized (outflowWorkQueue) {
+                while (!outflowWorkQueue.isEmpty()) {
+                    outflowWorkQueue.dequeue().delete();
+                }
+                outflowWorkQueue.clear();
+            }
         }
     }
 }

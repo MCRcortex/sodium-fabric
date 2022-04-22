@@ -1,36 +1,69 @@
 package me.cortex.cullmister.region;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import it.unimi.dsi.fastutil.ints.*;
+import me.cortex.cullmister.utils.VAO;
 import me.cortex.cullmister.utils.VBO;
 import me.cortex.cullmister.utils.arena.GLSparse;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
+import net.caffeinemc.sodium.util.NativeBuffer;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.VertexFormat;
 import net.minecraft.util.math.ChunkSectionPos;
+import org.lwjgl.system.MemoryUtil;
 
 import java.util.PriorityQueue;
 
+import static org.lwjgl.opengl.GL11.GL_SHORT;
+import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
+import static org.lwjgl.opengl.GL11.GL_UNSIGNED_SHORT;
+import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.opengl.GL33.glVertexAttribDivisor;
+import static org.lwjgl.opengl.GL42.glMemoryBarrier;
+import static org.lwjgl.opengl.GL45.nglNamedBufferSubData;
+
 public class Region {
     public static class DrawData {
-        GLSparse drawCommands;
-        VBO drawMeta;
-        VBO drawCounts;
+        public GLSparse drawCommands = new GLSparse();
+        public VBO drawMeta = new VBO();
+        public VBO drawCounts = new VBO();
+        public VBO drawMetaCount = new VBO();
     }
 
-    GLSparse vertexData;
-    VBO chunkMeta;
-    DrawData drawData = new DrawData();
+    public GLSparse vertexData = new GLSparse();
+    public VAO vao = new VAO();
+    public VBO chunkMeta = new VBO();
+    public DrawData drawData = new DrawData();
 
     public int sectionCount = 0;
-    Int2ObjectOpenHashMap<Section> sections = new Int2ObjectOpenHashMap<>();
+    public Int2ObjectOpenHashMap<Section> sections = new Int2ObjectOpenHashMap<>();
     Int2IntOpenHashMap pos2id = new Int2IntOpenHashMap();
     IntAVLTreeSet freeIds = new IntAVLTreeSet();
 
     //Contains chunk vertex data, chunk meta data, draw call shit etc etc
     //Region size should be like 16x6x16? or like 32x6x32
     // could do like a pre pass filter on them too with hiz and indirectcomputedispatch
-    final RegionPos pos;
+    public final RegionPos pos;
 
     public Region(RegionPos pos) {
         this.pos = pos;
+        buildVAO();
+
+    }
+    public void buildVAO() {
+        RenderSystem.IndexBuffer ib = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS, 100000);
+        vao.bind();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib.getId());
+        glBindBuffer(GL_ARRAY_BUFFER, vertexData.id);
+        //As defined by TerrainVertexType
+        vao.glVertexAttribPointer(1, 3, GL_SHORT, true, 20,0);
+        vao.glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, true, 20,8);
+        vao.glVertexAttribPointer(3, 2, GL_UNSIGNED_SHORT, true, 20,12);
+        vao.glVertexAttribPointer(4, 2, GL_UNSIGNED_SHORT, true, 20,16);
+        glBindBuffer(GL_ARRAY_BUFFER, drawData.drawMeta.id);
+        vao.glVertexAttribPointer(0, 3, GL_FLOAT, false, 3*4,0);
+        glVertexAttribDivisor(0, 1);
+        vao.unbind();
     }
 
 
@@ -47,7 +80,10 @@ public class Region {
     public Section getOrCreate(ChunkSectionPos pos) {
         int pid = SectionPos.from(pos).hashCode();
         if (pos2id.containsKey(pid)) {
-            return sections.get(pos2id.get(pid));
+            Section section = sections.get(pos2id.get(pid));
+            if (!section.pos.equals(SectionPos.from(pos)))
+                throw new IllegalStateException();
+            return section;
         }
         int id = getNewChunkId();
         pos2id.put(pid, id);
@@ -63,7 +99,10 @@ public class Region {
             pos2id.remove(pid);
             Section section = sections.remove(id);
             //TODO: Cleanup and release section data, also set metadata id to be zero
-
+            if (section.vertexDataPosition != null) {
+                vertexData.free(section.vertexDataPosition);
+                section.vertexDataPosition = null;
+            }
 
             if (id == sectionCount-1) {
                 //Free as many sections as possible
@@ -82,9 +121,35 @@ public class Region {
             throw new IllegalStateException();
         }
     }
-
+    //TODO: Optimize sparse buffer update transactions
     public void updateMeshes(TerrainBuildResult result) {
+        MinecraftClient.getInstance().getProfiler().push("bufferdata");
         Section section = getOrCreate(result.pos());
-        //System.out.println(section.id);
+        if (section.vertexDataPosition != null) {
+            //Free buffer
+            vertexData.free(section.vertexDataPosition);
+            section.vertexDataPosition = null;
+        }
+
+        //Enqueue data upload, probably via an upload buffer that is mapped, this is because it can be alot faster
+        // than buffersubdata as the gl pipeline must stall until copy is complete
+        NativeBuffer buffer = result.geometry().vertices().buffer();
+        section.vertexDataPosition = vertexData.alloc(buffer.getLength());
+        nglNamedBufferSubData(vertexData.id, section.vertexDataPosition.offset, section.vertexDataPosition.size, MemoryUtil.memAddress(buffer.getDirectBuffer()));
+
+        MinecraftClient.getInstance().getProfiler().pop();
+
+        //Rewrite updated meta info to chunk meta
+    }
+
+
+    public void delete() {
+        //Cleanup all opengl objects
+        vao.delete();
+        chunkMeta.delete();
+        vertexData.delete();
+        drawData.drawCounts.delete();
+        drawData.drawMeta.delete();
+        drawData.drawCommands.delete();
     }
 }

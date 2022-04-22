@@ -90,6 +90,7 @@ public class RenderRegionManager {
             var vertices = geometry.vertices();
 
             if (vertices != null) {
+
                 var upload = new PendingUpload(vertices.buffer());
                 jobs.add(new ChunkGeometryUpload(render, geometry, upload.holder));
 
