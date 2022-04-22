@@ -35,7 +35,7 @@ import static org.lwjgl.opengl.GL44.GL_DYNAMIC_STORAGE_BIT;
 import static org.lwjgl.opengl.GL45.*;
 
 public class Region {
-    public static final int HEIGHT = 20;
+    public static final int HEIGHT = 10;
     public static class DrawData {
         public VBO drawCommands = new VBO();
         public VBO drawMeta = new VBO();

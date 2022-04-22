@@ -124,7 +124,10 @@ public class LayerRenderer {
         //region.drawData.drawCounts.unmapNamed();
 
         MinecraftClient.getInstance().getProfiler().swap("draw");
-        nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT,0,0,100000,0);
+        //TODO: NOTE: This command is EXTREAMLY SLOW in the graphics pipeline EVEN IF NOT DRAWING ANY TRIANGLES
+        //  This i think is due to the max draw count thing
+        // TODO: DO CONDITIONAL RENDERING FOR REGIONS
+        nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT,0,0,32*32*Region.HEIGHT,0);
 
         MinecraftClient.getInstance().getProfiler().pop();
         region.vao.unbind();

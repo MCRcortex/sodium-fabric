@@ -62,7 +62,7 @@ public class CoreRenderer {
         if (!regionManager.regions.isEmpty()) {
             for (Region r : regionManager.regions.values().stream()//.limit(1)
                     .toList()) {
-                debugLayer.superdebugtestrender(frame-1, r, renderMatrices, pos.sub(r.pos.x()<<9, r.pos.y()*Region.HEIGHT*16, r.pos.z()<<9,new Vector3f()));
+                debugLayer.superdebugtestrender(frame, r, renderMatrices, pos.sub(r.pos.x()<<9, r.pos.y()*Region.HEIGHT*16, r.pos.z()<<9,new Vector3f()));
             }
         }
         debugLayer.end();
