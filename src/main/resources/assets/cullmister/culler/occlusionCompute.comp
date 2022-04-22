@@ -138,7 +138,7 @@ void main (){
         float d = textureLod(depthTex,vec2(clipmax.x,clipmin.y),miplevel).r;
         float depth = max(max(a,b),max(c,d));
         if(clipmin.z < depth) {
-            //barrier();
+            barrier();
             chunk_visible((clipmin.z+clipmax.z)/2);
         }
     }

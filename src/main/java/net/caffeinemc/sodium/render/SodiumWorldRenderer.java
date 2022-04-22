@@ -162,7 +162,7 @@ public class SodiumWorldRenderer {
         profiler.push("my_tick");
         renderer.tick();
         NativeBuffer.reclaim(false);
-        if (false) {
+        if (true) {
             profiler.pop();
             return;
         }

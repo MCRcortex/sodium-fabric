@@ -59,7 +59,7 @@ public class CoreRenderer {
         MinecraftClient.getInstance().getProfiler().swap("region");
         debugLayer.being(null);
 
-        if (!regionManager.regions.isEmpty()) {
+        if (!regionManager.regions.isEmpty() ) {
             for (Region r : regionManager.regions.values().stream()//.limit(1)
                     .toList()) {
                 debugLayer.superdebugtestrender(frame, r, renderMatrices, pos.sub(r.pos.x()<<9, r.pos.y()*Region.HEIGHT*16, r.pos.z()<<9,new Vector3f()));
@@ -71,7 +71,7 @@ public class CoreRenderer {
         MinecraftClient.getInstance().getProfiler().swap("cull_test");
         culler.begin(renderMatrices, pos, frame);
         if (!regionManager.regions.isEmpty()) {
-            regionManager.regions.values().stream()//.limit(1)
+            regionManager.regions.values().stream()//.filter(e->e.pos.x()==0&&e.pos.z()==0&&e.pos.y()==2)
                     .forEach(culler::process);
         }
         culler.end();
