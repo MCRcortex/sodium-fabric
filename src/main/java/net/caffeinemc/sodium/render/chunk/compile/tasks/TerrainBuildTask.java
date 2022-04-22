@@ -30,12 +30,22 @@ import net.minecraft.util.math.ChunkSectionPos;
  * array allocations, they are pooled to ensure that the garbage collector doesn't become overloaded.
  */
 public class TerrainBuildTask extends AbstractBuilderTask {
-    private final RenderSection render;
+    public final RenderSection render;
+    public final ChunkSectionPos pos;
     private final WorldSliceData renderContext;
-    private final int frame;
+    public final int frame;
+    public boolean canceled = false;
+
+    public TerrainBuildTask(ChunkSectionPos pos, WorldSliceData renderContext, int frame) {
+        this.pos = pos;
+        render = null;
+        this.renderContext = renderContext;
+        this.frame = frame;
+    }
 
     public TerrainBuildTask(RenderSection render, WorldSliceData renderContext, int frame) {
         this.render = render;
+        pos = render.getChunkPos();
         this.renderContext = renderContext;
         this.frame = frame;
     }
@@ -54,9 +64,9 @@ public class TerrainBuildTask extends AbstractBuilderTask {
 
         WorldSlice slice = renderCache.getWorldSlice();
 
-        int minX = ChunkSectionPos.getBlockCoord(this.render.getChunkX());
-        int minY = ChunkSectionPos.getBlockCoord(this.render.getChunkY());
-        int minZ = ChunkSectionPos.getBlockCoord(this.render.getChunkZ());
+        int minX = ChunkSectionPos.getBlockCoord(this.pos.getSectionX());
+        int minY = ChunkSectionPos.getBlockCoord(this.pos.getSectionY());
+        int minZ = ChunkSectionPos.getBlockCoord(this.pos.getSectionZ());
 
         int maxX = minX + 16;
         int maxY = minY + 16;
@@ -137,8 +147,8 @@ public class TerrainBuildTask extends AbstractBuilderTask {
         }
 
         renderData.setOcclusionData(occluder.build());
-        renderData.setBounds(bounds.build(this.render.getChunkPos()));
+        renderData.setBounds(bounds.build(this.pos));
 
-        return new TerrainBuildResult(this.render, renderData.build(), geometry, this.frame);
+        return new TerrainBuildResult(this.render, renderData.build(), geometry, this.frame, this.pos);
     }
 }

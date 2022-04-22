@@ -243,8 +243,9 @@ public class RenderSectionManager {
 
     private boolean unloadSection(int x, int y, int z) {
         RenderSection chunk = this.tree.remove(x, y, z);
+        if (chunk.isBuilt() && chunk.data()!=ChunkRenderData.EMPTY)
+            SodiumWorldRenderer.renderer.regionManager.enqueueRemoval(chunk.getChunkPos());
         chunk.delete();
-
         return true;
     }
 
@@ -313,7 +314,7 @@ public class RenderSectionManager {
             if (section.getPendingUpdate() != filterType) {
                 continue;
             }
-
+            SodiumWorldRenderer.renderer.regionManager.enqueueRebuild(section.getChunkPos(), currentFrame);
             AbstractBuilderTask task = this.createTerrainBuildTask(section);
             CompletableFuture<?> future;
 

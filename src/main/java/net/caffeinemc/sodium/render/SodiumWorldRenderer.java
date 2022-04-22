@@ -3,6 +3,7 @@ package net.caffeinemc.sodium.render;
 import com.mojang.blaze3d.systems.RenderSystem;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import me.cortex.cullmister.CoreRenderer;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.interop.vanilla.mixin.WorldRendererHolder;
@@ -151,7 +152,7 @@ public class SodiumWorldRenderer {
      */
     public void updateChunks(Camera camera, Frustum frustum, @Deprecated(forRemoval = true) int frame, boolean spectator) {
         NativeBuffer.reclaim(false);
-
+        renderer.tick();
         this.useEntityCulling = SodiumClientMod.options().performance.useEntityCulling;
 
         if (this.client.options.getViewDistance() != this.renderDistance) {
@@ -224,6 +225,8 @@ public class SodiumWorldRenderer {
         this.initRenderer();
     }
 
+
+    public static CoreRenderer renderer;
     private void initRenderer() {
         if (this.renderSectionManager != null) {
             this.renderSectionManager.destroy();
@@ -236,6 +239,9 @@ public class SodiumWorldRenderer {
 
         this.renderSectionManager = new RenderSectionManager(SodiumClientMod.DEVICE, this, this.renderPassManager, this.world, this.renderDistance);
         this.renderSectionManager.reloadChunks(this.chunkTracker);
+        if (renderer == null) {
+            renderer = new CoreRenderer(this.world);
+        }
     }
 
     public void renderTileEntities(MatrixStack matrices, BufferBuilderStorage bufferBuilders, Long2ObjectMap<SortedSet<BlockBreakingInfo>> blockBreakingProgressions,

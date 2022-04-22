@@ -26,6 +26,6 @@ public class EmptyTerrainBuildTask extends AbstractBuilderTask {
 
     @Override
     public TerrainBuildResult performBuild(TerrainBuildContext context, CancellationSource cancellationSource) {
-        return new TerrainBuildResult(this.render, ChunkRenderData.EMPTY, BuiltChunkGeometry.empty(), this.frame);
+        return new TerrainBuildResult(this.render, ChunkRenderData.EMPTY, BuiltChunkGeometry.empty(), this.frame, render.getChunkPos());
     }
 }

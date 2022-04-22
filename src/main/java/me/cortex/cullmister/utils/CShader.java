@@ -6,6 +6,7 @@ import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.FloatBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,41 +25,18 @@ public class CShader implements IBindable {
     private int programObject;
     private int computeShaderObject;
     private Object2IntMap<String> uniforms = new Object2IntOpenHashMap<>();
-    private static String getAll(Path f) {
+
+    public static CShader fromResource(String path) {
         try {
-            return new String(Files.readAllBytes(f));
-        } catch (IOException e) {
+            return new CShader(Path.of(ClassLoader.getSystemClassLoader().getResource(path).toURI()));
+        } catch (URISyntaxException e) {
             e.printStackTrace();
         }
         return null;
     }
 
-    private static final Pattern IMPORT_PATTERN = Pattern.compile("#import <(?<name>.*)>");
-
-    private static List<String> resolver(Path f) {
-        try {
-            LinkedList<String> lines = new LinkedList<>();
-            for (String line : Files.readAllLines(f)) {
-                if (line.startsWith("#import")) {
-                    Matcher res = IMPORT_PATTERN.matcher(line);
-                    if (!res.matches()) {
-                        throw new IllegalStateException("Malformed #include");
-                    }
-                    String name = res.group("name");
-                    lines.addAll(resolver(f.getParent().resolve(name)));
-                } else {
-                    lines.add(line);
-                }
-            }
-            return lines;
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Could not open file "+f);
-        }
-    }
-
     public CShader(Path f) {
-        this(String.join("\n", resolver(f)));
+        this(ShaderPreprocessor.load(f));
     }
 
     public CShader(String code) {

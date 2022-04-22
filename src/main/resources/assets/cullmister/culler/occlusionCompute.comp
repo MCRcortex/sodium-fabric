@@ -1,0 +1,143 @@
+#version 460
+#import <DataTypes.h>
+
+layout(local_size_x = 64) in;
+uniform mat4 viewModelProjectionTranslate;
+uniform uint renderId;
+layout(binding = 0) uniform sampler2D depthTex;
+layout(std430, binding = 0) buffer SubChunkData {
+    SubChunk[] subchunks;
+};
+
+layout(std430, binding = 1) buffer visiblity {
+    uint[] visibleChunks;
+};
+
+layout(binding = 0) uniform atomic_uint visibleChunkCounter;
+
+layout(std430, binding = 2) buffer DrawCommandsCounts {
+    int[] commandsCounts;
+};
+
+//TODO: add a max draw commands thing per layer so that when emitting multiple layers, just offset by that much
+layout(std430, binding = 3) buffer DrawCommands {
+    DrawCommand[] drawCommands;
+};
+
+layout(binding = 1) uniform atomic_uint drawInstancedDataCounter;
+layout(std430, binding = 4) buffer DrawInstancedData_b {
+    DrawInstancedData[] drawInstanceData;
+};
+
+
+
+//TODO: MAKE A PROPER SYSTEM FOR face occlusion, e.g if a face is visible relative to the camera of a chunk
+
+
+
+
+/**
+  Called when a chunk is not occluded
+*/
+void chunk_visible(float distance) {
+    visibleChunks[atomicCounterAdd(visibleChunkCounter, 1)] = subchunks[gl_GlobalInvocationID.x].id;
+    subchunks[gl_GlobalInvocationID.x].lastRenderFrame = renderId;
+
+    uint instanceDataIdx = atomicCounterAdd(drawInstancedDataCounter, 1);
+    drawInstanceData[instanceDataIdx].offset.x = subchunks[gl_GlobalInvocationID.x].pos.x*16;
+    drawInstanceData[instanceDataIdx].offset.y = subchunks[gl_GlobalInvocationID.x].pos.y*16;
+    drawInstanceData[instanceDataIdx].offset.z = subchunks[gl_GlobalInvocationID.x].pos.z*16;
+
+
+    int cidx = atomicAdd(commandsCounts[0],1);
+    drawCommands[cidx].instanceCount = 1;
+    drawCommands[cidx].firstIndex = 0;
+    drawCommands[cidx].baseInstance = instanceDataIdx;
+    drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].SOLID.count * 6;
+    drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].SOLID.offset;
+
+
+    cidx = atomicAdd(commandsCounts[1],1)+100000;
+    drawCommands[cidx].instanceCount = 1;
+    drawCommands[cidx].firstIndex = 0;
+    drawCommands[cidx].baseInstance = instanceDataIdx;
+    drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].CUTOUT_MIPPED.count * 6;
+    drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].CUTOUT_MIPPED.offset;
+
+
+    cidx = atomicAdd(commandsCounts[2],1)+100000*2;
+    drawCommands[cidx].instanceCount = 1;
+    drawCommands[cidx].firstIndex = 0;
+    drawCommands[cidx].baseInstance = instanceDataIdx;
+    drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].CUTOUT.count * 6;
+    drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].CUTOUT.offset;
+
+
+    cidx = atomicAdd(commandsCounts[3],1)+100000*3;
+    drawCommands[cidx].instanceCount = 1;
+    drawCommands[cidx].firstIndex = 0;
+    drawCommands[cidx].baseInstance = instanceDataIdx;
+    drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].TRANSLUCENT.count * 6;
+    drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].TRANSLUCENT.offset;
+
+
+}
+
+
+
+void updateCullBits(inout uint cullBits, vec4 hPos)
+{
+    cullBits |= hPos.x > -hPos.w ?  1 : 0;
+    cullBits |= hPos.x <  hPos.w ?  2 : 0;
+    cullBits |= hPos.y > -hPos.w ?  4 : 0;
+    cullBits |= hPos.y <  hPos.w ?  8 : 0;
+    cullBits |= hPos.z > -hPos.w ? 16 : 0;
+    cullBits |= hPos.z <  hPos.w ? 32 : 0;
+    cullBits |= hPos.w >  0      ? 64 : 0;
+}
+vec3 base;
+vec3 size;
+vec4 getBoxCorner(int corner) {
+    return vec4(base + vec3((corner&1), ((corner>>1)&1), ((corner>>2)&1))*size, 1);
+}
+
+void main (){
+    if (gl_GlobalInvocationID.x >= subchunks.length())
+        return;
+    if (subchunks[gl_GlobalInvocationID.x].id != gl_GlobalInvocationID.x)
+        return;
+    base = (Vec3ItoVec3(subchunks[gl_GlobalInvocationID.x].pos) * 16) +
+       Vec3FtoVec3(subchunks[gl_GlobalInvocationID.x].bboxOffset);
+    size = Vec3FtoVec3(subchunks[gl_GlobalInvocationID.x].bboxSize);
+    // clipspace bbox
+    vec4 hPos    = viewModelProjectionTranslate * getBoxCorner(0);
+    vec3 clipmin  = hPos.xyz/hPos.w;
+    vec3 clipmax  = clipmin;
+    uint clipbits = 0;
+    updateCullBits(clipbits, hPos);
+    for (int n = 1; n < 8; n++){
+        vec4 hPos   = viewModelProjectionTranslate * getBoxCorner(n);
+        vec3 ab     = hPos.xyz/hPos.w;
+        clipmin     = min(clipmin,ab);
+        clipmax     = max(clipmax,ab);
+        updateCullBits(clipbits, hPos);
+    }
+    bool isVisible = clipbits == 127;
+
+    if (isVisible){
+        clipmin = clipmin * 0.5 + 0.5;
+        clipmax = clipmax * 0.5 + 0.5;
+        vec2 size = (clipmax.xy - clipmin.xy);
+        ivec2 texsize = textureSize(depthTex,0);
+        float maxsize = max(size.x*texsize.x, size.y*texsize.y);
+        float miplevel = ceil(log2(maxsize/2));
+        float a = textureLod(depthTex,clipmin.xy,miplevel).r;
+        float b = textureLod(depthTex,vec2(clipmin.x,clipmax.y),miplevel).r;
+        float c = textureLod(depthTex,clipmax.xy,miplevel).r;
+        float d = textureLod(depthTex,vec2(clipmax.x,clipmin.y),miplevel).r;
+        float depth = max(max(a,b),max(c,d));
+        if(clipmin.z < depth) {
+            chunk_visible((clipmin.z+clipmax.z)/2);
+        }
+    }
+}

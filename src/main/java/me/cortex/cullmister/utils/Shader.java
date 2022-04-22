@@ -31,7 +31,7 @@ public class Shader implements IBindable {
     }
 
     public Shader(Path vertex, Path fragment) throws IOException {
-        this(Files.readString(vertex), Files.readString(fragment));
+        this(ShaderPreprocessor.load(vertex), ShaderPreprocessor.load(fragment));
     }
     public Shader(String vertex, String fragment) {
         programObject = glCreateProgram();
