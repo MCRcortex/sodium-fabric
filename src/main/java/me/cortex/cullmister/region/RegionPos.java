@@ -13,7 +13,7 @@ public record RegionPos(int x, int y, int z) {
     }
 
     public static RegionPos from(ChunkSectionPos pos) {
-        return new RegionPos(pos.getX()>>5, Math.floorDiv(pos.getY(), Region.HEIGHT), pos.getZ()>>5);
+        return new RegionPos(pos.getX()>>Region.WIDTH_BITS, Math.floorDiv(pos.getY(), Region.HEIGHT), pos.getZ()>>Region.WIDTH_BITS);
     }
 
     @Override

@@ -111,6 +111,9 @@ public class RegionManager {
     public void enqueueRemoval(ChunkSectionPos pos) {
         if (false)
             return;
+        chunkSectionsNonImportant.remove(pos);
+        chunkSectionsImportant.remove(pos);
+        //TODO: need to remove from workResultsLocal too
         if (!regions.containsKey(RegionPos.from(pos).Long())) {
             return;
             //throw new IllegalStateException();

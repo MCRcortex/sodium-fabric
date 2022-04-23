@@ -33,6 +33,8 @@ public abstract class MixinWorldRenderer implements WorldRendererHolder {
     @Final
     private Long2ObjectMap<SortedSet<BlockBreakingInfo>> blockBreakingProgressions;
 
+    @Shadow
+    private Frustum frustum;
     private SodiumWorldRenderer renderer;
 
     @Unique
@@ -89,7 +91,7 @@ public abstract class MixinWorldRenderer implements WorldRendererHolder {
     @Overwrite
     private void renderLayer(RenderLayer renderLayer, MatrixStack matrices, double x, double y, double z, Matrix4f matrix) {
         if (renderLayer == RenderLayer.getCutout()) {
-            SodiumWorldRenderer.renderer.debugRender(ChunkRenderMatrices.from(matrices), new Vector3f((float)x,(float)y,(float) z));
+            SodiumWorldRenderer.renderer.debugRender(ChunkRenderMatrices.from(matrices), new Vector3f((float)x,(float)y,(float) z), FrustumAdapter.adapt(frustum));
         }
 
         this.renderer.drawChunkLayer(renderLayer, matrices);

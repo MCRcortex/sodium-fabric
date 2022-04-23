@@ -72,7 +72,7 @@ public class ComputeCullInterface {
         //glBeginConditionalRender(region.query, GL_QUERY_WAIT);
         MinecraftClient.getInstance().getProfiler().push("Binding");
         prepAndBind(region);
-        cullShader.setUniform("viewModelProjectionTranslate", baseMat.translate((region.pos.x()<<9)-cam_pos.x, (region.pos.y()*Region.HEIGHT*16)-cam_pos.y, (region.pos.z()<<9)-cam_pos.z, new Matrix4f()));
+        cullShader.setUniform("viewModelProjectionTranslate", baseMat.translate((region.pos.x()<<(Region.WIDTH_BITS+4))-cam_pos.x, (region.pos.y()*Region.HEIGHT*16)-cam_pos.y, (region.pos.z()<<(Region.WIDTH_BITS+4))-cam_pos.z, new Matrix4f()));
         MinecraftClient.getInstance().getProfiler().swap("dispatch");
         // TODO: Try different sizes of local workers
         cullShader.dispatch((int) Math.ceil((double) region.sectionCount/32),1,1);

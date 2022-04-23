@@ -229,6 +229,7 @@ public class RenderSectionManager {
     private boolean loadSection(int x, int y, int z) {
         //TODO: IF THIS IS "inital" build need to recheck until can build
         //if (this.tracker.hasMergedFlags(x, z, ChunkStatus.FLAG_ALL)) {
+        //TODO: FIX LEAK, this pos wil leak cause it is never removed thing, is slow
             SodiumWorldRenderer.renderer.regionManager.enqueueRebuild(ChunkSectionPos.from(x, y, z), false);
         //}
         var render = this.tree.add(x, y, z);

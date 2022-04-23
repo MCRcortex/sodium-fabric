@@ -36,6 +36,7 @@ import static org.lwjgl.opengl.GL45.*;
 
 public class Region {
     public static final int HEIGHT = 5;
+    public static final int WIDTH_BITS = 4;
     public static class DrawData {
         public VBO drawCommands = new VBO();
         public VBO drawMeta = new VBO();
@@ -62,8 +63,8 @@ public class Region {
 
     public Region(RegionPos pos) {
         this.pos = pos;
-        glNamedBufferStorage(chunkMeta.id, 32*HEIGHT*32*Section.SIZE, GL_DYNAMIC_STORAGE_BIT|GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
-        glNamedBufferStorage(drawData.drawMeta.id, 3*4*32*HEIGHT*32, GL_DYNAMIC_STORAGE_BIT);
+        glNamedBufferStorage(chunkMeta.id, (1<<(WIDTH_BITS+4))*HEIGHT*(1<<(WIDTH_BITS+4))*Section.SIZE, GL_DYNAMIC_STORAGE_BIT|GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
+        glNamedBufferStorage(drawData.drawMeta.id, 3*4*(1<<(WIDTH_BITS+4))*HEIGHT*(1<<(WIDTH_BITS+4)), GL_DYNAMIC_STORAGE_BIT);
         glNamedBufferData(drawData.drawCounts.id, 4*4, GL_DYNAMIC_DRAW);//4 counts
         glNamedBufferData(drawData.drawMetaCount.id, 4, GL_DYNAMIC_DRAW);//1 count
         glNamedBufferStorage(drawData.drawCommands.id, HEIGHT*4*100000, GL_DYNAMIC_STORAGE_BIT);

@@ -11,9 +11,7 @@ public interface Frustum {
     /**
      * @return true if the axis-aligned box is visible within the frustum, otherwise false
      */
-    default boolean isBoxVisible(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
-        return this.testBox(minX, minY, minZ, maxX, maxY, maxZ) != Frustum.OUTSIDE;
-    }
+    boolean isBoxVisible(float minX, float minY, float minZ, float maxX, float maxY, float maxZ);
 
     /**
      * The object is fully outside the frustum and is not visible.

@@ -6,7 +6,7 @@ import java.util.Objects;
 
 public record SectionPos(int x, int y, int z) {
     public static SectionPos from(ChunkSectionPos pos) {
-        return new SectionPos(pos.getX()&0b11111, Math.floorMod(pos.getY(), Region.HEIGHT), pos.getZ()&0b11111);
+        return new SectionPos(pos.getX()&((1<<Region.WIDTH_BITS)-1), Math.floorMod(pos.getY(), Region.HEIGHT), pos.getZ()&((1<<Region.WIDTH_BITS)-1));
     }
 
     @Override
@@ -21,6 +21,6 @@ public record SectionPos(int x, int y, int z) {
 
     @Override
     public int hashCode() {
-        return (y<<10)|(z<<5)|x;
+        return (y<<(Region.WIDTH_BITS*2))|(z<<Region.WIDTH_BITS)|x;
     }
 }

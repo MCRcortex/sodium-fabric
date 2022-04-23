@@ -5,6 +5,7 @@ import me.cortex.cullmister.region.Region;
 import me.cortex.cullmister.utils.Shader;
 import me.cortex.cullmister.utils.VAO;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
+import net.minecraft.client.MinecraftClient;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11C;
@@ -51,10 +52,12 @@ public class PreCuller {
     }
 
     public void process(Region region) {
-        tester.setUniform("viewModelProjectionTranslate", vm.translate(new Vector3f(region.pos.x()<<9, region.pos.y()*Region.HEIGHT, region.pos.z()<<9).sub(pos), new Matrix4f()));
+        MinecraftClient.getInstance().getProfiler().push("inner");
+        tester.setUniform("viewModelProjectionTranslate", vm.translate(new Vector3f(region.pos.x()<<(Region.WIDTH_BITS+4), region.pos.y()*Region.HEIGHT, region.pos.z()<<(Region.WIDTH_BITS+4)).sub(pos), new Matrix4f()));
         glBeginQuery(GL_ANY_SAMPLES_PASSED, region.query);
         //glDrawElements(GL_TRIANGLES, 3*2*6, GL_UNSIGNED_BYTE, 0);
         glEndQuery(GL_ANY_SAMPLES_PASSED);
+        MinecraftClient.getInstance().getProfiler().pop();
     }
 
     public void end() {
