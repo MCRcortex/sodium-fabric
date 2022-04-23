@@ -3,19 +3,24 @@ package me.cortex.cullmister;
 import it.unimi.dsi.fastutil.PriorityQueue;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
+import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import me.cortex.cullmister.region.Region;
 import me.cortex.cullmister.region.RegionPos;
+import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.chunk.compile.ChunkBuilder;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildTask;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexFormats;
+import net.caffeinemc.sodium.world.ChunkStatus;
 import net.caffeinemc.sodium.world.ChunkTracker;
 import net.caffeinemc.sodium.world.slice.WorldSliceData;
 import net.caffeinemc.sodium.world.slice.cloned.ClonedChunkSectionCache;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.ChunkSectionPos;
+
+import java.util.stream.Collectors;
 
 //Handels all the regions and dispatches all subchunks in those regions
 public class RegionManager {
@@ -24,24 +29,41 @@ public class RegionManager {
     public ChunkBuildEngine builder;
 
 
-    ObjectOpenHashSet<ChunkSectionPos> chunkSectionsNonImportant = new ObjectOpenHashSet<>();
-    ObjectOpenHashSet<ChunkSectionPos> chunkSectionsImportant = new ObjectOpenHashSet<>();
+    ObjectLinkedOpenHashSet<ChunkSectionPos> chunkSectionsNonImportant = new ObjectLinkedOpenHashSet<>();
+    ObjectLinkedOpenHashSet<ChunkSectionPos> chunkSectionsImportant = new ObjectLinkedOpenHashSet<>();
     PriorityQueue<TerrainBuildResult> workResultsLocal = new ObjectArrayFIFOQueue<>();
     public void tick(int frame) {
         if (builder == null) {
             return;
         }
-        chunkSectionsImportant.forEach(pos->builder.requestRebuild(pos, frame, true));
-        chunkSectionsNonImportant.forEach(pos->builder.requestRebuild(pos, frame, false));
-        chunkSectionsImportant.clear();
-        chunkSectionsNonImportant.clear();
+
+        for (ChunkSectionPos section : chunkSectionsImportant.stream().toList()) {
+            if (builder.inflowWorkQueue.size() > 5000)
+                break;
+
+            if (!SodiumWorldRenderer.instance().getChunkTracker().hasMergedFlags(section.getX(), section.getZ(), ChunkStatus.FLAG_ALL))
+                continue;
+            builder.requestRebuild(section, frame, true);
+            chunkSectionsImportant.remove(section);
+        }
+
+        for (ChunkSectionPos section : chunkSectionsNonImportant.stream().toList()) {
+            if (builder.inflowWorkQueue.size() > 5000)
+                break;
+
+            if (!SodiumWorldRenderer.instance().getChunkTracker().hasMergedFlags(section.getX(), section.getZ(), ChunkStatus.FLAG_ALL))
+                continue;
+            builder.requestRebuild(section, frame, false);
+            chunkSectionsNonImportant.remove(section);
+        }
+
 
         synchronized (builder.outflowWorkQueue) {
             while (!builder.outflowWorkQueue.isEmpty())
                 workResultsLocal.enqueue(builder.outflowWorkQueue.dequeue());
         }
-
-        while (!workResultsLocal.isEmpty()) {
+        int budget = 50;
+        while (!workResultsLocal.isEmpty() && budget!=0) {
             TerrainBuildResult result = workResultsLocal.dequeue();
             //TODO: FIX, THIS IS A HACK
             if (result.geometry().vertices() == null) {
@@ -50,6 +72,7 @@ public class RegionManager {
             }
             getRegion(result.pos()).updateMeshes(result);
             result.delete();
+            budget--;
         }
     }
 
@@ -70,6 +93,8 @@ public class RegionManager {
         if (builder != null) {
             builder.clear();
         }
+        chunkSectionsImportant.clear();
+        chunkSectionsNonImportant.clear();
     }
 
     public Region getRegion(ChunkSectionPos pos) {

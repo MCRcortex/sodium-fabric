@@ -48,6 +48,7 @@ public class Region {
     public VAO vao = new VAO();
     public VBO chunkMeta = new VBO();
     public DrawData drawData = new DrawData();
+    public int query = glGenQueries();
 
     public int sectionCount = 0;
     public Int2ObjectOpenHashMap<Section> sections = new Int2ObjectOpenHashMap<>();
@@ -187,5 +188,6 @@ public class Region {
         drawData.drawCounts.delete();
         drawData.drawMeta.delete();
         drawData.drawCommands.delete();
+        glDeleteQueries(query);
     }
 }

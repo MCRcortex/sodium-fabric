@@ -227,6 +227,10 @@ public class RenderSectionManager {
     }
 
     private boolean loadSection(int x, int y, int z) {
+        //TODO: IF THIS IS "inital" build need to recheck until can build
+        //if (this.tracker.hasMergedFlags(x, z, ChunkStatus.FLAG_ALL)) {
+            SodiumWorldRenderer.renderer.regionManager.enqueueRebuild(ChunkSectionPos.from(x, y, z), false);
+        //}
         var render = this.tree.add(x, y, z);
 
         Chunk chunk = this.world.getChunk(x, z);
@@ -325,7 +329,7 @@ public class RenderSectionManager {
             if (section.getPendingUpdate() != filterType) {
                 continue;
             }
-            SodiumWorldRenderer.renderer.regionManager.enqueueRebuild(section.getChunkPos(), filterType.isImportant());
+            //SodiumWorldRenderer.renderer.regionManager.enqueueRebuild(section.getChunkPos(), filterType.isImportant());
             section.pendingUpdate = null;
             /*
             AbstractBuilderTask task = this.createTerrainBuildTask(section);
@@ -418,7 +422,9 @@ public class RenderSectionManager {
         this.sectionCache.invalidate(x, y, z);
 
         RenderSection section = this.tree.getSection(x, y, z);
-
+        //TODO: IF THIS IS "inital" build need to recheck until can build
+        if (y>=-4 && y<20)
+            SodiumWorldRenderer.renderer.regionManager.enqueueRebuild(ChunkSectionPos.from(x, y, z), important);
         if (section != null && section.isBuilt()) {
             if (!this.alwaysDeferChunkUpdates && (important || this.isBlockUpdatePrioritized(section))) {
                 section.markForUpdate(ChunkUpdateType.IMPORTANT_REBUILD);

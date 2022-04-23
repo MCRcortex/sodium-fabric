@@ -20,12 +20,16 @@ import org.lwjgl.opengl.GL33C;
 import org.lwjgl.opengl.GL45C;
 import org.lwjgl.system.MemoryUtil;
 
+import static net.caffeinemc.gfx.api.array.attribute.VertexAttributeFormat.UNSIGNED_INT;
+import static org.lwjgl.opengl.ARBDrawIndirect.glDrawElementsIndirect;
+import static org.lwjgl.opengl.ARBDrawIndirect.nglDrawElementsIndirect;
 import static org.lwjgl.opengl.ARBIndirectParameters.GL_PARAMETER_BUFFER_ARB;
 import static org.lwjgl.opengl.ARBIndirectParameters.nglMultiDrawElementsIndirectCountARB;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_SHORT;
 import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.opengl.GL30C.GL_QUERY_WAIT;
 import static org.lwjgl.opengl.GL32C.glDrawElementsBaseVertex;
 import static org.lwjgl.opengl.GL33.*;
 import static org.lwjgl.opengl.GL33.glSamplerParameteri;
@@ -34,6 +38,7 @@ import static org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS;
 import static org.lwjgl.opengl.GL42.glMemoryBarrier;
 import static org.lwjgl.opengl.GL42C.GL_ATOMIC_COUNTER_BARRIER_BIT;
 import static org.lwjgl.opengl.GL42C.GL_COMMAND_BARRIER_BIT;
+import static org.lwjgl.opengl.GL43C.nglMultiDrawElementsIndirect;
 
 public class LayerRenderer {
     Shader debugdrawer;
@@ -114,6 +119,7 @@ public class LayerRenderer {
 
     long sectioncount;
     public void superdebugtestrender(int renderId, Region region, ChunkRenderMatrices renderMatrices, Vector3f pos) {
+        //glBeginConditionalRender(region.query, GL_QUERY_WAIT);
         MinecraftClient.getInstance().getProfiler().push("bind");
         region.vao.bind();
         glBindBuffer(GL_PARAMETER_BUFFER_ARB, region.drawData.drawCounts.id);
@@ -127,9 +133,19 @@ public class LayerRenderer {
         //TODO: NOTE: This command is EXTREAMLY SLOW in the graphics pipeline EVEN IF NOT DRAWING ANY TRIANGLES
         //  This i think is due to the max draw count thing
         // TODO: DO CONDITIONAL RENDERING FOR REGIONS
-        nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT,0,0,32*32*Region.HEIGHT,0);
+        //  ISSUE: CONDITIONALS DONT HELP WITH THIS AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+        nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT,0,0,region.sectionCount,0);
+        /*
+        long ptr = region.drawData.drawCounts.mappedNamedPtr(GL_READ_ONLY);
+        int count = MemoryUtil.memGetInt(ptr);
+        region.drawData.drawCounts.unmapNamed();
+        if (count != 0)
+            nglMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, 0, count, 0);
+
+         */
 
         MinecraftClient.getInstance().getProfiler().pop();
         region.vao.unbind();
+        //glEndConditionalRender();
     }
 }

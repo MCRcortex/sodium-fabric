@@ -161,6 +161,9 @@ public class SodiumWorldRenderer {
 
         profiler.push("my_tick");
         renderer.tick();
+        profiler.swap("tracker");
+
+        this.chunkTracker.update();
         NativeBuffer.reclaim(false);
         if (true) {
             profiler.pop();
@@ -186,7 +189,6 @@ public class SodiumWorldRenderer {
         if (dirty) {
             this.renderSectionManager.markGraphDirty();
         }
-
         this.lastCameraX = pos.x;
         this.lastCameraY = pos.y;
         this.lastCameraZ = pos.z;
@@ -194,9 +196,6 @@ public class SodiumWorldRenderer {
         this.lastCameraYaw = yaw;
         this.lastFogDistance = fogDistance;
 
-        profiler.swap("tracker");
-
-        this.chunkTracker.update();
 
         this.renderSectionManager.setFrameIndex(frame);
         profiler.swap("chunk_update");
