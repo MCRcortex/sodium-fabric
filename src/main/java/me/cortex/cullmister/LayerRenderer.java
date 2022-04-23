@@ -5,6 +5,8 @@ import me.cortex.cullmister.region.Region;
 import me.cortex.cullmister.region.Section;
 import me.cortex.cullmister.utils.Shader;
 import me.cortex.cullmister.utils.VAO;
+import net.caffeinemc.gfx.api.pipeline.state.BlendFunc;
+import net.caffeinemc.gfx.opengl.GlEnum;
 import net.caffeinemc.sodium.interop.vanilla.mixin.LightmapTextureManagerAccessor;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.minecraft.client.MinecraftClient;
@@ -15,6 +17,7 @@ import net.minecraft.client.texture.TextureManager;
 import org.joml.Matrix4f;
 import org.joml.Random;
 import org.joml.Vector3f;
+import org.lwjgl.opengl.GL14C;
 import org.lwjgl.opengl.GL15C;
 import org.lwjgl.opengl.GL33C;
 import org.lwjgl.opengl.GL45C;
@@ -118,10 +121,11 @@ public class LayerRenderer {
     }
 
     long sectioncount;
-    public void superdebugtestrender(int renderId, Region region, ChunkRenderMatrices renderMatrices, Vector3f pos) {
+    public void superdebugtestrender(int pass, Region region, ChunkRenderMatrices renderMatrices, Vector3f pos) {
         //glBeginConditionalRender(region.query, GL_QUERY_WAIT);
         MinecraftClient.getInstance().getProfiler().push("bind");
         region.vao.bind();
+        //region.vao.unbind();
         glBindBuffer(GL_PARAMETER_BUFFER_ARB, region.drawData.drawCounts.id);
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, region.drawData.drawCommands.id);
         debugdrawer.setUniform("viewModelProjectionTranslate", new Matrix4f(renderMatrices.projection()).mul(renderMatrices.modelView()).translate(new Vector3f().set(pos).negate()));
@@ -133,8 +137,19 @@ public class LayerRenderer {
         //TODO: NOTE: This command is EXTREAMLY SLOW in the graphics pipeline EVEN IF NOT DRAWING ANY TRIANGLES
         //  This i think is due to the max draw count thing
         // TODO: DO CONDITIONAL RENDERING FOR REGIONS
-        //  ISSUE: CONDITIONALS DONT HELP WITH THIS AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-        nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT,0,0,region.sectionCount,0);
+        //  ISSUE: CONDITIONALS DONT HELP WITH THIS AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA, conditionals slow as fuck
+
+        if (pass == 0) {
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 0 * 10000, 4 * 0, region.sectionCount, 0);
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 1 * 10000, 4 * 1, region.sectionCount, 0);
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 2 * 10000, 4 * 2, region.sectionCount, 0);
+        }
+        if (pass == 1) {
+            RenderSystem.enableBlend();
+            RenderSystem.blendFuncSeparate(GlEnum.from(BlendFunc.SrcFactor.SRC_ALPHA), GlEnum.from(BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA), GlEnum.from(BlendFunc.SrcFactor.ONE), GlEnum.from(BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA));
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 3 * 10000, 4 * 3, region.sectionCount, 0);
+            RenderSystem.disableBlend();
+        }
         /*
         long ptr = region.drawData.drawCounts.mappedNamedPtr(GL_READ_ONLY);
         int count = MemoryUtil.memGetInt(ptr);

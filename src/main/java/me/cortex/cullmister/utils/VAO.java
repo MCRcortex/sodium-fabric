@@ -4,14 +4,14 @@ import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL40;
 import org.lwjgl.opengl.GL43;
 
+import static org.lwjgl.opengl.ARBVertexArrayObject.*;
 import static org.lwjgl.opengl.GL20.glDisableVertexAttribArray;
 import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
-import static org.lwjgl.opengl.GL30.*;
 
 public class VAO implements IBindable {
     private static VAO current_bound;
 
-    int id;
+    public int id;
     int[] attribute_arrays = new int[0];
     public VAO() {
         id = glGenVertexArrays();
@@ -22,7 +22,7 @@ public class VAO implements IBindable {
             throw new IllegalStateException("Vertex Attribute array already bound");
         }
         glBindVertexArray(id);
-        enableVertexAttribs();
+        //enableVertexAttribs();
         current_bound = this;
     }
 
@@ -57,8 +57,8 @@ public class VAO implements IBindable {
     }
 
     public void unbind() {
+        //disableVertexAttribs();
         glBindVertexArray(0);
-        disableVertexAttribs();
         current_bound = null;
     }
 

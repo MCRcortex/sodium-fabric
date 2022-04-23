@@ -67,7 +67,7 @@ public class Region {
         glNamedBufferStorage(drawData.drawMeta.id, 3*4*(1<<(WIDTH_BITS+4))*HEIGHT*(1<<(WIDTH_BITS+4)), GL_DYNAMIC_STORAGE_BIT);
         glNamedBufferData(drawData.drawCounts.id, 4*4, GL_DYNAMIC_DRAW);//4 counts
         glNamedBufferData(drawData.drawMetaCount.id, 4, GL_DYNAMIC_DRAW);//1 count
-        glNamedBufferStorage(drawData.drawCommands.id, HEIGHT*4*100000, GL_DYNAMIC_STORAGE_BIT);
+        glNamedBufferStorage(drawData.drawCommands.id, 5*4*10000*4, GL_DYNAMIC_STORAGE_BIT);//TODO: Actually calculate rough max
 
         nglClearNamedBufferData(drawData.drawCounts.id, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, 0);
         nglClearNamedBufferData(drawData.drawMetaCount.id, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, 0);

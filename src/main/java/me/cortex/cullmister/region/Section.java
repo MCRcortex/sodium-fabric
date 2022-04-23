@@ -37,15 +37,72 @@ public class Section {
         new Vector3i(pos.x(), pos.y(), pos.z()).getToAddress(ptr);
         ptr += 12;
         ptr += 4;
-        new Vector2i((int) ((vertexDataPosition.offset/20)), (int) (((vertexDataPosition.size/20)/4)*6)).getToAddress(ptr);
-        /*
-        if (SOLID == null || SOLID[0] == null) {
+        //new Vector2i((int) ((vertexDataPosition.offset/20)), (int) (((vertexDataPosition.size/20)/4)*6)).getToAddress(ptr);
+
+        if (SOLID == null) {
             new Vector2i(0, 0).getToAddress(ptr);
         } else {
-            new Vector2i((int) (SOLID[0].firstVertex()+(vertexDataPosition.offset/20)),(SOLID[0].vertexCount()/4)*6).getToAddress(ptr);
+            int o = Integer.MAX_VALUE;
+            int s = 0;
+            for (VertexRange r : SOLID) {
+                if (r==null)continue;
+                o=Math.min(r.firstVertex(), o);
+                s+=(r.vertexCount()/4)*6;
+            }
+            if (o == Integer.MAX_VALUE)
+                new Vector2i(0, 0).getToAddress(ptr);
+            else
+                new Vector2i((int) (o+(vertexDataPosition.offset/20)),s).getToAddress(ptr);
+        }
+        ptr += 8;
+        if (CUTOUT_MIPPED == null) {
+            new Vector2i(0, 0).getToAddress(ptr);
+        } else {
+            int o = Integer.MAX_VALUE;
+            int s = 0;
+            for (VertexRange r : CUTOUT_MIPPED) {
+                if (r==null)continue;
+                o=Math.min(r.firstVertex(), o);
+                s+=(r.vertexCount()/4)*6;
+            }
+            if (o == Integer.MAX_VALUE)
+                new Vector2i(0, 0).getToAddress(ptr);
+            else
+                new Vector2i((int) (o+(vertexDataPosition.offset/20)),s).getToAddress(ptr);
+        }
+        ptr += 8;
+        if (CUTOUT == null) {
+            new Vector2i(0, 0).getToAddress(ptr);
+        } else {
+            int o = Integer.MAX_VALUE;
+            int s = 0;
+            for (VertexRange r : CUTOUT) {
+                if (r==null)continue;
+                o=Math.min(r.firstVertex(), o);
+                s+=(r.vertexCount()/4)*6;
+            }
+            if (o == Integer.MAX_VALUE)
+                new Vector2i(0, 0).getToAddress(ptr);
+            else
+                new Vector2i((int) (o+(vertexDataPosition.offset/20)),s).getToAddress(ptr);
+        }
+        ptr += 8;
+        if (TRANSLUCENT == null) {
+            new Vector2i(0, 0).getToAddress(ptr);
+        } else {
+            int o = Integer.MAX_VALUE;
+            int s = 0;
+            for (VertexRange r : TRANSLUCENT) {
+                if (r==null)continue;
+                o=Math.min(r.firstVertex(), o);
+                s+=(r.vertexCount()/4)*6;
+            }
+            if (o == Integer.MAX_VALUE)
+                new Vector2i(0, 0).getToAddress(ptr);
+            else
+                new Vector2i((int) (o+(vertexDataPosition.offset/20)),s).getToAddress(ptr);
         }
 
-         */
     }
 
 

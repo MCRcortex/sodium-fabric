@@ -57,32 +57,29 @@ void chunk_visible(float distance) {
     drawCommands[cidx].baseInstance = instanceDataIdx;
     drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].SOLID.count;
     drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].SOLID.offset;
-    /*
 
-        cidx = atomicAdd(commandsCounts[1],1)+100000;
-        drawCommands[cidx].instanceCount = 1;
-        drawCommands[cidx].firstIndex = 0;
-        drawCommands[cidx].baseInstance = instanceDataIdx;
-        drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].CUTOUT_MIPPED.count * 6;
-        drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].CUTOUT_MIPPED.offset;
-
-
-        cidx = atomicAdd(commandsCounts[2],1)+100000*2;
-        drawCommands[cidx].instanceCount = 1;
-        drawCommands[cidx].firstIndex = 0;
-        drawCommands[cidx].baseInstance = instanceDataIdx;
-        drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].CUTOUT.count * 6;
-        drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].CUTOUT.offset;
+    cidx = atomicAdd(commandsCounts[1],1)+10000;
+    drawCommands[cidx].instanceCount = 1;
+    drawCommands[cidx].firstIndex = 0;
+    drawCommands[cidx].baseInstance = instanceDataIdx;
+    drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].CUTOUT_MIPPED.count;
+    drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].CUTOUT_MIPPED.offset;
 
 
-        cidx = atomicAdd(commandsCounts[3],1)+100000*3;
-        drawCommands[cidx].instanceCount = 1;
-        drawCommands[cidx].firstIndex = 0;
-        drawCommands[cidx].baseInstance = instanceDataIdx;
-        drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].TRANSLUCENT.count * 6;
-        drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].TRANSLUCENT.offset;
-        */
+    cidx = atomicAdd(commandsCounts[2],1)+10000*2;
+    drawCommands[cidx].instanceCount = 1;
+    drawCommands[cidx].firstIndex = 0;
+    drawCommands[cidx].baseInstance = instanceDataIdx;
+    drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].CUTOUT.count;
+    drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].CUTOUT.offset;
 
+
+    cidx = atomicAdd(commandsCounts[3],1)+10000*3;
+    drawCommands[cidx].instanceCount = 1;
+    drawCommands[cidx].firstIndex = 0;
+    drawCommands[cidx].baseInstance = instanceDataIdx;
+    drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].TRANSLUCENT.count;
+    drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].TRANSLUCENT.offset;
 }
 
 
