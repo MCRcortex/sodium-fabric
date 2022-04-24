@@ -17,6 +17,7 @@ import net.caffeinemc.sodium.world.ChunkStatus;
 import net.caffeinemc.sodium.world.ChunkTracker;
 import net.caffeinemc.sodium.world.slice.WorldSliceData;
 import net.caffeinemc.sodium.world.slice.cloned.ClonedChunkSectionCache;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.ChunkSectionPos;
 
@@ -50,6 +51,11 @@ public class RegionManager {
         for (ChunkSectionPos section : chunkSectionsNonImportant.stream().toList()) {
             if (builder.inflowWorkQueue.size() > 5000)
                 break;
+
+            if ((Math.hypot(section.getX()-((SodiumWorldRenderer.instance().camBPos.getX())>>4), section.getZ()-((SodiumWorldRenderer.instance().camBPos.getZ())>>4))>(MinecraftClient.getInstance().options.getViewDistance()+0.6))) {
+                chunkSectionsNonImportant.remove(section);
+                continue;
+            }
 
             if (!SodiumWorldRenderer.instance().getChunkTracker().hasMergedFlags(section.getX(), section.getZ(), ChunkStatus.FLAG_ALL))
                 continue;
@@ -109,7 +115,7 @@ public class RegionManager {
     }
 
     public void enqueueRemoval(ChunkSectionPos pos) {
-        if (false)
+        if (true)
             return;
         chunkSectionsNonImportant.remove(pos);
         chunkSectionsImportant.remove(pos);

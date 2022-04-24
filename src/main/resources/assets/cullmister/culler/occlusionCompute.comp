@@ -4,6 +4,7 @@
 layout(local_size_x = 32) in;
 uniform mat4 viewModelProjectionTranslate;
 uniform uint renderId;
+uniform vec3 regionOffset;
 layout(binding = 0) uniform sampler2D depthTex;
 layout(std430, binding = 0) buffer SubChunkData {
     SubChunk[] subchunks;
@@ -30,6 +31,8 @@ layout(std430, binding = 4) buffer DrawInstancedData_b {
 };
 
 
+vec3 base;
+vec3 size;
 
 //TODO: MAKE A PROPER SYSTEM FOR face occlusion, e.g if a face is visible relative to the camera of a chunk
 
@@ -40,9 +43,12 @@ layout(std430, binding = 4) buffer DrawInstancedData_b {
   Called when a chunk is not occluded
 */
 void chunk_visible(float distance) {
+    //visibleChunks[atomicCounterAdd(visibleChunkCounter, 1)] = subchunks[gl_GlobalInvocationID.x].id;
     subchunks[gl_GlobalInvocationID.x].lastRenderFrame = renderId;
-    visibleChunks[atomicCounterAdd(visibleChunkCounter, 1)] = subchunks[gl_GlobalInvocationID.x].id;
-    subchunks[gl_GlobalInvocationID.x].lastRenderFrame = renderId;
+
+    //TODO: FIND A WAY OF BATCHING THIS FOR MULTIPLE SECTIONS, cause like in 99.9% of cases the visibility mask will
+    // be the same for all sections in a chunk
+    //TODO: MAKE THIS FASTER
 
     uint instanceDataIdx = atomicCounterAdd(drawInstancedDataCounter, 1);
     drawInstanceData[instanceDataIdx].offset.x = subchunks[gl_GlobalInvocationID.x].pos.x*16;
@@ -51,35 +57,110 @@ void chunk_visible(float distance) {
 
 
 
-    int cidx = atomicAdd(commandsCounts[0],1);
-    drawCommands[cidx].instanceCount = 1;
-    drawCommands[cidx].firstIndex = 0;
-    drawCommands[cidx].baseInstance = instanceDataIdx;
-    drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].SOLID.count;
-    drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].SOLID.offset;
+    vec3 hSize = (size/2);
+    vec3 center = base+hSize + regionOffset;
+    for (int i = 0; i < 6; i++) {
+        //NOTE: these are actually inverted
+        vec3 faceNorms[] = vec3[](
+            vec3(0,1,0),
+            vec3(0,-1,0),
+            vec3(1, 0, 0),
+            vec3(-1, 0, 0),
+            vec3(0,0,1),
+            vec3(0,0,-1)
+        );
+        vec3 faces[] = vec3[](
+            vec3(0,-1,0),
+            vec3(0,1,0),
+            vec3(-1, 0, 0),
+            vec3(1, 0, 0),
+            vec3(0,0,-1),
+            vec3(0,0,1)
+        );
+        vec3 norm = center + ((hSize)*faces[i]);
+        if (!(dot(norm, faceNorms[i])<0.01)) continue;
 
-    cidx = atomicAdd(commandsCounts[1],1)+10000;
-    drawCommands[cidx].instanceCount = 1;
-    drawCommands[cidx].firstIndex = 0;
-    drawCommands[cidx].baseInstance = instanceDataIdx;
-    drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].CUTOUT_MIPPED.count;
-    drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].CUTOUT_MIPPED.offset;
 
 
-    cidx = atomicAdd(commandsCounts[2],1)+10000*2;
-    drawCommands[cidx].instanceCount = 1;
-    drawCommands[cidx].firstIndex = 0;
-    drawCommands[cidx].baseInstance = instanceDataIdx;
-    drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].CUTOUT.count;
-    drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].CUTOUT.offset;
+        if (subchunks[gl_GlobalInvocationID.x].SOLID[i].count != 0) {
+            int cidx = atomicAdd(commandsCounts[0], 1);
+            drawCommands[cidx].instanceCount = 1;
+            drawCommands[cidx].firstIndex = 0;
+            drawCommands[cidx].baseInstance = instanceDataIdx;
+            drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].SOLID[i].count;
+            drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].SOLID[i].offset;
+        }
+
+        if (subchunks[gl_GlobalInvocationID.x].CUTOUT_MIPPED[i].count != 0) {
+            int cidx = atomicAdd(commandsCounts[1], 1)+10000;
+            drawCommands[cidx].instanceCount = 1;
+            drawCommands[cidx].firstIndex = 0;
+            drawCommands[cidx].baseInstance = instanceDataIdx;
+            drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].CUTOUT_MIPPED[i].count;
+            drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].CUTOUT_MIPPED[i].offset;
+        }
 
 
-    cidx = atomicAdd(commandsCounts[3],1)+10000*3;
-    drawCommands[cidx].instanceCount = 1;
-    drawCommands[cidx].firstIndex = 0;
-    drawCommands[cidx].baseInstance = instanceDataIdx;
-    drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].TRANSLUCENT.count;
-    drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].TRANSLUCENT.offset;
+        if (subchunks[gl_GlobalInvocationID.x].CUTOUT[i].count != 0) {
+            int cidx = atomicAdd(commandsCounts[2], 1)+10000*2;
+            drawCommands[cidx].instanceCount = 1;
+            drawCommands[cidx].firstIndex = 0;
+            drawCommands[cidx].baseInstance = instanceDataIdx;
+            drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].CUTOUT[i].count;
+            drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].CUTOUT[i].offset;
+        }
+
+
+        if (subchunks[gl_GlobalInvocationID.x].TRANSLUCENT[i].count != 0) {
+            int cidx = atomicAdd(commandsCounts[3], 1)+10000*3;
+            drawCommands[cidx].instanceCount = 1;
+            drawCommands[cidx].firstIndex = 0;
+            drawCommands[cidx].baseInstance = instanceDataIdx;
+            drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].TRANSLUCENT[i].count;
+            drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].TRANSLUCENT[i].offset;
+        }
+    }
+
+
+
+
+    if (subchunks[gl_GlobalInvocationID.x].SOLID[6].count != 0) {
+        int cidx = atomicAdd(commandsCounts[0], 1);
+        drawCommands[cidx].instanceCount = 1;
+        drawCommands[cidx].firstIndex = 0;
+        drawCommands[cidx].baseInstance = instanceDataIdx;
+        drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].SOLID[6].count;
+        drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].SOLID[6].offset;
+    }
+
+    if (subchunks[gl_GlobalInvocationID.x].CUTOUT_MIPPED[6].count != 0) {
+        int cidx = atomicAdd(commandsCounts[1], 1)+10000;
+        drawCommands[cidx].instanceCount = 1;
+        drawCommands[cidx].firstIndex = 0;
+        drawCommands[cidx].baseInstance = instanceDataIdx;
+        drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].CUTOUT_MIPPED[6].count;
+        drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].CUTOUT_MIPPED[6].offset;
+    }
+
+
+    if (subchunks[gl_GlobalInvocationID.x].CUTOUT[6].count != 0) {
+        int cidx = atomicAdd(commandsCounts[2], 1)+10000*2;
+        drawCommands[cidx].instanceCount = 1;
+        drawCommands[cidx].firstIndex = 0;
+        drawCommands[cidx].baseInstance = instanceDataIdx;
+        drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].CUTOUT[6].count;
+        drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].CUTOUT[6].offset;
+    }
+
+
+    if (subchunks[gl_GlobalInvocationID.x].TRANSLUCENT[6].count != 0) {
+        int cidx = atomicAdd(commandsCounts[3], 1)+10000*3;
+        drawCommands[cidx].instanceCount = 1;
+        drawCommands[cidx].firstIndex = 0;
+        drawCommands[cidx].baseInstance = instanceDataIdx;
+        drawCommands[cidx].count = subchunks[gl_GlobalInvocationID.x].TRANSLUCENT[6].count;
+        drawCommands[cidx].baseVertex = subchunks[gl_GlobalInvocationID.x].TRANSLUCENT[6].offset;
+    }
 }
 
 
@@ -94,8 +175,7 @@ void updateCullBits(inout uint cullBits, vec4 hPos)
     cullBits |= hPos.z <  hPos.w ? 32 : 0;
     cullBits |= hPos.w >  0      ? 64 : 0;
 }
-vec3 base;
-vec3 size;
+
 vec4 getBoxCorner(int corner) {
     return vec4(base + vec3((corner&1), ((corner>>1)&1), ((corner>>2)&1))*size, 1);
 }

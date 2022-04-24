@@ -48,10 +48,11 @@ public class CoreRenderer {
     long last;
     long count;
     //TODO: create a prepass compute shader which hiz tests each region then use glDispatchIndirect
+    // tho maybe dont use hiz, could just use a normal elementsInstanced and then have fragment early exit write the count
     public void debugRender(ChunkRenderMatrices renderMatrices, Vector3f pos, Frustum frustum) {
         count++;
         if (last + 1000 < System.currentTimeMillis()) {
-            MinecraftClient.getInstance().getWindow().setTitle("FPS: "+((count*1000)/(System.currentTimeMillis()-last)) + " sections: " + debugLayer.sectioncount +" build queue: "+regionManager.builder.inflowWorkQueue.size()+" upload queue: "+regionManager.workResultsLocal.size());
+            MinecraftClient.getInstance().getWindow().setTitle("FPS: "+((count*1000)/(System.currentTimeMillis()-last)) + " build queue: "+regionManager.builder.inflowWorkQueue.size()+" upload queue: "+regionManager.workResultsLocal.size());
             last = System.currentTimeMillis();
             count = 0;
         }
@@ -80,7 +81,6 @@ public class CoreRenderer {
         glClear(GL_DEPTH_BUFFER_BIT);
         MinecraftClient.getInstance().getProfiler().swap("region-opake");
         debugLayer.being(null);
-
         if (true) {
             for (Region r : regions) {
                 debugLayer.superdebugtestrender(0, r, renderMatrices, pos.sub(r.pos.x() << (Region.WIDTH_BITS + 4), r.pos.y() * Region.HEIGHT * 16, r.pos.z() << (Region.WIDTH_BITS + 4), new Vector3f()));

@@ -29,10 +29,10 @@ struct SubChunk {
 
     uint layerMeta;
 
-    Range SOLID;
-    Range CUTOUT_MIPPED;
-    Range CUTOUT;
-    Range TRANSLUCENT;
+    Range SOLID[7];
+    Range CUTOUT_MIPPED[7];
+    Range CUTOUT[7];
+    Range TRANSLUCENT[7];
 };
 
 struct DrawInstancedData {

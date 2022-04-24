@@ -9,7 +9,7 @@ import org.joml.Vector3i;
 import org.lwjgl.system.MemoryUtil;
 
 public class Section {
-    public static final int SIZE = 4 * (1+1+3*3+1+4*2);
+    public static final int SIZE = 4 * (1+1+3*3+1+4*2*7);
     public final SectionPos pos;
     public final int id;
     public GLSparseRange vertexDataPosition;
@@ -40,71 +40,39 @@ public class Section {
         //new Vector2i((int) ((vertexDataPosition.offset/20)), (int) (((vertexDataPosition.size/20)/4)*6)).getToAddress(ptr);
 
         if (SOLID == null) {
-            new Vector2i(0, 0).getToAddress(ptr);
+            MemoryUtil.memSet(ptr, 0, 8*7);
         } else {
-            int o = Integer.MAX_VALUE;
-            int s = 0;
-            for (VertexRange r : SOLID) {
-                if (r==null)continue;
-                o=Math.min(r.firstVertex(), o);
-                s+=(r.vertexCount()/4)*6;
-            }
-            if (o == Integer.MAX_VALUE)
-                new Vector2i(0, 0).getToAddress(ptr);
-            else
-                new Vector2i((int) (o+(vertexDataPosition.offset/20)),s).getToAddress(ptr);
+            writeRangeBlock(ptr, SOLID);
         }
-        ptr += 8;
+        ptr += 8*7;
         if (CUTOUT_MIPPED == null) {
-            new Vector2i(0, 0).getToAddress(ptr);
+            MemoryUtil.memSet(ptr, 0, 8*7);
         } else {
-            int o = Integer.MAX_VALUE;
-            int s = 0;
-            for (VertexRange r : CUTOUT_MIPPED) {
-                if (r==null)continue;
-                o=Math.min(r.firstVertex(), o);
-                s+=(r.vertexCount()/4)*6;
-            }
-            if (o == Integer.MAX_VALUE)
-                new Vector2i(0, 0).getToAddress(ptr);
-            else
-                new Vector2i((int) (o+(vertexDataPosition.offset/20)),s).getToAddress(ptr);
+            writeRangeBlock(ptr, CUTOUT_MIPPED);
         }
-        ptr += 8;
+        ptr += 8*7;
         if (CUTOUT == null) {
-            new Vector2i(0, 0).getToAddress(ptr);
+            MemoryUtil.memSet(ptr, 0, 8*7);
         } else {
-            int o = Integer.MAX_VALUE;
-            int s = 0;
-            for (VertexRange r : CUTOUT) {
-                if (r==null)continue;
-                o=Math.min(r.firstVertex(), o);
-                s+=(r.vertexCount()/4)*6;
-            }
-            if (o == Integer.MAX_VALUE)
-                new Vector2i(0, 0).getToAddress(ptr);
-            else
-                new Vector2i((int) (o+(vertexDataPosition.offset/20)),s).getToAddress(ptr);
+            writeRangeBlock(ptr, CUTOUT);
         }
-        ptr += 8;
+        ptr += 8*7;
         if (TRANSLUCENT == null) {
-            new Vector2i(0, 0).getToAddress(ptr);
+            MemoryUtil.memSet(ptr, 0, 8*7);
         } else {
-            int o = Integer.MAX_VALUE;
-            int s = 0;
-            for (VertexRange r : TRANSLUCENT) {
-                if (r==null)continue;
-                o=Math.min(r.firstVertex(), o);
-                s+=(r.vertexCount()/4)*6;
-            }
-            if (o == Integer.MAX_VALUE)
-                new Vector2i(0, 0).getToAddress(ptr);
-            else
-                new Vector2i((int) (o+(vertexDataPosition.offset/20)),s).getToAddress(ptr);
+            writeRangeBlock(ptr, TRANSLUCENT);
         }
-
     }
 
+    private void writeRangeBlock(long ptr, VertexRange[] ranges) {
+        for (VertexRange r : ranges) {
+            if (r == null)
+                new Vector2i(0,0).getToAddress(ptr);
+            else
+                new Vector2i((int) (r.firstVertex()+(vertexDataPosition.offset/20)), (r.vertexCount()/4)*6).getToAddress(ptr);
+            ptr+=8;
+        }
+    }
 
     //Also contains method to write to client memory
 

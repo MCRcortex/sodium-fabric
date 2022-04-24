@@ -3,6 +3,7 @@ package me.cortex.cullmister.utils;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
 
 import java.io.IOException;
@@ -94,6 +95,11 @@ public class CShader implements IBindable {
     public void setUniform(String uniformName, int value) {
         int location = uniforms.computeIntIfAbsent(uniformName, (name)->glGetUniformLocation(programObject, uniformName));
         if (location != -1) glUniform1i(location, value);
+        else throw new IllegalArgumentException();
+    }
+    public void setUniform(String uniformName, Vector3f value) {
+        int location = uniforms.computeIntIfAbsent(uniformName, (name)->glGetUniformLocation(programObject, uniformName));
+        if (location != -1) glUniform3f(location, value.x, value.y, value.z);
         else throw new IllegalArgumentException();
     }
 }

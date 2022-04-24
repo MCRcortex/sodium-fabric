@@ -87,11 +87,11 @@ public class LayerRenderer {
                 layout(binding = 1) uniform sampler2D u_LightTex; // The light map texture sampler
                                 
                 void main() {
+                    //vec4 c = vec4(1);
                     vec4 c = texture(u_BlockTex, v_TexCoord);
-                    if (c.a < 0.5)
-                        discard;
+                    //if (c.a < 0.5)
+                    //    discard;
                     vec4 sampleLightTex = texture(u_LightTex, v_LightCoord);
-                
                     vec4 diffuseColor = (c * sampleLightTex);
                     diffuseColor *= v_Color;
                     colour = diffuseColor;
@@ -122,6 +122,7 @@ public class LayerRenderer {
 
     long sectioncount;
     public void superdebugtestrender(int pass, Region region, ChunkRenderMatrices renderMatrices, Vector3f pos) {
+
         //glBeginConditionalRender(region.query, GL_QUERY_WAIT);
         MinecraftClient.getInstance().getProfiler().push("bind");
         region.vao.bind();
@@ -139,15 +140,17 @@ public class LayerRenderer {
         // TODO: DO CONDITIONAL RENDERING FOR REGIONS
         //  ISSUE: CONDITIONALS DONT HELP WITH THIS AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA, conditionals slow as fuck
 
+        //TODO: try reading the counts of the commands from the previous frame and use that as the input to max count,
+        // should provide maximum efficency
         if (pass == 0) {
-            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 0 * 10000, 4 * 0, region.sectionCount, 0);
-            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 1 * 10000, 4 * 1, region.sectionCount, 0);
-            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 2 * 10000, 4 * 2, region.sectionCount, 0);
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 0 * 10000, 4 * 0,  (int) (region.sectionCount*2.5), 0);
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 1 * 10000, 4 * 1,  (int) (region.sectionCount*2.5), 0);
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 2 * 10000, 4 * 2,  (int) (region.sectionCount), 0);
         }
         if (pass == 1) {
             RenderSystem.enableBlend();
             RenderSystem.blendFuncSeparate(GlEnum.from(BlendFunc.SrcFactor.SRC_ALPHA), GlEnum.from(BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA), GlEnum.from(BlendFunc.SrcFactor.ONE), GlEnum.from(BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA));
-            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 3 * 10000, 4 * 3, region.sectionCount, 0);
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 3 * 10000, 4 * 3, (int) (region.sectionCount), 0);
             RenderSystem.disableBlend();
         }
         /*

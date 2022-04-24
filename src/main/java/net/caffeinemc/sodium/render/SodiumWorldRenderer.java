@@ -45,6 +45,7 @@ public class SodiumWorldRenderer {
     private ClientWorld world;
     private int renderDistance;
 
+    public BlockPos camBPos = new BlockPos(0,0,0);
     private double lastCameraX, lastCameraY, lastCameraZ;
     private double lastCameraPitch, lastCameraYaw;
     private float lastFogDistance;
@@ -164,6 +165,7 @@ public class SodiumWorldRenderer {
         profiler.swap("tracker");
 
         this.chunkTracker.update();
+        camBPos = camera.getBlockPos();
         NativeBuffer.reclaim(false);
         if (true) {
             profiler.pop();

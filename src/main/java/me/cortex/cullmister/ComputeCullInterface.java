@@ -25,6 +25,7 @@ import static org.lwjgl.opengl.GL42.GL_ATOMIC_COUNTER_BUFFER;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 import static org.lwjgl.opengl.GL43C.glClearBufferData;
 
+//TODO: NEED TO SREIOUSLY REDO THE HIZ SHIT, cause its producing a butttttttttt tone of false positives
 public class ComputeCullInterface {
     CShader cullShader;
     HiZ hiz;
@@ -48,6 +49,8 @@ public class ComputeCullInterface {
         baseMat = new Matrix4f(renderMatrices.projection()).mul(renderMatrices.modelView());
         cam_pos = cam;
     }
+    //TODO: OPTIMIZE BINDING PROCESS, cause is slow
+
     //Resets all the counters and stuff
     private void prepAndBind(Region region) {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, region.chunkMeta.id);
@@ -72,7 +75,9 @@ public class ComputeCullInterface {
         //glBeginConditionalRender(region.query, GL_QUERY_WAIT);
         MinecraftClient.getInstance().getProfiler().push("Binding");
         prepAndBind(region);
-        cullShader.setUniform("viewModelProjectionTranslate", baseMat.translate((region.pos.x()<<(Region.WIDTH_BITS+4))-cam_pos.x, (region.pos.y()*Region.HEIGHT*16)-cam_pos.y, (region.pos.z()<<(Region.WIDTH_BITS+4))-cam_pos.z, new Matrix4f()));
+        Vector3f rpos = new Vector3f((region.pos.x()<<(Region.WIDTH_BITS+4))-cam_pos.x, (region.pos.y()*Region.HEIGHT*16)-cam_pos.y, (region.pos.z()<<(Region.WIDTH_BITS+4))-cam_pos.z);
+        cullShader.setUniform("viewModelProjectionTranslate", baseMat.translate(rpos, new Matrix4f()));
+        cullShader.setUniform("regionOffset", rpos);
         MinecraftClient.getInstance().getProfiler().swap("dispatch");
         // TODO: Try different sizes of local workers
         cullShader.dispatch((int) Math.ceil((double) region.sectionCount/32),1,1);
