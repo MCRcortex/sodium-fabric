@@ -24,6 +24,7 @@ import org.lwjgl.opengl.GL45C;
 import org.lwjgl.system.MemoryUtil;
 
 import static net.caffeinemc.gfx.api.array.attribute.VertexAttributeFormat.UNSIGNED_INT;
+import static org.lwjgl.opengl.ARBDirectStateAccess.glCopyNamedBufferSubData;
 import static org.lwjgl.opengl.ARBDrawIndirect.glDrawElementsIndirect;
 import static org.lwjgl.opengl.ARBDrawIndirect.nglDrawElementsIndirect;
 import static org.lwjgl.opengl.ARBIndirectParameters.*;
@@ -90,14 +91,11 @@ public class LayerRenderer {
                 layout(binding = 1) uniform sampler2D u_LightTex; // The light map texture sampler
                                 
                 void main() {
-                    //vec4 c = vec4(1);
                     vec4 c = texture(u_BlockTex, v_TexCoord);
-                    if (c.a < 0.3)
+                    if (c.a < 0.5)
                         discard;
-                    vec4 sampleLightTex = texture(u_LightTex, v_LightCoord);
-                    vec4 diffuseColor = (c * sampleLightTex);
-                    diffuseColor *= v_Color;
-                    colour = diffuseColor;
+                    vec4 light = texture(u_LightTex, v_LightCoord);
+                    colour = vec4((c.rgb * light.rgb) * v_Color.rgb * v_Color.a, c.a);
                 }
                 """);
     }
@@ -128,8 +126,14 @@ public class LayerRenderer {
     public void superdebugtestrender(int pass, Region region, ChunkRenderMatrices renderMatrices, Vector3f pos) {
 
         MinecraftClient.getInstance().getProfiler().push("mappy");
-        //long ptr = region.drawData.drawCounts.mappedNamedPtrRanged(0, 4 * 4, GL_MAP_READ_BIT);
-        //region.drawData.drawCounts.unmapNamed();
+        if (false) {
+            long ptr = region.drawCountsMemCpyAccess.mappedNamedPtrRanged(0, 4 * 4, GL_MAP_READ_BIT|GL_MAP_PERSISTENT_BIT);
+            for (int i = 0; i < 4; i++) {
+                region.cacheDrawCounts[i] = MemoryUtil.memGetInt(ptr + 4*i);
+            }
+            glCopyNamedBufferSubData(region.drawData.drawCounts.id,region.drawCountsMemCpyAccess.id, 0,0,4*4);
+            region.drawCountsMemCpyAccess.unmapNamed();
+        }
         /*
         if (false && MemoryUtil.memGetInt(ptr) == 0 && MemoryUtil.memGetInt(ptr+4) == 0 && MemoryUtil.memGetInt(ptr+8) == 0) {
             region.drawData.drawCounts.unmapNamed();
@@ -161,11 +165,6 @@ public class LayerRenderer {
         // this could be done with a temporary buffer thats updated from the main one, then read
         if (pass == 0) {
 
-            /*
-            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 0 * 10000, 4 * 0,  MemoryUtil.memGetInt(ptr), 0);
-            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 1 * 10000, 4 * 1,  MemoryUtil.memGetInt(ptr+4), 0);
-            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 2 * 10000, 4 * 2,  MemoryUtil.memGetInt(ptr+8), 0);
-             */
 
             GL45C.glBindSampler(0, mipsampler);
             nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 0 * 10000, 4 * 0,  (int) (region.sectionCount*3.5), 0);
@@ -173,13 +172,21 @@ public class LayerRenderer {
             GL45C.glBindSampler(0, texsampler);
             nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 2 * 10000, 4 * 2,  (int) (region.sectionCount*2), 0);//(int) (region.sectionCount*2)
 
+
+
+            /*
+            GL45C.glBindSampler(0, mipsampler);
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 0 * 10000, 4 * 0,  region.cacheDrawCounts[0], 0);
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 1 * 10000, 4 * 1,  region.cacheDrawCounts[1], 0);//(int) (region.sectionCount*3.5)
+            GL45C.glBindSampler(0, texsampler);
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 2 * 10000, 4 * 2,  region.cacheDrawCounts[2], 0);//(int) (region.sectionCount*2);
+             */
         }
         if (pass == 1) {
             RenderSystem.enableBlend();
             RenderSystem.blendFuncSeparate(GlEnum.from(BlendFunc.SrcFactor.SRC_ALPHA), GlEnum.from(BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA), GlEnum.from(BlendFunc.SrcFactor.ONE), GlEnum.from(BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA));
-            //nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 3 * 10000, 4 * 3, MemoryUtil.memGetInt(ptr+12), 0);
             nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 3 * 10000, 4 * 3, (int) (region.sectionCount*2), 0);
-            //nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 0, 0,1, 0);
+            //nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 3 * 10000, 4 * 3, region.cacheDrawCounts[3], 0);
             RenderSystem.disableBlend();
         }
         /*

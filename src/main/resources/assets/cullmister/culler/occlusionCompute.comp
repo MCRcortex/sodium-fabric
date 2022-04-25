@@ -168,17 +168,10 @@ void main (){
         return;
     if (subchunks[gl_GlobalInvocationID.x].id != gl_GlobalInvocationID.x)
         return;
+    barrier();
     base = Vec3FtoVec3(subchunks[gl_GlobalInvocationID.x].bboxOffset);
     //if (length(base+regionOffset)>=(32*16)) return;
     size = Vec3FtoVec3(subchunks[gl_GlobalInvocationID.x].bboxSize);
-    vec3 hsize = (size/2);
-    vec3 center = base + hsize + regionOffset;
-    vismsk |= center.y<hsize.y ? 1:0;
-    vismsk |= center.y>-hsize.y? 2:0;
-    vismsk |= center.x<hsize.x ? 4:0;
-    vismsk |= center.x>-hsize.x? 8:0;
-    vismsk |= center.z<hsize.z ?16:0;
-    vismsk |= center.z>-hsize.z?32:0;
 
     //NOTE: can do an early exit based on if the visible sides of the chunk face also are with the subchunk
     // clipspace bbox
@@ -197,6 +190,16 @@ void main (){
     bool isVisible = clipbits == 127;
 
     if (isVisible){
+
+        vec3 hsize = (size/2);
+        vec3 center = base + hsize + regionOffset;
+        vismsk |= center.y<hsize.y ? 1:0;
+        vismsk |= center.y>-hsize.y? 2:0;
+        vismsk |= center.x<hsize.x ? 4:0;
+        vismsk |= center.x>-hsize.x? 8:0;
+        vismsk |= center.z<hsize.z ?16:0;
+        vismsk |= center.z>-hsize.z?32:0;
+
         clipmin = clipmin * 0.5 + 0.5;
         clipmax = clipmax * 0.5 + 0.5;
         vec2 size = (clipmax.xy - clipmin.xy);

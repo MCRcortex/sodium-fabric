@@ -35,6 +35,7 @@ import static org.lwjgl.opengl.GL44.GL_DYNAMIC_STORAGE_BIT;
 import static org.lwjgl.opengl.GL45.*;
 
 public class Region {
+    public int[] cacheDrawCounts = new int[6];
     public static final int HEIGHT = 5;
     public static final int WIDTH_BITS = 4;
     public static class DrawData {
@@ -50,6 +51,7 @@ public class Region {
     public VBO chunkMeta = new VBO();
     public DrawData drawData = new DrawData();
     public int query = glGenQueries();
+    public VBO drawCountsMemCpyAccess = new VBO();
 
     public int sectionCount = 0;
     public Int2ObjectOpenHashMap<Section> sections = new Int2ObjectOpenHashMap<>();
@@ -66,6 +68,7 @@ public class Region {
         glNamedBufferStorage(chunkMeta.id, (1<<(WIDTH_BITS+4))*HEIGHT*(1<<(WIDTH_BITS+4))*Section.SIZE, GL_DYNAMIC_STORAGE_BIT|GL_MAP_WRITE_BIT);
         glNamedBufferStorage(drawData.drawMeta.id, 3*4*(1<<(WIDTH_BITS+4))*HEIGHT*(1<<(WIDTH_BITS+4)), GL_DYNAMIC_STORAGE_BIT);
         glNamedBufferStorage(drawData.drawCounts.id, 4*4, GL_MAP_READ_BIT);//4 counts
+        glNamedBufferStorage(drawCountsMemCpyAccess.id, 4*4, GL_MAP_READ_BIT|GL_MAP_PERSISTENT_BIT);//4 counts
         glNamedBufferData(drawData.drawMetaCount.id, 4, GL_DYNAMIC_DRAW);//1 count
         glNamedBufferStorage(drawData.drawCommands.id, 5*4*10000*4, GL_DYNAMIC_STORAGE_BIT);//TODO: Actually calculate rough max
 
@@ -189,6 +192,7 @@ public class Region {
         drawData.drawCounts.delete();
         drawData.drawMeta.delete();
         drawData.drawCommands.delete();
+        drawCountsMemCpyAccess.delete();
         glDeleteQueries(query);
     }
 }
