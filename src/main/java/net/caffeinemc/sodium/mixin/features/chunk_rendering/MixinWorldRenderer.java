@@ -2,6 +2,7 @@ package net.caffeinemc.sodium.mixin.features.chunk_rendering;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import me.cortex.cullmister.CoreRenderer;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.FrustumAdapter;
 import net.caffeinemc.sodium.interop.vanilla.mixin.WorldRendererHolder;
@@ -91,7 +92,7 @@ public abstract class MixinWorldRenderer implements WorldRendererHolder {
     @Overwrite
     private void renderLayer(RenderLayer renderLayer, MatrixStack matrices, double x, double y, double z, Matrix4f matrix) {
         if (renderLayer == RenderLayer.getCutout()) {
-            SodiumWorldRenderer.renderer.debugRender(ChunkRenderMatrices.from(matrices), new Vector3f((float)x,(float)y,(float) z), FrustumAdapter.adapt(frustum));
+            CoreRenderer.INSTANCE.debugRender(ChunkRenderMatrices.from(matrices), new Vector3f((float)x,(float)y,(float) z), FrustumAdapter.adapt(frustum));
         }
 
         this.renderer.drawChunkLayer(renderLayer, matrices);
@@ -158,7 +159,7 @@ public abstract class MixinWorldRenderer implements WorldRendererHolder {
 
     @Inject(method = "reload()V", at = @At("RETURN"))
     private void onReload(CallbackInfo ci) {
-        SodiumWorldRenderer.renderer.reload();
+        CoreRenderer.INSTANCE.reload();
         this.renderer.reload();
     }
 

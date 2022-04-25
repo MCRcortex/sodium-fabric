@@ -79,6 +79,15 @@ public class HiZ {
                         ivec2 coord = ivec2(gl_FragCoord.xy);
                         coord *= 2;
                        \s
+                       /*
+                        for (int i = 0; i < 4; i++){
+                          depth = max(
+                            depth,\s
+                            texelFetch(depthTex,
+                              clamp(coord + offsets[i], ivec2(0), lodSize - ivec2(1)),
+                              depthLod).r );
+                        }*/
+                        
                         for (int i = 0; i < 4; i++){
                           depth = max(
                             depth,\s
@@ -169,8 +178,8 @@ public class HiZ {
         }
         //levels = Math.min(levels, 6);
         mipDepthTex = glCreateTextures(GL_TEXTURE_2D);
-        //glTextureStorage2D(mipDepthTex, levels, GL_DEPTH24_STENCIL8, width, height);
-        glTextureStorage2D(mipDepthTex, levels, GL_DEPTH_COMPONENT32F, width, height);
+        glTextureStorage2D(mipDepthTex, levels, GL_DEPTH24_STENCIL8, width, height);
+        //glTextureStorage2D(mipDepthTex, levels, GL_DEPTH_COMPONENT32F, width, height);
         glTextureParameteri(mipDepthTex, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
         glTextureParameteri(mipDepthTex, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTextureParameteri(mipDepthTex, GL_TEXTURE_COMPARE_MODE, GL_NONE);
@@ -180,8 +189,8 @@ public class HiZ {
         glBindFramebuffer(GL_FRAMEBUFFER, dummyFBO);
         glDrawBuffer(GL_NONE);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        //glNamedFramebufferTexture(dummyFBO, GL_DEPTH_STENCIL_ATTACHMENT, mipDepthTex, 0);
-        glNamedFramebufferTexture(dummyFBO, GL_DEPTH_ATTACHMENT, mipDepthTex, 0);
+        glNamedFramebufferTexture(dummyFBO, GL_DEPTH_STENCIL_ATTACHMENT, mipDepthTex, 0);
+        //glNamedFramebufferTexture(dummyFBO, GL_DEPTH_ATTACHMENT, mipDepthTex, 0);
         this.width = width;
         this.height = height;
     }
@@ -209,8 +218,8 @@ public class HiZ {
         int cheight = height / 2;
         for (int level = 1; level < levels; level++) {
             glViewport(0, 0, cwidth, cheight);
-            //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, mipDepthTex, level);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, mipDepthTex, level);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, mipDepthTex, level);
+            //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, mipDepthTex, level);
             glUniform1i(0, level-1);
             glUniform1i(1, wasEven?1:0);
             glDrawArrays(GL_TRIANGLES, 0, 3);

@@ -21,6 +21,7 @@ import static org.lwjgl.opengl.GL13.glActiveTexture;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL30.glBindBufferBase;
 import static org.lwjgl.opengl.GL30C.GL_QUERY_WAIT;
+import static org.lwjgl.opengl.GL33.glBindSampler;
 import static org.lwjgl.opengl.GL42.GL_ATOMIC_COUNTER_BUFFER;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 import static org.lwjgl.opengl.GL43C.glClearBufferData;
@@ -45,20 +46,24 @@ public class ComputeCullInterface {
         cullShader.setUniformU("renderId", renderId);
         RenderSystem.enableTexture();
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, hiz.mipDepthTex);
+        glBindTextureUnit(0, hiz.mipDepthTex);
+        glBindSampler(0, hiz.sampler);
         baseMat = new Matrix4f(renderMatrices.projection()).mul(renderMatrices.modelView());
         cam_pos = cam;
     }
     //TODO: OPTIMIZE BINDING PROCESS, cause is slow
 
+    //TODO: FIX BUS usage??? idfk whats going on but i think some shit is stored in client memory
+
     //Resets all the counters and stuff
     private void prepAndBind(Region region) {
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, region.chunkMeta.id);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, region.chunkMeta.id);
 
         //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, visibleChunkList.id);
 
         //glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, visibleChunkListCount.id);
         //glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, (ByteBuffer) null);
+
 
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, region.drawData.drawCounts.id);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, region.drawData.drawCommands.id);
@@ -68,7 +73,9 @@ public class ComputeCullInterface {
 
         nglClearNamedBufferData(region.drawData.drawCounts.id, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, 0);
         nglClearNamedBufferData(region.drawData.drawMetaCount.id, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, 0);
+
     }
+
 
     //Enqueue process
     public void process(Region region) {
@@ -80,19 +87,26 @@ public class ComputeCullInterface {
         cullShader.setUniform("regionOffset", rpos);
         MinecraftClient.getInstance().getProfiler().swap("dispatch");
         // TODO: Try different sizes of local workers
-        cullShader.dispatch((int) Math.ceil((double) region.sectionCount/32),1,1);
+        cullShader.dispatch((int)Math.ceil((float)region.sectionCount/64),1,1);
         //long ptr = region.drawData.drawMetaCount.mappedNamedPtrRanged(0,4,GL_MAP_READ_BIT);
         //System.out.println(MemoryUtil.memGetInt(ptr));
         //region.drawData.drawMetaCount.unmapNamed();
 
         MinecraftClient.getInstance().getProfiler().pop();
         //glEndConditionalRender();
+
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0);
+        glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 1, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0);
     }
 
     //End process
     public void end() {
         cullShader.unbind();
         RenderSystem.disableTexture();
-        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindTextureUnit(0, 0);
+        glBindSampler(0, 0);
     }
 }

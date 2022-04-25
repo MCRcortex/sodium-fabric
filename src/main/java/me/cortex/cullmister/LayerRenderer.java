@@ -26,8 +26,7 @@ import org.lwjgl.system.MemoryUtil;
 import static net.caffeinemc.gfx.api.array.attribute.VertexAttributeFormat.UNSIGNED_INT;
 import static org.lwjgl.opengl.ARBDrawIndirect.glDrawElementsIndirect;
 import static org.lwjgl.opengl.ARBDrawIndirect.nglDrawElementsIndirect;
-import static org.lwjgl.opengl.ARBIndirectParameters.GL_PARAMETER_BUFFER_ARB;
-import static org.lwjgl.opengl.ARBIndirectParameters.nglMultiDrawElementsIndirectCountARB;
+import static org.lwjgl.opengl.ARBIndirectParameters.*;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_SHORT;
@@ -42,15 +41,19 @@ import static org.lwjgl.opengl.GL42.glMemoryBarrier;
 import static org.lwjgl.opengl.GL42C.GL_ATOMIC_COUNTER_BARRIER_BIT;
 import static org.lwjgl.opengl.GL42C.GL_COMMAND_BARRIER_BIT;
 import static org.lwjgl.opengl.GL43C.nglMultiDrawElementsIndirect;
+import static org.lwjgl.opengl.GL44.GL_MAP_PERSISTENT_BIT;
 
 public class LayerRenderer {
     Shader debugdrawer;
     int mipsampler = glGenSamplers();
+    int texsampler = glGenSamplers();
     int lightsampler = glGenSamplers();
     public LayerRenderer() {
         glSamplerParameteri(mipsampler, GL33C.GL_TEXTURE_MIN_FILTER, GL33C.GL_NEAREST_MIPMAP_LINEAR);
         glSamplerParameteri(mipsampler,GL33C.GL_TEXTURE_MAG_FILTER, GL33C.GL_NEAREST);
 
+        glSamplerParameteri(texsampler, GL33C.GL_TEXTURE_MIN_FILTER, GL33C.GL_NEAREST);
+        glSamplerParameteri(texsampler, GL33C.GL_TEXTURE_MAG_FILTER, GL33C.GL_NEAREST);
 
         glSamplerParameteri(lightsampler,GL33C.GL_TEXTURE_MIN_FILTER, GL33C.GL_LINEAR);
         glSamplerParameteri(lightsampler,GL33C.GL_TEXTURE_MAG_FILTER, GL33C.GL_LINEAR);
@@ -89,8 +92,8 @@ public class LayerRenderer {
                 void main() {
                     //vec4 c = vec4(1);
                     vec4 c = texture(u_BlockTex, v_TexCoord);
-                    //if (c.a < 0.5)
-                    //    discard;
+                    if (c.a < 0.3)
+                        discard;
                     vec4 sampleLightTex = texture(u_LightTex, v_LightCoord);
                     vec4 diffuseColor = (c * sampleLightTex);
                     diffuseColor *= v_Color;
@@ -100,6 +103,7 @@ public class LayerRenderer {
     }
 
     public void being(RenderLayer layer) {
+        MinecraftClient.getInstance().getProfiler().push("bind");
         debugdrawer.bind();
         RenderSystem.enableTexture();
         TextureManager tm = MinecraftClient.getInstance().getTextureManager();
@@ -107,10 +111,10 @@ public class LayerRenderer {
         LightmapTextureManagerAccessor lightmapTextureManager =
                 ((LightmapTextureManagerAccessor) MinecraftClient.getInstance().gameRenderer.getLightmapTextureManager());
         GL45C.glBindTextureUnit(1, lightmapTextureManager.getTexture().getGlId());
-        GL45C.glBindSampler(0, mipsampler);
         GL45C.glBindSampler(1, lightsampler);
         glEnable(GL_DEPTH_TEST);
         sectioncount = 0;
+        MinecraftClient.getInstance().getProfiler().pop();
     }
 
     public void end() {
@@ -123,8 +127,20 @@ public class LayerRenderer {
     long sectioncount;
     public void superdebugtestrender(int pass, Region region, ChunkRenderMatrices renderMatrices, Vector3f pos) {
 
+        MinecraftClient.getInstance().getProfiler().push("mappy");
+        //long ptr = region.drawData.drawCounts.mappedNamedPtrRanged(0, 4 * 4, GL_MAP_READ_BIT);
+        //region.drawData.drawCounts.unmapNamed();
+        /*
+        if (false && MemoryUtil.memGetInt(ptr) == 0 && MemoryUtil.memGetInt(ptr+4) == 0 && MemoryUtil.memGetInt(ptr+8) == 0) {
+            region.drawData.drawCounts.unmapNamed();
+            MinecraftClient.getInstance().getProfiler().pop();
+            return;
+        }
+
+         */
+
         //glBeginConditionalRender(region.query, GL_QUERY_WAIT);
-        MinecraftClient.getInstance().getProfiler().push("bind");
+        MinecraftClient.getInstance().getProfiler().swap("bind");
         region.vao.bind();
         //region.vao.unbind();
         glBindBuffer(GL_PARAMETER_BUFFER_ARB, region.drawData.drawCounts.id);
@@ -142,15 +158,28 @@ public class LayerRenderer {
 
         //TODO: try reading the counts of the commands from the previous frame and use that as the input to max count,
         // should provide maximum efficency
+        // this could be done with a temporary buffer thats updated from the main one, then read
         if (pass == 0) {
-            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 0 * 10000, 4 * 0,  (int) (region.sectionCount*2.5), 0);
-            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 1 * 10000, 4 * 1,  (int) (region.sectionCount*2.5), 0);
-            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 2 * 10000, 4 * 2,  (int) (region.sectionCount), 0);
+
+            /*
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 0 * 10000, 4 * 0,  MemoryUtil.memGetInt(ptr), 0);
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 1 * 10000, 4 * 1,  MemoryUtil.memGetInt(ptr+4), 0);
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 2 * 10000, 4 * 2,  MemoryUtil.memGetInt(ptr+8), 0);
+             */
+
+            GL45C.glBindSampler(0, mipsampler);
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 0 * 10000, 4 * 0,  (int) (region.sectionCount*3.5), 0);
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 1 * 10000, 4 * 1,  (int) (region.sectionCount*3.5), 0);//(int) (region.sectionCount*3.5)
+            GL45C.glBindSampler(0, texsampler);
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 2 * 10000, 4 * 2,  (int) (region.sectionCount*2), 0);//(int) (region.sectionCount*2)
+
         }
         if (pass == 1) {
             RenderSystem.enableBlend();
             RenderSystem.blendFuncSeparate(GlEnum.from(BlendFunc.SrcFactor.SRC_ALPHA), GlEnum.from(BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA), GlEnum.from(BlendFunc.SrcFactor.ONE), GlEnum.from(BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA));
-            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 3 * 10000, 4 * 3, (int) (region.sectionCount), 0);
+            //nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 3 * 10000, 4 * 3, MemoryUtil.memGetInt(ptr+12), 0);
+            nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 5 * 4 * 3 * 10000, 4 * 3, (int) (region.sectionCount*2), 0);
+            //nglMultiDrawElementsIndirectCountARB(GL_TRIANGLES, GL_UNSIGNED_INT, 0, 0,1, 0);
             RenderSystem.disableBlend();
         }
         /*
@@ -163,7 +192,12 @@ public class LayerRenderer {
          */
 
         MinecraftClient.getInstance().getProfiler().pop();
+        glBindBuffer(GL_PARAMETER_BUFFER_ARB, 0);
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
         region.vao.unbind();
+        glBindBuffer(GL_PARAMETER_BUFFER_ARB, 0);
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
         //glEndConditionalRender();
+        //region.drawData.drawCounts.unmapNamed();
     }
 }

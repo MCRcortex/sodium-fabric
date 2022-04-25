@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
+import me.cortex.cullmister.CoreRenderer;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
@@ -230,7 +231,7 @@ public class RenderSectionManager {
         //TODO: IF THIS IS "inital" build need to recheck until can build
         //if (this.tracker.hasMergedFlags(x, z, ChunkStatus.FLAG_ALL)) {
         //TODO: FIX LEAK, this pos wil leak cause it is never removed thing, is slow
-        SodiumWorldRenderer.renderer.regionManager.enqueueRebuild(ChunkSectionPos.from(x, y, z), false);
+        CoreRenderer.INSTANCE.regionManager.enqueueRebuild(ChunkSectionPos.from(x, y, z), false);
         //}
         var render = this.tree.add(x, y, z);
 
@@ -254,7 +255,7 @@ public class RenderSectionManager {
         //    SodiumWorldRenderer.renderer.regionManager.enqueueRemoval(chunk.getChunkPos());
         chunk.delete();
         //TODO: need to add removal checks
-        SodiumWorldRenderer.renderer.regionManager.enqueueRemoval(chunk.getChunkPos());
+        CoreRenderer.INSTANCE.regionManager.enqueueRemoval(chunk.getChunkPos());
         return true;
     }
 
@@ -425,7 +426,7 @@ public class RenderSectionManager {
         RenderSection section = this.tree.getSection(x, y, z);
         //TODO: IF THIS IS "inital" build need to recheck until can build
         if (y>=-4 && y<20)
-            SodiumWorldRenderer.renderer.regionManager.enqueueRebuild(ChunkSectionPos.from(x, y, z), important);
+            CoreRenderer.INSTANCE.regionManager.enqueueRebuild(ChunkSectionPos.from(x, y, z), important);
         if (section != null && section.isBuilt()) {
             if (!this.alwaysDeferChunkUpdates && (important || this.isBlockUpdatePrioritized(section))) {
                 section.markForUpdate(ChunkUpdateType.IMPORTANT_REBUILD);

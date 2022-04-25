@@ -3,7 +3,9 @@ package net.caffeinemc.sodium.util;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceMaps;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
+import me.cortex.cullmister.utils.Unsafe;
 import net.caffeinemc.sodium.SodiumClientMod;
+import net.minecraft.client.MinecraftClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.system.MemoryUtil;
@@ -97,7 +99,7 @@ public class NativeBuffer {
         int attempts = 0;
 
         while (++attempts <= MAX_ALLOCATION_ATTEMPTS) {
-            address = MemoryUtil.nmemAlloc(bytes);
+            address = Unsafe.malloc(bytes);
 
             if (address != MemoryUtil.NULL) {
                 break;
@@ -125,8 +127,7 @@ public class NativeBuffer {
     private static void deallocate(BufferReference ref) {
         ref.checkFreed();
         ref.freed = true;
-
-        MemoryUtil.nmemFree(ref.address);
+        Unsafe.freeIndirect(ref.address);
 
         ALLOCATED -= ref.length;
     }

@@ -34,6 +34,8 @@ public class MixinWindow {
         SodiumClientMod.DEVICE = new GlRenderDevice(new Blaze3DPipelineManager());
     }
 
+
+
     private static void sodium$throwGlError(int error, long description) {
         RenderSystem.assertInInitPhase();
         String string = "GLFW error " + error + ": " + MemoryUtil.memUTF8(description);

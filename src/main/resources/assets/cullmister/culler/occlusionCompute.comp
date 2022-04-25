@@ -1,12 +1,12 @@
 #version 460
 #import <DataTypes.h>
 
-layout(local_size_x = 32) in;
+layout(local_size_x = 64) in;
 uniform mat4 viewModelProjectionTranslate;
 uniform uint renderId;
 uniform vec3 regionOffset;
 layout(binding = 0) uniform sampler2D depthTex;
-layout(std430, binding = 0) buffer SubChunkData {
+layout(std430, binding = 5) buffer SubChunkData {
     SubChunk[] subchunks;
 };
 
@@ -34,8 +34,8 @@ layout(std430, binding = 4) buffer DrawInstancedData_b {
 vec3 base;
 vec3 size;
 
-//TODO: MAKE A PROPER SYSTEM FOR face occlusion, e.g if a face is visible relative to the camera of a chunk
 
+//TODO: Improve hiz culling, potentially by sampling a 4x4 grid instead of 2x2 max?
 
 
 
@@ -55,7 +55,8 @@ void chunk_visible(float distance) {
     drawInstanceData[instanceDataIdx].offset.y = subchunks[gl_GlobalInvocationID.x].pos.y*16;
     drawInstanceData[instanceDataIdx].offset.z = subchunks[gl_GlobalInvocationID.x].pos.z*16;
 
-
+    //TODO: something like the following, then can just do a range check
+    //https://github.com/nvpro-samples/gl_occlusion_culling/blob/master/cull-raster-geo.vert.glsl#L136
 
     vec3 hSize = (size/2);
     vec3 center = base+hSize + regionOffset;
@@ -80,7 +81,7 @@ void chunk_visible(float distance) {
         vec3 norm = center + ((hSize)*faces[i]);
         if (!(dot(norm, faceNorms[i])<0.01)) continue;
 
-
+        barrier();
 
         if (subchunks[gl_GlobalInvocationID.x].SOLID[i].count != 0) {
             int cidx = atomicAdd(commandsCounts[0], 1);
@@ -180,13 +181,16 @@ vec4 getBoxCorner(int corner) {
     return vec4(base + vec3((corner&1), ((corner>>1)&1), ((corner>>2)&1))*size, 1);
 }
 
+//TODO: NEED TO MAKE HiZ culling better
 void main (){
     if (gl_GlobalInvocationID.x >= subchunks.length())
         return;
     if (subchunks[gl_GlobalInvocationID.x].id != gl_GlobalInvocationID.x)
         return;
     base = Vec3FtoVec3(subchunks[gl_GlobalInvocationID.x].bboxOffset);
+    //if (length(base+regionOffset)>=(32*16)) return;
     size = Vec3FtoVec3(subchunks[gl_GlobalInvocationID.x].bboxSize);
+
     // clipspace bbox
     vec4 hPos    = viewModelProjectionTranslate * getBoxCorner(0);
     vec3 clipmin  = hPos.xyz/hPos.w;
@@ -208,7 +212,7 @@ void main (){
         vec2 size = (clipmax.xy - clipmin.xy);
         ivec2 texsize = textureSize(depthTex,0);
         float maxsize = max(size.x*texsize.x, size.y*texsize.y);
-        float miplevel = ceil(log2(maxsize/2));
+        float miplevel = ceil(log2(maxsize/2));//
         float a = textureLod(depthTex,clipmin.xy,miplevel).r;
         float b = textureLod(depthTex,vec2(clipmin.x,clipmax.y),miplevel).r;
         float c = textureLod(depthTex,clipmax.xy,miplevel).r;

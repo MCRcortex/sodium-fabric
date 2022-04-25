@@ -63,9 +63,9 @@ public class Region {
 
     public Region(RegionPos pos) {
         this.pos = pos;
-        glNamedBufferStorage(chunkMeta.id, (1<<(WIDTH_BITS+4))*HEIGHT*(1<<(WIDTH_BITS+4))*Section.SIZE, GL_DYNAMIC_STORAGE_BIT|GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
+        glNamedBufferStorage(chunkMeta.id, (1<<(WIDTH_BITS+4))*HEIGHT*(1<<(WIDTH_BITS+4))*Section.SIZE, GL_DYNAMIC_STORAGE_BIT|GL_MAP_WRITE_BIT);
         glNamedBufferStorage(drawData.drawMeta.id, 3*4*(1<<(WIDTH_BITS+4))*HEIGHT*(1<<(WIDTH_BITS+4)), GL_DYNAMIC_STORAGE_BIT);
-        glNamedBufferData(drawData.drawCounts.id, 4*4, GL_DYNAMIC_DRAW);//4 counts
+        glNamedBufferStorage(drawData.drawCounts.id, 4*4, GL_MAP_READ_BIT);//4 counts
         glNamedBufferData(drawData.drawMetaCount.id, 4, GL_DYNAMIC_DRAW);//1 count
         glNamedBufferStorage(drawData.drawCommands.id, 5*4*10000*4, GL_DYNAMIC_STORAGE_BIT);//TODO: Actually calculate rough max
 

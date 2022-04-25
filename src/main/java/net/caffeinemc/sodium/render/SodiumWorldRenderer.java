@@ -91,7 +91,7 @@ public class SodiumWorldRenderer {
         if (this.world == world) {
             return;
         }
-        renderer.setWorld(world);
+        CoreRenderer.INSTANCE.setWorld(world);
         // If we have a world is already loaded, unload the renderer
         if (this.world != null) {
             this.unloadWorld();
@@ -161,7 +161,7 @@ public class SodiumWorldRenderer {
         }
 
         profiler.push("my_tick");
-        renderer.tick();
+        CoreRenderer.INSTANCE.tick();
         profiler.swap("tracker");
 
         this.chunkTracker.update();
@@ -236,7 +236,6 @@ public class SodiumWorldRenderer {
     }
 
 
-    public static CoreRenderer renderer = new CoreRenderer();
     private void initRenderer() {
         if (this.renderSectionManager != null) {
             this.renderSectionManager.destroy();

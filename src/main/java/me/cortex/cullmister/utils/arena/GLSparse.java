@@ -2,6 +2,12 @@ package me.cortex.cullmister.utils.arena;
 
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectAVLTreeMap;
+import it.unimi.dsi.fastutil.objects.ObjectAVLTreeSet;
+import it.unimi.dsi.fastutil.objects.ObjectSet;
+import it.unimi.dsi.fastutil.objects.ObjectSortedSet;
+
+import java.util.Comparator;
 
 import static org.lwjgl.opengl.ARBSparseBuffer.*;
 import static org.lwjgl.opengl.ARBSparseBuffer.glNamedBufferPageCommitmentARB;
@@ -21,6 +27,7 @@ public class GLSparse {
     long currentlyUsed = 0;
     GLSparseRange head;
     Long2IntOpenHashMap committedCount = new Long2IntOpenHashMap();
+    ObjectAVLTreeSet<GLSparseRange> freeSectors = new ObjectAVLTreeSet<>(Comparator.comparingLong(a -> a.size));
     public GLSparse() {
         //Just create it with 2GB of uncommited vram
         this(2000000000L);
@@ -35,6 +42,7 @@ public class GLSparse {
             System.err.println("GL_ERROR: "+ e);
         }
         head = new GLSparseRange(null, null, 0, this.maxSize, false);
+        freeSectors.add(head);
     }
 
     private void commitRange(GLSparseRange range) {
@@ -68,22 +76,10 @@ public class GLSparse {
     }
 
     public GLSparseRange alloc(long size) {
-        GLSparseRange ideal = null;
-        for (GLSparseRange current = head; current != null; current = current.next) {
-            if (current.committed)
-                continue;
-            if (current.size < size)
-                continue;
-            if (current.size == size) {
-                ideal = current;
-                break;
-            }
-            if (ideal == null)
-                ideal = current;
-            if (current.size < ideal.size) {
-                ideal = current;
-            }
-        }
+        ObjectSortedSet<GLSparseRange> possibleAllocs = freeSectors.tailSet(new GLSparseRange(null, null,0,size, false));
+        //TODO: filter for all min sizes for best memory locality
+        GLSparseRange ideal = possibleAllocs.first();
+
 
         if (ideal == null)
             throw new IllegalStateException("Unable to allocate memory");
@@ -94,9 +90,10 @@ public class GLSparse {
             ideal.committed = true;
             currentlyUsed += size;
             commitRange(ideal);
+            freeSectors.remove(ideal);
             return ideal;
         }
-
+        freeSectors.remove(ideal);
         GLSparseRange section = new GLSparseRange(ideal.prev, ideal, ideal.offset, size, true);
         currentlyUsed += size;
         commitRange(section);
@@ -112,6 +109,7 @@ public class GLSparse {
         //Update offset
         ideal.offset += size;
         ideal.size -= size;
+        freeSectors.add(ideal);
         return section;
     }
 
@@ -123,26 +121,33 @@ public class GLSparse {
         uncommitRange(section);
         section.committed = false;
         currentlyUsed -= section.size;
+        freeSectors.add(section);
 
         //Modify the link to merge sectors
 
         //Merge previous block
         if (section.prev!=null&&!section.prev.committed) {
+            freeSectors.remove(section);
+            freeSectors.remove(section.prev);
             section.prev.size += section.size;
             section.prev.next = section.next;
             if (section.next != null) {
                 section.next.prev = section.prev;
             }
             section = section.prev;
+            freeSectors.add(section);
         }
 
         //Merge next block
         if (section.next!=null&&!section.next.committed) {
+            freeSectors.remove(section);
+            freeSectors.remove(section.next);
             section.size += section.next.size;
             section.next = section.next.next;
             if (section.next != null) {
                 section.next.prev = section;
             }
+            freeSectors.add(section);
         }
     }
 

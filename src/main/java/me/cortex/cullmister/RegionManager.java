@@ -37,6 +37,7 @@ public class RegionManager {
         if (builder == null) {
             return;
         }
+        MinecraftClient.getInstance().getProfiler().push("request rebuilds");
 
         for (ChunkSectionPos section : chunkSectionsImportant.stream().toList()) {
             if (builder.inflowWorkQueue.size() > 5000)
@@ -52,7 +53,7 @@ public class RegionManager {
             if (builder.inflowWorkQueue.size() > 5000)
                 break;
 
-            if ((Math.hypot(section.getX()-((SodiumWorldRenderer.instance().camBPos.getX())>>4), section.getZ()-((SodiumWorldRenderer.instance().camBPos.getZ())>>4))>(MinecraftClient.getInstance().options.getViewDistance()+0.6))) {
+            if ((Math.hypot(section.getX()-((SodiumWorldRenderer.instance().camBPos.getX())>>4), section.getZ()-((SodiumWorldRenderer.instance().camBPos.getZ())>>4))>(MinecraftClient.getInstance().options.getViewDistance()+0.2))) {
                 chunkSectionsNonImportant.remove(section);
                 continue;
             }
@@ -63,23 +64,33 @@ public class RegionManager {
             chunkSectionsNonImportant.remove(section);
         }
 
+        MinecraftClient.getInstance().getProfiler().swap("copy build results");
 
         synchronized (builder.outflowWorkQueue) {
             while (!builder.outflowWorkQueue.isEmpty())
                 workResultsLocal.enqueue(builder.outflowWorkQueue.dequeue());
         }
+
+        MinecraftClient.getInstance().getProfiler().swap("mesh update");
         int budget = 50;
         while (!workResultsLocal.isEmpty() && budget!=0) {
+            MinecraftClient.getInstance().getProfiler().push("dequeu");
             TerrainBuildResult result = workResultsLocal.dequeue();
             //TODO: FIX, THIS IS A HACK
             if (result.geometry().vertices() == null) {
                 result.delete();
+                MinecraftClient.getInstance().getProfiler().pop();
                 continue;
             }
+            MinecraftClient.getInstance().getProfiler().swap("mesh");
             getRegion(result.pos()).updateMeshes(result);
+            MinecraftClient.getInstance().getProfiler().swap("delete");
             result.delete();
+            //result.geometry().vertices().buffer().free();
             budget--;
+            MinecraftClient.getInstance().getProfiler().pop();
         }
+        MinecraftClient.getInstance().getProfiler().pop();
     }
 
     public void setWorld(ClientWorld world) {
@@ -115,7 +126,7 @@ public class RegionManager {
     }
 
     public void enqueueRemoval(ChunkSectionPos pos) {
-        if (true)
+        if (false)
             return;
         chunkSectionsNonImportant.remove(pos);
         chunkSectionsImportant.remove(pos);
