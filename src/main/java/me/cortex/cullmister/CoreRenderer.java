@@ -115,6 +115,10 @@ public class CoreRenderer {
             if (true)
                 culler.process(r);
         }
+        for (Region r : regions) {
+            if (false)
+                culler.process(r);
+        }
         culler.end();
 
 

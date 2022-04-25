@@ -34,6 +34,7 @@ layout(std430, binding = 4) buffer DrawInstancedData_b {
 vec3 base;
 vec3 size;
 
+uint vismsk = 0;
 
 //TODO: Improve hiz culling, potentially by sampling a 4x4 grid instead of 2x2 max?
 
@@ -58,28 +59,8 @@ void chunk_visible(float distance) {
     //TODO: something like the following, then can just do a range check
     //https://github.com/nvpro-samples/gl_occlusion_culling/blob/master/cull-raster-geo.vert.glsl#L136
 
-    vec3 hSize = (size/2);
-    vec3 center = base+hSize + regionOffset;
     for (int i = 0; i < 6; i++) {
-        //NOTE: these are actually inverted
-        vec3 faceNorms[] = vec3[](
-            vec3(0,1,0),
-            vec3(0,-1,0),
-            vec3(1, 0, 0),
-            vec3(-1, 0, 0),
-            vec3(0,0,1),
-            vec3(0,0,-1)
-        );
-        vec3 faces[] = vec3[](
-            vec3(0,-1,0),
-            vec3(0,1,0),
-            vec3(-1, 0, 0),
-            vec3(1, 0, 0),
-            vec3(0,0,-1),
-            vec3(0,0,1)
-        );
-        vec3 norm = center + ((hSize)*faces[i]);
-        if (!(dot(norm, faceNorms[i])<0.01)) continue;
+        if ((vismsk&(1<<i))==0) continue;
 
         barrier();
 
@@ -190,7 +171,16 @@ void main (){
     base = Vec3FtoVec3(subchunks[gl_GlobalInvocationID.x].bboxOffset);
     //if (length(base+regionOffset)>=(32*16)) return;
     size = Vec3FtoVec3(subchunks[gl_GlobalInvocationID.x].bboxSize);
+    vec3 hsize = (size/2);
+    vec3 center = base + hsize + regionOffset;
+    vismsk |= center.y<hsize.y ? 1:0;
+    vismsk |= center.y>-hsize.y? 2:0;
+    vismsk |= center.x<hsize.x ? 4:0;
+    vismsk |= center.x>-hsize.x? 8:0;
+    vismsk |= center.z<hsize.z ?16:0;
+    vismsk |= center.z>-hsize.z?32:0;
 
+    //NOTE: can do an early exit based on if the visible sides of the chunk face also are with the subchunk
     // clipspace bbox
     vec4 hPos    = viewModelProjectionTranslate * getBoxCorner(0);
     vec3 clipmin  = hPos.xyz/hPos.w;
