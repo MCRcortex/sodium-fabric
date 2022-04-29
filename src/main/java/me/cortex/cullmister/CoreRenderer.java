@@ -27,18 +27,14 @@ public class CoreRenderer {
     public static CoreRenderer INSTANCE = new CoreRenderer();
 
     public RegionManager regionManager;
-    public ComputeCullInterface culler;
+    public CullSystem culler;
     LayerRenderer debugLayer;
-    public PreCuller preCuller;
-    HiZ hiZ;
     int frame;
 
     public CoreRenderer() {
         regionManager = new RegionManager();
         debugLayer = new LayerRenderer();
-        hiZ = new HiZ();
-        culler = new ComputeCullInterface(hiZ);
-        preCuller = new PreCuller();
+        culler = new CullSystem();
     }
 
     public void setWorld(ClientWorld world) {
@@ -67,69 +63,21 @@ public class CoreRenderer {
         }).sorted(Comparator.comparingDouble(a->new Vector3f(a.pos.x(), a.pos.y(), a.pos.y()).distanceSquared(pos.x/(1<<Region.WIDTH_BITS+4), pos.y/Region.HEIGHT,pos.z/(1<<Region.WIDTH_BITS+4)))).toList();
         MinecraftClient.getInstance().getProfiler().push("");
 
-        /*
-        MinecraftClient.getInstance().getProfiler().swap("pre cull");
-        preCuller.begin(renderMatrices, pos);
-        if (!regionManager.regions.isEmpty()) {
-            for (Region r : regions)
-                preCuller.process(r);
-        }
-        preCuller.end();
-         */
 
-        MinecraftClient.getInstance().getProfiler().swap("hiz resize");
-        hiZ.resize(MinecraftClient.getInstance().getFramebuffer().textureWidth, MinecraftClient.getInstance().getFramebuffer().viewportHeight);
+        MinecraftClient.getInstance().getProfiler().swap("Depth set");
         MinecraftClient.getInstance().getFramebuffer().beginWrite(true);
-        glNamedFramebufferTexture(MinecraftClient.getInstance().getFramebuffer().fbo, GL_DEPTH_STENCIL_ATTACHMENT, hiZ.mipDepthTex, 0);
+        //glNamedFramebufferTexture(MinecraftClient.getInstance().getFramebuffer().fbo, GL_DEPTH_STENCIL_ATTACHMENT, hiZ.mipDepthTex, 0);
+        MinecraftClient.getInstance().getProfiler().swap("Cull");
+
+
+
+        MinecraftClient.getInstance().getProfiler().swap("Depth clear");
         glClear(GL_DEPTH_BUFFER_BIT);
-        MinecraftClient.getInstance().getProfiler().swap("region-opake");
-        debugLayer.being(null);
-        if (true) {
-            for (Region r : regions) {
-                debugLayer.superdebugtestrender(0, r, renderMatrices, pos.sub(r.pos.x() << (Region.WIDTH_BITS + 4), r.pos.y() * Region.HEIGHT * 16, r.pos.z() << (Region.WIDTH_BITS + 4), new Vector3f()));
-            }
-        }
-        {
-            //Region r = regions.get(0);
-            //debugLayer.superdebugtestrender(0, r, renderMatrices, pos.sub(r.pos.x() << (Region.WIDTH_BITS + 4), r.pos.y() * Region.HEIGHT * 16, r.pos.z() << (Region.WIDTH_BITS + 4), new Vector3f()));
-        }
-
-        debugLayer.end();
-
-        MinecraftClient.getInstance().getProfiler().swap("hiz build");
-        hiZ.buildMips();
-        MinecraftClient.getInstance().getFramebuffer().beginWrite(true);
-        MinecraftClient.getInstance().getProfiler().swap("region-trans");
-        if (true) {
-            debugLayer.being(null);
-            for (Region r : regions) {
-                debugLayer.superdebugtestrender(1, r, renderMatrices, pos.sub(r.pos.x() << (Region.WIDTH_BITS + 4), r.pos.y() * Region.HEIGHT * 16, r.pos.z() << (Region.WIDTH_BITS + 4), new Vector3f()));
-            }
-            debugLayer.end();
-        }
-        //glFinish();
-
-        MinecraftClient.getInstance().getProfiler().swap("cull_test");
-        culler.begin(renderMatrices, pos, frame);
-        for (Region r : regions) {
-            if (true)
-                culler.process(r);
-        }
-        for (Region r : regions) {
-            if (false)
-                culler.process(r);
-        }
-        culler.end();
-
-
+        MinecraftClient.getInstance().getProfiler().swap("Draw");
 
 
         MinecraftClient.getInstance().getProfiler().swap("other");
-
         MinecraftClient.getInstance().getFramebuffer().beginWrite(true);
-        //hiZ.debugBlit(0);
-
-
         glNamedFramebufferTexture(MinecraftClient.getInstance().getFramebuffer().fbo, GL_DEPTH_ATTACHMENT, MinecraftClient.getInstance().getFramebuffer().getDepthAttachment(), 0);
         glNamedFramebufferTexture(MinecraftClient.getInstance().getFramebuffer().fbo, GL_STENCIL_ATTACHMENT, 0, 0);
 
