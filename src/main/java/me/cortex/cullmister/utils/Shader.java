@@ -30,7 +30,7 @@ public class Shader implements IBindable {
         return null;
     }
 
-    public Shader(Path vertex, Path fragment) throws IOException {
+    public Shader(Path vertex, Path fragment) {
         this(ShaderPreprocessor.load(vertex), ShaderPreprocessor.load(fragment));
     }
     public Shader(String vertex, String fragment) {
@@ -147,6 +147,10 @@ public class Shader implements IBindable {
     public Shader setViewMatrix(String name) {
         view_matrix_location = glGetUniformLocation(programObject, name);
         return this;
+    }
+
+    public void delete() {
+        glDeleteProgram(programObject);
     }
 }
 

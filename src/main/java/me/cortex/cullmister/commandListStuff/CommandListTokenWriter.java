@@ -1,5 +1,6 @@
 package me.cortex.cullmister.commandListStuff;
 
+import me.cortex.cullmister.utils.ShaderPreprocessor;
 import org.lwjgl.system.MemoryUtil;
 
 import static org.lwjgl.opengl.GL11C.*;
@@ -28,8 +29,13 @@ public class CommandListTokenWriter {
             4*2,        //FrontFaceCommandNV
     };
 
+
+
+    public static int NVHeader(int token) {
+        return glGetCommandHeaderNV(token, SIZES[token]);
+    }
     public static long NVHeader(long ptr, int token) {
-        MemoryUtil.memPutInt(ptr, glGetCommandHeaderNV(token, SIZES[token]));
+        MemoryUtil.memPutInt(ptr, NVHeader(token));
         return ptr + 4;
     }
 

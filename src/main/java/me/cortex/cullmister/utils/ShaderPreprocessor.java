@@ -5,21 +5,38 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static me.cortex.cullmister.commandListStuff.CommandListTokenWriter.NVHeader;
+import static org.lwjgl.opengl.NVCommandList.GL_NOP_COMMAND_NV;
+import static org.lwjgl.opengl.NVCommandList.GL_TERMINATE_SEQUENCE_COMMAND_NV;
+
 public class ShaderPreprocessor {
-    public static String load(Path file, Path... includePaths) {
-        List<Path> includes = new LinkedList<>(List.of(includePaths));
+    static List<Path> inbuilt = new LinkedList<>();
+    static Map<String, String> inbuiltDefines = new HashMap<>();
+    static {
         try {
-            includes.add(Path.of(ShaderPreprocessor.class.getResource("/assets/cullmister/include/").toURI()));
+            inbuilt.add(Path.of(ShaderPreprocessor.class.getResource("/assets/cullmister/include/").toURI()));
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
-        return String.join("\n", resolver(file, includes));
+        define("NOPCommandHeader", ""+NVHeader(GL_NOP_COMMAND_NV));
+        define("TerminateSequenceCommandHeader", ""+NVHeader(GL_TERMINATE_SEQUENCE_COMMAND_NV));
+    }
+    public static void define(String key, String val) {
+        inbuiltDefines.put(key, val);
+    }
+
+    public static String load(Path file, Path... includePaths) {
+        List<Path> includes = new LinkedList<>(List.of(includePaths));
+        includes.addAll(inbuilt);
+        List<String> lines = resolver(file, includes);
+        for (Map.Entry<String, String> def : inbuiltDefines.entrySet()) {
+            lines.add(1, "#define " + def.getKey() + " " + def.getValue());
+        }
+        return String.join("\n", lines);
     }
 
     private static Path resolveImports(String name, Path requester, List<Path> includes) {

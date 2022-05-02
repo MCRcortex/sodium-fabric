@@ -1,43 +1,24 @@
 package me.cortex.cullmister.region;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import it.unimi.dsi.fastutil.ints.*;
-import me.cortex.cullmister.utils.VAO;
-import me.cortex.cullmister.utils.VBO;
 import net.caffeinemc.sodium.render.buffer.VertexRange;
-import net.caffeinemc.sodium.render.chunk.RenderSectionManager;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.DefaultRenderPasses;
 import net.caffeinemc.sodium.render.chunk.state.ChunkModel;
 import net.caffeinemc.sodium.util.NativeBuffer;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.VertexFormat;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.joml.Vector3f;
-import org.lwjgl.system.MemoryUtil;
 
 import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.stream.Collectors;
-
-import static org.lwjgl.opengl.ARBDirectStateAccess.nglClearNamedBufferData;
-import static org.lwjgl.opengl.GL11.GL_SHORT;
-import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
-import static org.lwjgl.opengl.GL11.GL_UNSIGNED_SHORT;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL30.GL_MAP_READ_BIT;
-import static org.lwjgl.opengl.GL30.GL_MAP_WRITE_BIT;
-import static org.lwjgl.opengl.GL33.glVertexAttribDivisor;
-import static org.lwjgl.opengl.GL42.glMemoryBarrier;
-import static org.lwjgl.opengl.GL44.GL_DYNAMIC_STORAGE_BIT;
-import static org.lwjgl.opengl.GL45.*;
 
 public class Region {
     public static final int HEIGHT = 5;
     public static final int WIDTH_BITS = 4;
 
-    public RegionDrawData draw = new RegionDrawData();
+    public RegionRenderData draw = new RegionRenderData();
 
     public int sectionCount = 0;
     public Int2ObjectOpenHashMap<Section> sections = new Int2ObjectOpenHashMap<>();
@@ -73,7 +54,9 @@ public class Region {
         }
         int id = getNewChunkId();
         pos2id.put(pid, id);
-        Section section = new Section(this, SectionPos.from(pos), id);
+        if ( (short)id < 0)
+            throw new IllegalStateException();
+        Section section = new Section(this, SectionPos.from(pos), (short) id);
         sections.put(id, section);
         return section;
     }
@@ -156,5 +139,7 @@ public class Region {
 
     public void delete() {
         //Cleanup all opengl objects
+        draw.delete();
+        //TODO: delete all the sections
     }
 }

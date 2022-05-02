@@ -102,4 +102,8 @@ public class CShader implements IBindable {
         if (location != -1) glUniform3f(location, value.x, value.y, value.z);
         else throw new IllegalArgumentException();
     }
+
+    public void delete() {
+        glDeleteProgram(programObject);
+    }
 }

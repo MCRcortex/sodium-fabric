@@ -12,11 +12,13 @@ import org.lwjgl.system.MemoryUtil;
 
 import static org.lwjgl.opengl.GL15C.GL_STATIC_DRAW;
 
+//TODO: Maybe change vertexRanges to be like shorts
 public class Section {
-    public static final int SIZE = 4 * (1+1+3*3+1+4*2*7);
+    public static final int SIZE = 2 + 2 + 4*3 + 4*3 + 4*3 + 8
+            + 4 * 4*2*7;
 
     public final SectionPos pos;
-    public final int id;
+    public final short id;
     public BindlessBuffer vertexData;
     public Vector3f size;
     public Vector3f offset;
@@ -26,24 +28,27 @@ public class Section {
     public VertexRange[] TRANSLUCENT;
     private final Region regionIn;
 
-    public Section(Region in, SectionPos pos, int id) {
+    public Section(Region in, SectionPos pos, short id) {
         this.pos = pos;
         this.id = id;
         regionIn = in;
     }
 
     public void write(long ptr) {
-        MemoryUtil.memPutInt(ptr, id);
-        ptr += 8;
+        MemoryUtil.memPutShort(ptr, id);
+        ptr += 4;
         offset.add(pos.x() * 16, pos.y() * 16, pos.z() * 16, new Vector3f()).getToAddress(ptr);
         ptr += 12;
         size.getToAddress(ptr);
         ptr += 12;
-        new Vector3i(pos.x(), pos.y(), pos.z()).getToAddress(ptr);
+        new Vector3f(pos.x() * 16, pos.y() * 16, pos.z() * 16).getToAddress(ptr);
         ptr += 12;
-        ptr += 4;
-        //new Vector2i((int) ((vertexDataPosition.offset/20)), (int) (((vertexDataPosition.size/20)/4)*6)).getToAddress(ptr);
+        MemoryUtil.memPutAddress(ptr, vertexData.addr);
+        ptr += 8;
 
+        writeRenderRanges(ptr);
+    }
+    private long writeRenderRanges(long ptr) {
         if (SOLID == null) {
             MemoryUtil.memSet(ptr, 0, 8*7);
         } else {
@@ -67,6 +72,7 @@ public class Section {
         } else {
             writeRangeBlock(ptr, TRANSLUCENT);
         }
+        return ptr + 7*8;
     }
 
     private void writeRangeBlock(long ptr, VertexRange[] ranges) {

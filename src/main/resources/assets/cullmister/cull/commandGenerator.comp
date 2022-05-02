@@ -1,0 +1,25 @@
+#version 460
+#extension GL_NV_command_list : enable
+#extension GL_NV_shader_buffer_load : enable
+#extension GL_NV_shader_buffer_store : enable
+#extension GL_NV_gpu_shader5 : enable
+layout(commandBindableNV) uniform;
+#import <DataTypes.h>
+
+layout(local_size_x = 32) in;
+layout(location = 0) uniform SceneData *scene;
+layout(location = 1) uniform SubChunk *chunks;
+layout(location = 2) uniform uint8_t *visiblity;
+
+uint32_t atomicAddScene(uint32_t idx, uint32_t amount) {
+    return atomicAdd(((uint32_t*)scene)+(4*4+3)+idx, amount);
+}
+void main() {
+    if (chunks[gl_GlobalInvocationID.x].id != gl_GlobalInvocationID.x) return;
+    //If its not visible, NOTE: this will create unactive warps, same with above
+    if (visiblity[gl_GlobalInvocationID.x] == uint8_t(0)) return;
+    //Reset visibility buffer
+    visiblity[gl_GlobalInvocationID.x] = uint8_t(0);
+
+    atomicAddScene(0, 1);
+}

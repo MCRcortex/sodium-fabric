@@ -21,13 +21,13 @@ struct Range {
 //Fornow ignore all of the face culling and just dump the whole thing into the draw call if count != 0
 
 struct SubChunk {
-    uint id;
-    uint lastRenderFrame;
+    uint16_t id;
+    uint16_t lastRenderFrame;
     Vec3F bboxOffset;
     Vec3F bboxSize;
-    Vec3I pos;
+    Vec3F pos;
 
-    uint layerMeta;
+    uint64_t VBO;
 
     Range SOLID[7];
     Range CUTOUT_MIPPED[7];
@@ -39,12 +39,13 @@ struct DrawInstancedData {
     Vec3F offset;
 };
 
-struct DrawCommand {
-    uint  count;
-    uint  instanceCount;
-    uint  firstIndex;
-    uint  baseVertex;
-    uint  baseInstance;
+struct SceneData {
+    mat4 pvmt;
+    Vec3F cam;
+    int instanceCounter;
+    int layerCounters[4];
+    DrawInstancedData* instanceData;
+    void* commandListLayer[4];
 };
 
 vec3 Vec3ItoVec3(Vec3I vec) {
@@ -54,3 +55,5 @@ vec3 Vec3ItoVec3(Vec3I vec) {
 vec3 Vec3FtoVec3(Vec3F vec) {
     return vec3(vec.x, vec.y, vec.z);
 }
+
+
