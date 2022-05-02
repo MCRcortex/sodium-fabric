@@ -8,6 +8,7 @@ import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.BufferRenderer;
+import net.minecraft.client.render.VertexFormat;
 import net.minecraft.client.world.ClientWorld;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -20,11 +21,13 @@ import static me.cortex.cullmister.commandListStuff.CommandListTokenWriter.NVHea
 import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.glFinish;
 import static org.lwjgl.opengl.GL11C.glClear;
+import static org.lwjgl.opengl.GL15C.GL_READ_WRITE;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL42.glMemoryBarrier;
 import static org.lwjgl.opengl.GL45.glNamedFramebufferTexture;
 import static org.lwjgl.opengl.NVCommandList.GL_NOP_COMMAND_NV;
 import static org.lwjgl.opengl.NVCommandList.GL_TERMINATE_SEQUENCE_COMMAND_NV;
+import static org.lwjgl.opengl.NVShaderBufferLoad.glMakeNamedBufferResidentNV;
 //TODO: TRY OPTIMIZING WITH CONDITIONAL RENDERING ON THE REGIONS
 
 //TODO: NEED TO TRY SORT THE RENDER SECTIONS TO TAKE MAXIMUM ADVANTAGE OF CULLING
@@ -35,13 +38,13 @@ public class CoreRenderer {
 
     public RegionManager regionManager;
     public CullSystem culler;
-    LayerRenderer debugLayer;
+    public RenderLayerSystem renderer;
     int frame;
 
     public CoreRenderer() {
         regionManager = new RegionManager();
-        debugLayer = new LayerRenderer();
         culler = new CullSystem();
+        renderer = new RenderLayerSystem();
     }
 
     public void setWorld(ClientWorld world) {
@@ -100,6 +103,12 @@ public class CoreRenderer {
         glClear(GL_DEPTH_BUFFER_BIT);
         MinecraftClient.getInstance().getProfiler().swap("Draw");
 
+
+        renderer.begin();
+        for (Region r : regions) {
+            renderer.render(r);
+        }
+        renderer.end();
 
         MinecraftClient.getInstance().getProfiler().swap("other");
         MinecraftClient.getInstance().getFramebuffer().beginWrite(true);

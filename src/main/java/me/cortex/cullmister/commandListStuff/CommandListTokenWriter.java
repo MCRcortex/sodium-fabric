@@ -31,6 +31,10 @@ public class CommandListTokenWriter {
 
 
 
+    public static int NVSize(int token) {
+        return SIZES[token];
+    }
+
     public static int NVHeader(int token) {
         return glGetCommandHeaderNV(token, SIZES[token]);
     }

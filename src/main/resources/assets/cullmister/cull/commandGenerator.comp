@@ -1,7 +1,6 @@
 #version 460
 #extension GL_NV_command_list : enable
 #extension GL_NV_shader_buffer_load : enable
-#extension GL_NV_shader_buffer_store : enable
 #extension GL_NV_gpu_shader5 : enable
 layout(commandBindableNV) uniform;
 #import <DataTypes.h>
@@ -14,12 +13,36 @@ layout(location = 2) uniform uint8_t *visiblity;
 uint32_t atomicAddScene(uint32_t idx, uint32_t amount) {
     return atomicAdd(((uint32_t*)scene)+(4*4+3)+idx, amount);
 }
+//TODO: NOTE: INSTEAD OF HAVING the count having an inbuilt offset, could just offset the base commandlist address
+
+//TODO: see if its better to just have a DrawElementsCommand and another uniform bind for offset or something
 void main() {
-    if (chunks[gl_GlobalInvocationID.x].id != gl_GlobalInvocationID.x) return;
+    SubChunk* chunk = chunks+gl_GlobalInvocationID.x;
+    if (chunk->id != gl_GlobalInvocationID.x) return;
     //If its not visible, NOTE: this will create unactive warps, same with above
     if (visiblity[gl_GlobalInvocationID.x] == uint8_t(0)) return;
     //Reset visibility buffer
     visiblity[gl_GlobalInvocationID.x] = uint8_t(0);
+    uint32_t metaIdx = atomicAddScene(0, 1);
+    uint32_t offset = atomicAddScene(1, sizeofAttributeAddressCommand+sizeofDrawElementsInstancedCommand);
+    scene->instanceData[metaIdx].offset = chunk->pos;//Vec3F(chunk->pos.x+scene->cam.x,chunk->pos.y+scene->cam.y,chunk->pos.z+scene->cam.z);
 
-    atomicAddScene(0, 1);
+    void* cmdAddr = (scene->commandListLayer[0]+offset);
+    AttributeAddressCommand* vboAddr = (AttributeAddressCommand*)cmdAddr;
+    DrawElementsInstancedCommand* draw = (DrawElementsInstancedCommand*)(cmdAddr+sizeofAttributeAddressCommand);
+    vboAddr->header = AttributeAddressCommandHeader;
+    vboAddr->index = 0;
+    //TODO: see if can just set it, like no use bitshift, IF NOT, CHANGE IT SO CAN
+    vboAddr->addressLo = (uint32_t)(chunk->VBO&4294967295);
+    vboAddr->addressHi = (uint32_t)((chunk->VBO>>32)&4294967295);
+
+    draw->header        = DrawElementsInstancedCommandHeader;
+    draw->mode          = __GL_TRIANGLES;
+    draw->count         = chunk->SOLID[0].count;
+    draw->instanceCount = 1;
+    draw->firstIndex    = 0;
+    draw->baseVertex    = 0;
+    draw->baseInstance  = metaIdx;
+
+    //TODO: need to set the last element to sequence terminator
 }

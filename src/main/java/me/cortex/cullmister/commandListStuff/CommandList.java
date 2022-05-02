@@ -1,5 +1,6 @@
 package me.cortex.cullmister.commandListStuff;
 
+import me.cortex.cullmister.region.Region;
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL20C;
 import org.lwjgl.system.MemoryUtil;
@@ -38,7 +39,7 @@ public class CommandList {
          */
     }
 
-    public void draw(int IBO, int VBO, int drawMeta, Matrix4f transform) {
+    public void draw(int IBO, Region region, Matrix4f transform) {
         int vao = glGenVertexArrays();
         glBindVertexArray(vao);
 
@@ -54,14 +55,6 @@ public class CommandList {
         glGetNamedBufferParameterui64vNV(IBO,GL_BUFFER_GPU_ADDRESS_NV, holder);
         glMakeNamedBufferResidentNV(IBO, GL_READ_ONLY);
         long iboAddr = holder[0];
-
-        glGetNamedBufferParameterui64vNV(VBO,GL_BUFFER_GPU_ADDRESS_NV, holder);
-        glMakeNamedBufferResidentNV(VBO, GL_READ_ONLY);
-        long vboAddr = holder[0];
-
-        glGetNamedBufferParameterui64vNV(drawMeta,GL_BUFFER_GPU_ADDRESS_NV, holder);
-        glMakeNamedBufferResidentNV(drawMeta, GL_READ_ONLY);
-        long dmAddr = holder[0];
 
 
 
@@ -84,9 +77,10 @@ public class CommandList {
         a = nglMapNamedBuffer(commandBuffer, GL_WRITE_ONLY);
         a = NVTokenUBO(a, 0, GL_VERTEX_SHADER, uboAddr);
         a = NVTokenIBO(a, GL_UNSIGNED_SHORT, iboAddr);
-        a = NVTokenVBO(a, 0, vboAddr);
-        a = NVTokenVBO(a, 1, dmAddr);
-        a = NVTokenDrawElementsInstanced(a, GL_TRIANGLES, 6*100,1,0,0,0);
+        long vbo =  region.sections.values().stream().findFirst().get().vertexData.addr;
+        a = NVTokenVBO(a, 0,vbo);
+        a = NVTokenVBO(a, 1, region.draw.drawMeta.addr);
+        a = NVTokenDrawElementsInstanced(a, GL_TRIANGLES, 6*200,1,0,0,0);
         glUnmapNamedBuffer(commandBuffer);
         glFinish();
 
@@ -101,12 +95,6 @@ public class CommandList {
         glVertexAttribFormat(2, 4, GL_UNSIGNED_BYTE, true, 8);
         glVertexAttribFormat(3, 2, GL_UNSIGNED_SHORT, true, 12);
         glVertexAttribFormat(4, 2, GL_UNSIGNED_SHORT, true, 16);
-        /*
-        glVertexAttribPointer(1, 3, GL_SHORT, true, 20,0);
-        glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, true, 20,8);
-        glVertexAttribPointer(3, 2, GL_UNSIGNED_SHORT, true, 20,12);
-        glVertexAttribPointer(4, 2, GL_UNSIGNED_SHORT, true, 20,16);
-         */
 
         glVertexAttribBinding(1, 0);
         glVertexAttribBinding(2, 0);
@@ -114,13 +102,9 @@ public class CommandList {
         glVertexAttribBinding(4, 0);
 
         glVertexAttribFormat(0, 3, GL_FLOAT,false, 0);
+
         glVertexAttribBinding(0, 1);
         glVertexBindingDivisor(1, 1);
-
-        /*
-        glVertexAttribPointer(0, 3, GL11.GL_FLOAT, false, 3*4,0);
-        glVertexAttribDivisor(0, 1);
-         */
 
         glEnableVertexAttribArray(1);
         glEnableVertexAttribArray(2);
@@ -138,9 +122,9 @@ public class CommandList {
 
 
         glBindBufferBase(GL_UNIFORM_BUFFER, 0, uboBuffer);
-        glBindVertexBuffer(0, VBO, 0, 20);
+        glBindVertexBuffer(0, 0, 0, 20);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-        glBindVertexBuffer(1, drawMeta, 0, 3*4);
+        glBindVertexBuffer(1, 0, 0, 3*4);
 
         glFinish();
 
@@ -172,8 +156,6 @@ public class CommandList {
         glDeleteVertexArrays(vao);
 
         glMakeNamedBufferNonResidentNV(IBO);
-        glMakeNamedBufferNonResidentNV(VBO);
-        glMakeNamedBufferNonResidentNV(drawMeta);
 
 
     }

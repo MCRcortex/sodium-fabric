@@ -9,9 +9,9 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static me.cortex.cullmister.commandListStuff.CommandListTokenWriter.NVHeader;
-import static org.lwjgl.opengl.NVCommandList.GL_NOP_COMMAND_NV;
-import static org.lwjgl.opengl.NVCommandList.GL_TERMINATE_SEQUENCE_COMMAND_NV;
+import static me.cortex.cullmister.commandListStuff.CommandListTokenWriter.*;
+import static org.lwjgl.opengl.GL11C.GL_TRIANGLES;
+import static org.lwjgl.opengl.NVCommandList.*;
 
 public class ShaderPreprocessor {
     static List<Path> inbuilt = new LinkedList<>();
@@ -24,7 +24,14 @@ public class ShaderPreprocessor {
         }
         define("NOPCommandHeader", ""+NVHeader(GL_NOP_COMMAND_NV));
         define("TerminateSequenceCommandHeader", ""+NVHeader(GL_TERMINATE_SEQUENCE_COMMAND_NV));
+        define("AttributeAddressCommandHeader", ""+NVHeader(GL_ATTRIBUTE_ADDRESS_COMMAND_NV));
+        define("DrawElementsInstancedCommandHeader", ""+NVHeader(GL_DRAW_ELEMENTS_INSTANCED_COMMAND_NV));
+        define("sizeofAttributeAddressCommand", ""+NVSize(GL_ATTRIBUTE_ADDRESS_COMMAND_NV));
+        define("sizeofDrawElementsInstancedCommand", ""+NVSize(GL_DRAW_ELEMENTS_INSTANCED_COMMAND_NV));
+        define("__GL_TRIANGLES", ""+GL_TRIANGLES);
     }
+
+
     public static void define(String key, String val) {
         inbuiltDefines.put(key, val);
     }

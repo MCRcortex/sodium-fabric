@@ -56,4 +56,28 @@ vec3 Vec3FtoVec3(Vec3F vec) {
     return vec3(vec.x, vec.y, vec.z);
 }
 
+struct AttributeAddressCommand {
+  uint  header;
+  uint  index;
+  uint  addressLo;
+  uint  addressHi;
+};
+
+struct DrawElementsInstancedCommand {
+  uint  header;
+  uint  mode;
+  uint  count;
+  uint  instanceCount;
+  uint  firstIndex;
+  uint  baseVertex;
+  uint  baseInstance;
+};
+
+struct DrawElementsCommand {
+  uint  header;
+  uint  count;
+  uint  firstIndex;
+  uint  baseVertex;
+};
+
 

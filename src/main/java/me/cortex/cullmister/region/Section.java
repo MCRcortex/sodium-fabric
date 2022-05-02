@@ -8,9 +8,14 @@ import net.minecraft.client.MinecraftClient;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
+import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
+import static org.lwjgl.opengl.ARBDirectStateAccess.*;
 import static org.lwjgl.opengl.GL15C.GL_STATIC_DRAW;
+import static org.lwjgl.opengl.GL30C.*;
+import static org.lwjgl.opengl.GL42C.GL_ALL_BARRIER_BITS;
+import static org.lwjgl.opengl.GL42C.glMemoryBarrier;
 
 //TODO: Maybe change vertexRanges to be like shorts
 public class Section {
@@ -47,7 +52,10 @@ public class Section {
         ptr += 8;
 
         writeRenderRanges(ptr);
+        //TODO: NOT THIS IS JUST FOR TESTING
+        MemoryUtil.memPutInt(ptr+4, (int) (((vertexData.size/20)/4)*6));
     }
+
     private long writeRenderRanges(long ptr) {
         if (SOLID == null) {
             MemoryUtil.memSet(ptr, 0, 8*7);
@@ -89,6 +97,7 @@ public class Section {
     //TODO: Needs to delete vertex data and set chunkMeta for its id to -1
     public void delete() {
         vertexData.delete();
+        glClearNamedBufferSubData(regionIn.draw.chunkMeta.id, GL_R32UI, SIZE * id, 4, GL_RED, GL_UNSIGNED_INT, new int[]{-1});
     }
 
     //TODO: Need to update chunk meta
@@ -100,6 +109,22 @@ public class Section {
         }
         MinecraftClient.getInstance().getProfiler().push("Making buffer");
         vertexData = new BindlessBuffer(buffer.getLength(), GL_STATIC_DRAW, MemoryUtil.memAddress(buffer.getDirectBuffer()));
+
+        MinecraftClient.getInstance().getProfiler().swap("update meta");
+        long ptrM = MemoryUtil.nmemAlloc(SIZE);
+        write(ptrM);
+        MinecraftClient.getInstance().getProfiler().swap("set meta");
+        //glMemoryBarrier(GL_ALL_BARRIER_BITS);
+        //This absolutly shits the fps so maybe do it via transfer buffer or something???
+        if (true) {
+            long ptr = nglMapNamedBufferRange(regionIn.draw.chunkMeta.id, SIZE * id, SIZE, GL_MAP_WRITE_BIT);
+            MinecraftClient.getInstance().getProfiler().swap("innter meta");
+            MemoryUtil.memCopy(ptrM, ptr, SIZE);
+            MinecraftClient.getInstance().getProfiler().swap("op meta");
+            glUnmapNamedBuffer(regionIn.draw.chunkMeta.id);
+        }
+
+        MemoryUtil.nmemFree(ptrM);
         MinecraftClient.getInstance().getProfiler().pop();
 
     }

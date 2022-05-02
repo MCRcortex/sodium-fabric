@@ -63,16 +63,20 @@ public class CullSystem {
         long ptr = nglMapNamedBufferRange(region.draw.UBO.id, 0, region.draw.UBO.size, GL_MAP_WRITE_BIT|GL_MAP_UNSYNCHRONIZED_BIT);
         new Matrix4f(renderMatrices.projection()).mul(renderMatrices.modelView())
                 .translate(new Vector3f(cam).negate())
-                .translate(region.pos.x()<<Region.WIDTH_BITS, region.pos.y()*Region.HEIGHT, region.pos.z()<<Region.WIDTH_BITS)
+                .translate(region.pos.x()<<(Region.WIDTH_BITS+4), region.pos.y()*Region.HEIGHT*16, region.pos.z()<<(Region.WIDTH_BITS+4))
                 .getToAddress(ptr);
         cam.getToAddress(ptr+4*4*4);
         //Reset all the atomic offset counters
         MemoryUtil.memPutInt(ptr+4*4*4+4*3,0);//Instance data count
         for (int i = 0; i < 4; i++) {
-            MemoryUtil.memPutInt(ptr + 4 * 4 * 4 + 4 * 3 + 4 + i*4, 0);//Layer offset
+            //Layer offset
+            MemoryUtil.memPutInt(ptr + 4 * 4 * 4 + 4 * 3 + 4 + i*4, region.draw.drawCommandsOffset);
         }
-        MemoryUtil.memPutLong(ptr+4*4*4+4*3+4*4,region.draw.drawMeta.addr);//instanceData address
-        MemoryUtil.memPutLong(ptr+4*4*4+4*3+4*4+8,region.draw.drawCommandsList[0].addr);//layerCommands layer 0 address
+        MemoryUtil.memPutLong(ptr+4*4*4+4*3+4+4*4,region.draw.drawMeta.addr);//instanceData address
+        for (int i = 0; i < 4; i++) {
+            //layerCommands layer i address
+            MemoryUtil.memPutLong(ptr + 4 * 4 * 4 + 4 * 3 + 4 + 4 * 4 + 8 + i*8, region.draw.drawCommandsList[i].addr);
+        }
         glUnmapNamedBuffer(region.draw.UBO.id);
     }
 
@@ -90,10 +94,11 @@ public class CullSystem {
     }
 
     void process1(Region region) {
-        {
+        glClearNamedBufferSubData(region.draw.visBuffer.id, GL_R8UI, 0, region.draw.visBuffer.size, GL_RED, GL_UNSIGNED_BYTE, new int[]{-1});
+        if (false){
             //FAKE set vis
-            long ptr = nglMapNamedBufferRange(region.draw.visBuffer.id, 0, 4*4*4+4*3+4+4*4, GL_MAP_WRITE_BIT);
-            MemoryUtil.memSet(ptr, 1, 10);
+            long ptr = nglMapNamedBufferRange(region.draw.visBuffer.id, 0, 200, GL_MAP_WRITE_BIT|GL_MAP_UNSYNCHRONIZED_BIT);
+            MemoryUtil.memSet(ptr, 1, 100);
             glUnmapNamedBuffer(region.draw.visBuffer.id);
         }
     }
@@ -112,14 +117,14 @@ public class CullSystem {
         glUniformui64NV(1, region.draw.chunkMeta.addr);
         glUniformui64NV(2, region.draw.visBuffer.addr);
         commandBuilder.dispatch((int)Math.ceil(region.sectionCount/32f),1,1);
+
         //commandBuilder.dispatch(1,1,1);
-        //glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
-        /*
-        long ptr = nglMapNamedBufferRange(region.draw.UBO.id, 0, region.draw.UBO.size, GL_MAP_READ_BIT);
-        System.out.println(MemoryUtil.memGetInt(ptr+4*4*4+4*3));
-        glUnmapNamedBuffer(region.draw.UBO.id);
-
-         */
+        if (false) {
+            glMemoryBarrier(GL_ALL_BARRIER_BITS);
+            long ptr = nglMapNamedBufferRange(region.draw.drawMeta.id, 0, region.draw.drawMeta.size, GL_MAP_READ_BIT);
+            System.out.println(MemoryUtil.memGetFloat(ptr));
+            glUnmapNamedBuffer(region.draw.drawMeta.id);
+        }
     }
 }
