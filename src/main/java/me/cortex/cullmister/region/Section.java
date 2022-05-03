@@ -117,7 +117,7 @@ public class Section {
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);
         //This absolutly shits the fps so maybe do it via transfer buffer or something???
         if (true) {
-            long ptr = nglMapNamedBufferRange(regionIn.draw.chunkMeta.id, SIZE * id, SIZE, GL_MAP_WRITE_BIT);
+            long ptr = nglMapNamedBufferRange(regionIn.draw.chunkMeta.id, SIZE * id, SIZE, GL_MAP_WRITE_BIT|GL_MAP_UNSYNCHRONIZED_BIT);
             MinecraftClient.getInstance().getProfiler().swap("innter meta");
             MemoryUtil.memCopy(ptrM, ptr, SIZE);
             MinecraftClient.getInstance().getProfiler().swap("op meta");

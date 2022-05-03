@@ -12,6 +12,9 @@ import net.minecraft.client.render.VertexFormat;
 import net.minecraft.client.world.ClientWorld;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.lwjgl.opengl.GL11C;
+import org.lwjgl.opengl.GL14C;
+import org.lwjgl.opengl.GL33C;
 
 import java.util.Comparator;
 import java.util.List;
@@ -23,8 +26,10 @@ import static org.lwjgl.opengl.GL11.glFinish;
 import static org.lwjgl.opengl.GL11C.glClear;
 import static org.lwjgl.opengl.GL15C.GL_READ_WRITE;
 import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL30C.GL_DEPTH_COMPONENT32F;
 import static org.lwjgl.opengl.GL42.glMemoryBarrier;
-import static org.lwjgl.opengl.GL45.glNamedFramebufferTexture;
+import static org.lwjgl.opengl.GL45.*;
+import static org.lwjgl.opengl.GL45.glTextureParameteri;
 import static org.lwjgl.opengl.NVCommandList.GL_NOP_COMMAND_NV;
 import static org.lwjgl.opengl.NVCommandList.GL_TERMINATE_SEQUENCE_COMMAND_NV;
 import static org.lwjgl.opengl.NVShaderBufferLoad.glMakeNamedBufferResidentNV;
@@ -40,6 +45,10 @@ public class CoreRenderer {
     public CullSystem culler;
     public RenderLayerSystem renderer;
     int frame;
+
+    int depthTex;
+    int width;
+    int height;
 
     public CoreRenderer() {
         regionManager = new RegionManager();
@@ -77,8 +86,47 @@ public class CoreRenderer {
 
 
         MinecraftClient.getInstance().getProfiler().swap("Depth set");
+        if (MinecraftClient.getInstance().getFramebuffer().viewportHeight != height || MinecraftClient.getInstance().getFramebuffer().viewportWidth != width) {
+            width = MinecraftClient.getInstance().getFramebuffer().viewportWidth;
+            height = MinecraftClient.getInstance().getFramebuffer().viewportHeight;
+            if (depthTex != 0) {
+                glDeleteTextures(depthTex);
+            }
+            depthTex = glCreateTextures(GL_TEXTURE_2D);
+            //glTextureStorage2D(depthTex, 1, GL_DEPTH24_STENCIL8, width, height);
+            glTextureStorage2D(depthTex, 1, GL_DEPTH_COMPONENT32, width, height);
+
+            glBindTexture(GL11C.GL_TEXTURE_2D, depthTex);
+            //glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0, GL_DEPTH, GL_DEPTH24_STENCIL8, 0);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glBindTexture(GL11C.GL_TEXTURE_2D, 0);
+        }
+
         MinecraftClient.getInstance().getFramebuffer().beginWrite(true);
-        //glNamedFramebufferTexture(MinecraftClient.getInstance().getFramebuffer().fbo, GL_DEPTH_STENCIL_ATTACHMENT, hiZ.mipDepthTex, 0);
+        glNamedFramebufferTexture(MinecraftClient.getInstance().getFramebuffer().fbo, GL_DEPTH_ATTACHMENT, depthTex, 0);
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        {
+            System.err.println("GL Framebuffer not complete");
+            MinecraftClient.getInstance().getProfiler().pop();
+            return;
+        }
+
+        MinecraftClient.getInstance().getProfiler().swap("Draw");
+        if (true) {
+            MinecraftClient.getInstance().getProfiler().push("prep");
+            renderer.begin();
+            MinecraftClient.getInstance().getProfiler().swap("render");
+            for (Region r : regions) {
+                renderer.render(r);
+            }
+            MinecraftClient.getInstance().getProfiler().swap("end");
+            renderer.end();
+            MinecraftClient.getInstance().getProfiler().pop();
+        }
         MinecraftClient.getInstance().getProfiler().swap("Cull Prep");
         if (true) {
             for (Region r : regions) {
@@ -100,20 +148,13 @@ public class CoreRenderer {
 
 
         MinecraftClient.getInstance().getProfiler().swap("Depth clear");
+        //glMemoryBarrier(GL_ALL_BARRIER_BITS);
         glClear(GL_DEPTH_BUFFER_BIT);
-        MinecraftClient.getInstance().getProfiler().swap("Draw");
-
-
-        renderer.begin();
-        for (Region r : regions) {
-            renderer.render(r);
-        }
-        renderer.end();
 
         MinecraftClient.getInstance().getProfiler().swap("other");
         MinecraftClient.getInstance().getFramebuffer().beginWrite(true);
         glNamedFramebufferTexture(MinecraftClient.getInstance().getFramebuffer().fbo, GL_DEPTH_ATTACHMENT, MinecraftClient.getInstance().getFramebuffer().getDepthAttachment(), 0);
-        glNamedFramebufferTexture(MinecraftClient.getInstance().getFramebuffer().fbo, GL_STENCIL_ATTACHMENT, 0, 0);
+        //glNamedFramebufferTexture(MinecraftClient.getInstance().getFramebuffer().fbo, GL_STENCIL_ATTACHMENT, 0, 0);
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         {

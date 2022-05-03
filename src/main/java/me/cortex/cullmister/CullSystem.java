@@ -4,20 +4,36 @@ import me.cortex.cullmister.commandListStuff.BindlessBuffer;
 import me.cortex.cullmister.region.Region;
 import me.cortex.cullmister.utils.CShader;
 import me.cortex.cullmister.utils.Shader;
+import me.cortex.cullmister.utils.VAO;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
+import org.lwjgl.opengl.GL15;
+import org.lwjgl.opengl.GL30;
 import org.lwjgl.system.MemoryUtil;
 
+import java.nio.ByteBuffer;
+
+import static me.cortex.cullmister.commandListStuff.CommandListTokenWriter.NVHeader;
 import static org.lwjgl.opengl.ARBDirectStateAccess.*;
+import static org.lwjgl.opengl.GL11.glDisableClientState;
+import static org.lwjgl.opengl.GL11.glEnableClientState;
 import static org.lwjgl.opengl.GL11C.*;
 import static org.lwjgl.opengl.GL15C.*;
 import static org.lwjgl.opengl.GL30C.*;
+import static org.lwjgl.opengl.GL31.glDrawElementsInstanced;
+import static org.lwjgl.opengl.GL31C.GL_UNIFORM_BUFFER;
+import static org.lwjgl.opengl.GL31C.nglDrawElementsInstanced;
 import static org.lwjgl.opengl.GL42C.GL_ALL_BARRIER_BITS;
 import static org.lwjgl.opengl.GL42C.glMemoryBarrier;
+import static org.lwjgl.opengl.GL44.GL_DYNAMIC_STORAGE_BIT;
+import static org.lwjgl.opengl.NVCommandList.GL_TERMINATE_SEQUENCE_COMMAND_NV;
 import static org.lwjgl.opengl.NVRepresentativeFragmentTest.GL_REPRESENTATIVE_FRAGMENT_TEST_NV;
 import static org.lwjgl.opengl.NVShaderBufferLoad.glUniformui64NV;
+import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_UNIFIED_NV;
+import static org.lwjgl.opengl.NVVertexBufferUnifiedMemory.GL_ELEMENT_ARRAY_UNIFIED_NV;
+import static org.lwjgl.opengl.NVVertexBufferUnifiedMemory.GL_VERTEX_ATTRIB_ARRAY_UNIFIED_NV;
 
 public class CullSystem {
 
@@ -39,10 +55,47 @@ public class CullSystem {
 
     Shader rasterPass;
     CShader commandBuilder;
-
-    //Need to create cube IBO
+    BindlessBuffer cubeIBO = new BindlessBuffer(6*6, GL_MAP_WRITE_BIT|GL_DYNAMIC_STORAGE_BIT);
+    VAO vao;
     public CullSystem() {
         loadShaders();
+        vao = new VAO();
+        /*
+          4_________5
+         /.        /|
+        6_________7 |
+        | 0.......|.1
+        |.        |/
+        2_________3
+        */
+        ByteBuffer indices = glMapNamedBuffer(cubeIBO.id, GL_WRITE_ONLY);
+        //Front face
+        indices.put((byte) 0); indices.put((byte) 1); indices.put((byte) 2);
+        indices.put((byte) 2); indices.put((byte) 3); indices.put((byte) 0);
+
+        //right face
+        indices.put((byte) 1); indices.put((byte) 5); indices.put((byte) 6);
+        indices.put((byte) 6); indices.put((byte) 2); indices.put((byte) 1);
+
+        //Back face
+        indices.put((byte) 7); indices.put((byte) 6); indices.put((byte) 5);
+        indices.put((byte) 5); indices.put((byte) 4); indices.put((byte) 7);
+
+        //Left face
+        indices.put((byte) 4); indices.put((byte) 0); indices.put((byte) 3);
+        indices.put((byte) 3); indices.put((byte) 7); indices.put((byte) 4);
+
+        //Bottom face
+        indices.put((byte) 4); indices.put((byte) 5); indices.put((byte) 1);
+        indices.put((byte) 1); indices.put((byte) 0); indices.put((byte) 4);
+
+        //Top face
+        indices.put((byte) 3); indices.put((byte) 2); indices.put((byte) 6);
+        indices.put((byte) 6); indices.put((byte) 7); indices.put((byte) 3);
+        glUnmapNamedBuffer(cubeIBO.id);
+        vao.bind();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeIBO.id);
+        vao.unbind();
     }
 
     public void loadShaders() {
@@ -78,29 +131,53 @@ public class CullSystem {
             MemoryUtil.memPutLong(ptr + 4 * 4 * 4 + 4 * 3 + 4 + 4 * 4 + 8 + i*8, region.draw.drawCommandsList[i].addr);
         }
         glUnmapNamedBuffer(region.draw.UBO.id);
+
+        //TEMPORARY
+        //TODO: REPLACE
+        //glClearNamedBufferSubData(region.draw.drawCommandsList[0].id,  GL_R32UI, region.draw.drawCommandsOffset,1000, GL_RED, GL_UNSIGNED_INT, new int[]{NVHeader(GL_TERMINATE_SEQUENCE_COMMAND_NV)});
+
+        glClearNamedBufferSubData(region.draw.drawCommandsList[0].id,  GL_R8UI, region.draw.drawCommandsOffset,region.draw.drawCommandsList[0].size-region.draw.drawCommandsOffset , GL_RED, GL_UNSIGNED_BYTE, new int[]{0});
     }
 
     void begin1() {
         rasterPass.bind();
         glEnable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glDepthFunc(GL_LEQUAL);
+        //glCullFace(GL_BACK);
+        glDepthMask(false);
+        glColorMask(false, false, false, false);
+        vao.bind();
+        glEnableClientState(GL_UNIFORM_BUFFER_UNIFIED_NV);
         //Enable face culling and winding order direction
     }
 
     void end1() {
+        //glDepthFunc(GL_ALWAYS);
+        glDepthMask(true);
+        glColorMask(true, true, true, true);
+        glDisableClientState(GL_UNIFORM_BUFFER_UNIFIED_NV);
+        vao.unbind();
         rasterPass.unbind();
-        glDisable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
+        //glDisable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
         glDisable(GL_DEPTH_TEST);
     }
-
+    //TODO: THE DEPTH CHECK DOESNT WORK like for some reason its marking it all as seen or some bullshit
     void process1(Region region) {
-        glClearNamedBufferSubData(region.draw.visBuffer.id, GL_R8UI, 0, region.draw.visBuffer.size, GL_RED, GL_UNSIGNED_BYTE, new int[]{-1});
+        //glClearNamedBufferSubData(region.draw.visBuffer.id, GL_R8UI, 0, region.draw.visBuffer.size, GL_RED, GL_UNSIGNED_BYTE, new int[]{-1});
+        /*
         if (false){
             //FAKE set vis
             long ptr = nglMapNamedBufferRange(region.draw.visBuffer.id, 0, 200, GL_MAP_WRITE_BIT|GL_MAP_UNSYNCHRONIZED_BIT);
             MemoryUtil.memSet(ptr, 1, 100);
             glUnmapNamedBuffer(region.draw.visBuffer.id);
-        }
+        }*/
+
+        glUniformui64NV(0, region.draw.UBO.addr);
+        glUniformui64NV(1, region.draw.chunkMeta.addr);
+        glUniformui64NV(2, region.draw.visBuffer.addr);
+        nglDrawElementsInstanced(GL_TRIANGLES, 6*6, GL_UNSIGNED_BYTE, 0, region.sectionCount);
     }
 
     void begin2() {

@@ -34,6 +34,7 @@ public class RenderLayerSystem {
     int texsampler = glGenSamplers();
     int lightsampler = glGenSamplers();
     VAO vao;
+    long heapData = MemoryUtil.nmemCalloc(1,1000);
     public RenderLayerSystem() {
         glSamplerParameteri(mipsampler, GL33C.GL_TEXTURE_MIN_FILTER, GL33C.GL_NEAREST_MIPMAP_LINEAR);
         glSamplerParameteri(mipsampler,GL33C.GL_TEXTURE_MAG_FILTER, GL33C.GL_NEAREST);
@@ -118,11 +119,9 @@ public class RenderLayerSystem {
 
 
 
-        ByteBuffer buffer = ByteBuffer.allocateDirect(100).order(ByteOrder.nativeOrder());
-        buffer.asLongBuffer().put(0,region.draw.drawCommandsList[0].addr);
-        buffer.asIntBuffer().put(2,50000);
-
-        nglDrawCommandsAddressNV(GL_TRIANGLES, MemoryUtil.memAddress(buffer), MemoryUtil.memAddress(buffer)+8, 1);
+        MemoryUtil.memPutLong(heapData, region.draw.drawCommandsList[0].addr);
+        MemoryUtil.memPutInt(heapData+8, 10000);
+        nglDrawCommandsAddressNV(GL_TRIANGLES, heapData, heapData+8, 1);
 
 
     }
