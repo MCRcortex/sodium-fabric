@@ -112,6 +112,7 @@ public class RegionManager {
         }
         chunkSectionsImportant.clear();
         chunkSectionsNonImportant.clear();
+        workResultsLocal.clear();
     }
 
     public Region getRegion(ChunkSectionPos pos) {

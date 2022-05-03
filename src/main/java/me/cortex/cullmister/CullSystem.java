@@ -25,8 +25,7 @@ import static org.lwjgl.opengl.GL30C.*;
 import static org.lwjgl.opengl.GL31.glDrawElementsInstanced;
 import static org.lwjgl.opengl.GL31C.GL_UNIFORM_BUFFER;
 import static org.lwjgl.opengl.GL31C.nglDrawElementsInstanced;
-import static org.lwjgl.opengl.GL42C.GL_ALL_BARRIER_BITS;
-import static org.lwjgl.opengl.GL42C.glMemoryBarrier;
+import static org.lwjgl.opengl.GL42C.*;
 import static org.lwjgl.opengl.GL44.GL_DYNAMIC_STORAGE_BIT;
 import static org.lwjgl.opengl.NVCommandList.GL_TERMINATE_SEQUENCE_COMMAND_NV;
 import static org.lwjgl.opengl.NVRepresentativeFragmentTest.GL_REPRESENTATIVE_FRAGMENT_TEST_NV;
@@ -118,7 +117,12 @@ public class CullSystem {
                 .translate(new Vector3f(cam).negate())
                 .translate(region.pos.x()<<(Region.WIDTH_BITS+4), region.pos.y()*Region.HEIGHT*16, region.pos.z()<<(Region.WIDTH_BITS+4))
                 .getToAddress(ptr);
-        cam.getToAddress(ptr+4*4*4);
+        new Vector3f(cam)
+                .negate()
+                .add(   region.pos.x()<<(Region.WIDTH_BITS+4),
+                        region.pos.y()*Region.HEIGHT*16,
+                        region.pos.z()<<(Region.WIDTH_BITS+4))
+                .getToAddress(ptr+4*4*4);
         //Reset all the atomic offset counters
         MemoryUtil.memPutInt(ptr+4*4*4+4*3,0);//Instance data count
         for (int i = 0; i < 4; i++) {
@@ -160,7 +164,7 @@ public class CullSystem {
         glDisableClientState(GL_UNIFORM_BUFFER_UNIFIED_NV);
         vao.unbind();
         rasterPass.unbind();
-        //glDisable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
+        glDisable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
         glDisable(GL_DEPTH_TEST);
     }
     //TODO: THE DEPTH CHECK DOESNT WORK like for some reason its marking it all as seen or some bullshit
@@ -203,5 +207,7 @@ public class CullSystem {
             System.out.println(MemoryUtil.memGetFloat(ptr));
             glUnmapNamedBuffer(region.draw.drawMeta.id);
         }
+
+
     }
 }

@@ -53,7 +53,7 @@ public class Section {
 
         writeRenderRanges(ptr);
         //TODO: NOT THIS IS JUST FOR TESTING
-        MemoryUtil.memPutInt(ptr+4, (int) (((vertexData.size/20)/4)*6));
+        //MemoryUtil.memPutInt(ptr+4, (int) (((vertexData.size/20)/4)*6));
     }
 
     private long writeRenderRanges(long ptr) {

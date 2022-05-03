@@ -41,7 +41,7 @@ struct DrawInstancedData {
 
 struct SceneData {
     mat4 pvmt;
-    Vec3F cam;
+    Vec3F revCamRegion;
     int instanceCounter;
     int layerCounters[4];
     DrawInstancedData* instanceData;

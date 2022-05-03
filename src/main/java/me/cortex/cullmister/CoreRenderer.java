@@ -127,23 +127,27 @@ public class CoreRenderer {
             renderer.end();
             MinecraftClient.getInstance().getProfiler().pop();
         }
-        MinecraftClient.getInstance().getProfiler().swap("Cull Prep");
         if (true) {
-            for (Region r : regions) {
-                culler.prep(r, renderMatrices, pos);
+            if (true) {
+                MinecraftClient.getInstance().getProfiler().swap("Cull Prep");
+                for (Region r : regions) {
+                    culler.prep(r, renderMatrices, pos);
+                }
             }
-        }
-        MinecraftClient.getInstance().getProfiler().swap("Cull phase 1");
-        if (true) {
-            culler.begin1();
-            regions.forEach(culler::process1);
-            culler.end1();
-        }
-        MinecraftClient.getInstance().getProfiler().swap("Cull phase 2");
-        if (true) {
-            culler.begin2();
-            regions.forEach(culler::process2);
-            culler.end2();
+            if (true) {
+                MinecraftClient.getInstance().getProfiler().swap("Cull phase 1");
+                if (true) {
+                    culler.begin1();
+                    regions.forEach(culler::process1);
+                    culler.end1();
+                }
+                MinecraftClient.getInstance().getProfiler().swap("Cull phase 2");
+                if (true) {
+                    culler.begin2();
+                    regions.forEach(culler::process2);
+                    culler.end2();
+                }
+            }
         }
 
 

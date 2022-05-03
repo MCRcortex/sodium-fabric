@@ -24,25 +24,84 @@ void main() {
     //Reset visibility buffer
     visiblity[gl_GlobalInvocationID.x] = uint8_t(0);
     uint32_t metaIdx = atomicAddScene(0, 1);
-    uint32_t offset = atomicAddScene(1, sizeofAttributeAddressCommand+sizeofDrawElementsInstancedCommand);
     scene->instanceData[metaIdx].offset = chunk->pos;//Vec3F(chunk->pos.x+scene->cam.x,chunk->pos.y+scene->cam.y,chunk->pos.z+scene->cam.z);
 
-    void* cmdAddr = (scene->commandListLayer[0]+offset);
-    AttributeAddressCommand* vboAddr = (AttributeAddressCommand*)cmdAddr;
-    DrawElementsInstancedCommand* draw = (DrawElementsInstancedCommand*)(cmdAddr+sizeofAttributeAddressCommand);
-    vboAddr->header = AttributeAddressCommandHeader;
-    vboAddr->index = 0;
-    //TODO: see if can just set it, like no use bitshift, IF NOT, CHANGE IT SO CAN
-    vboAddr->addressLo = (uint32_t)(chunk->VBO&4294967295);
-    vboAddr->addressHi = (uint32_t)((chunk->VBO>>32)&4294967295);
+    vec3 hsize = Vec3FtoVec3(chunk->bboxSize)/2;
+    vec3 center = Vec3FtoVec3(chunk->bboxOffset)+ hsize + Vec3FtoVec3(scene->revCamRegion);
+    uint8_t vismsk = uint8_t(64);
+    vismsk |= center.y<hsize.y ? uint8_t(1):uint8_t(0);
+    vismsk |= center.y>-hsize.y? uint8_t(2):uint8_t(0);
+    vismsk |= center.x<hsize.x ? uint8_t(4):uint8_t(0);
+    vismsk |= center.x>-hsize.x? uint8_t(8):uint8_t(0);
+    vismsk |= center.z<hsize.z ?uint8_t(16):uint8_t(0);
+    vismsk |= center.z>-hsize.z?uint8_t(32):uint8_t(0);
+    //TODO: DO THIS BETTER: this is hacky solution to test faceculling
+    for (uint8_t i = uint8_t(0); i < uint8_t(7); i++) {
+        if ((vismsk&(uint8_t(1)<<i))==uint8_t(0)) continue;
+        if (chunk->SOLID[i].count != 0) {
+            uint32_t offset = atomicAddScene(1, sizeofAttributeAddressCommand+sizeofDrawElementsInstancedCommand);
+            void* cmdAddr = (scene->commandListLayer[0]+offset);
+            AttributeAddressCommand* vboAddr = (AttributeAddressCommand*)cmdAddr;
+            DrawElementsInstancedCommand* draw = (DrawElementsInstancedCommand*)(cmdAddr+sizeofAttributeAddressCommand);
+            vboAddr->header = AttributeAddressCommandHeader;
+            vboAddr->index = 0;
+            //TODO: see if can just set it, like no use bitshift, IF NOT, CHANGE IT SO CAN
+            vboAddr->addressLo = (uint32_t)(chunk->VBO&4294967295);
+            vboAddr->addressHi = (uint32_t)((chunk->VBO>>32)&4294967295);
 
-    draw->header        = DrawElementsInstancedCommandHeader;
-    draw->mode          = __GL_TRIANGLES;
-    draw->count         = chunk->SOLID[0].count;
-    draw->instanceCount = 1;
-    draw->firstIndex    = 0;
-    draw->baseVertex    = 0;
-    draw->baseInstance  = metaIdx;
+            draw->header        = DrawElementsInstancedCommandHeader;
+            draw->mode          = __GL_TRIANGLES;
+            draw->count         = chunk->SOLID[i].count;
+            draw->instanceCount = 1;
+            draw->firstIndex    = 0;
+            draw->baseVertex    = chunk->SOLID[i].offset;
+            draw->baseInstance  = metaIdx;
+        }
+        if (chunk->CUTOUT_MIPPED[i].count != 0) {
+            uint32_t offset = atomicAddScene(1, sizeofAttributeAddressCommand+sizeofDrawElementsInstancedCommand);
+            void* cmdAddr = (scene->commandListLayer[0]+offset);
+            AttributeAddressCommand* vboAddr = (AttributeAddressCommand*)cmdAddr;
+            DrawElementsInstancedCommand* draw = (DrawElementsInstancedCommand*)(cmdAddr+sizeofAttributeAddressCommand);
+            vboAddr->header = AttributeAddressCommandHeader;
+            vboAddr->index = 0;
+            //TODO: see if can just set it, like no use bitshift, IF NOT, CHANGE IT SO CAN
+            vboAddr->addressLo = (uint32_t)(chunk->VBO&4294967295);
+            vboAddr->addressHi = (uint32_t)((chunk->VBO>>32)&4294967295);
 
-    //TODO: need to set the last element to sequence terminator
+            draw->header        = DrawElementsInstancedCommandHeader;
+            draw->mode          = __GL_TRIANGLES;
+            draw->count         = chunk->CUTOUT_MIPPED[i].count;
+            draw->instanceCount = 1;
+            draw->firstIndex    = 0;
+            draw->baseVertex    = chunk->CUTOUT_MIPPED[i].offset;
+            draw->baseInstance  = metaIdx;
+        }
+
+        //TODO: need to set the last element to sequence terminator
+    }
 }
+
+/*
+for (uint8_t i = uint8_t(0); i < uint8_t(7); i++) {
+        if ((vismsk&(uint8_t(1)<<i))==uint8_t(0)) continue;
+        if (chunk->SOLID[i].count == 0) continue;
+        uint32_t offset = atomicAddScene(1, sizeofAttributeAddressCommand+sizeofDrawElementsInstancedCommand);
+        void* cmdAddr = (scene->commandListLayer[0]+offset);
+        AttributeAddressCommand* vboAddr = (AttributeAddressCommand*)cmdAddr;
+        DrawElementsInstancedCommand* draw = (DrawElementsInstancedCommand*)(cmdAddr+sizeofAttributeAddressCommand);
+        vboAddr->header = AttributeAddressCommandHeader;
+        vboAddr->index = 0;
+        //TODO: see if can just set it, like no use bitshift, IF NOT, CHANGE IT SO CAN
+        vboAddr->addressLo = (uint32_t)(chunk->VBO&4294967295);
+        vboAddr->addressHi = (uint32_t)((chunk->VBO>>32)&4294967295);
+
+        draw->header        = DrawElementsInstancedCommandHeader;
+        draw->mode          = __GL_TRIANGLES;
+        draw->count         = chunk->SOLID[i].count;
+        draw->instanceCount = 1;
+        draw->firstIndex    = 0;
+        draw->baseVertex    = chunk->SOLID[i].offset;
+        draw->baseInstance  = metaIdx;
+
+        //TODO: need to set the last element to sequence terminator
+    }*/

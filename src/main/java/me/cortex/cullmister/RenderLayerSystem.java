@@ -16,12 +16,15 @@ import org.lwjgl.system.MemoryUtil;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import static me.cortex.cullmister.commandListStuff.CommandListTokenWriter.NVHeader;
+import static org.lwjgl.opengl.ARBDirectStateAccess.*;
 import static org.lwjgl.opengl.GL11.glDisableClientState;
 import static org.lwjgl.opengl.GL11.glEnableClientState;
 import static org.lwjgl.opengl.GL20C.glEnableVertexAttribArray;
 import static org.lwjgl.opengl.GL33.glGenSamplers;
 import static org.lwjgl.opengl.GL33.glSamplerParameteri;
 import static org.lwjgl.opengl.GL43C.*;
+import static org.lwjgl.opengl.NVCommandList.GL_TERMINATE_SEQUENCE_COMMAND_NV;
 import static org.lwjgl.opengl.NVCommandList.nglDrawCommandsAddressNV;
 import static org.lwjgl.opengl.NVShaderBufferLoad.*;
 import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_UNIFIED_NV;
@@ -89,6 +92,7 @@ public class RenderLayerSystem {
         GL45C.glBindSampler(1, lightsampler);
         GL45C.glBindSampler(0, mipsampler);
         glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);
         vao.bind();
 
         glEnableClientState(GL_UNIFORM_BUFFER_UNIFIED_NV);
@@ -114,13 +118,22 @@ public class RenderLayerSystem {
 
 
 
+        if (false) {
+            glMemoryBarrier(GL_ALL_BARRIER_BITS);
+            long ptr = nglMapNamedBufferRange( region.draw.UBO.id, 0 + 4 * 4 * 4 + 4 * 3 + 4, 4, GL_MAP_READ_BIT);
+            region.draw.bsizeTEMPHOLDER = MemoryUtil.memGetInt(ptr);
+            glUnmapNamedBuffer(region.draw.UBO.id);
+            //System.out.println(region.draw.bsizeTEMPHOLDER);
 
-
-
-
-
+            ptr = nglMapNamedBufferRange( region.draw.drawCommandsList[0].id, region.draw.bsizeTEMPHOLDER, 4, GL_MAP_WRITE_BIT);
+            NVHeader(ptr, GL_TERMINATE_SEQUENCE_COMMAND_NV);
+            glUnmapNamedBuffer(region.draw.drawCommandsList[0].id);
+        }
+        //if (region.draw.bsizeTEMPHOLDER == 48)
+        //    return;
+        //glDisable(GL_CULL_FACE);
         MemoryUtil.memPutLong(heapData, region.draw.drawCommandsList[0].addr);
-        MemoryUtil.memPutInt(heapData+8, 10000);
+        MemoryUtil.memPutInt(heapData+8, 200000);
         nglDrawCommandsAddressNV(GL_TRIANGLES, heapData, heapData+8, 1);
 
 

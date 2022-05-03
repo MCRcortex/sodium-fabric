@@ -5,20 +5,24 @@ import me.cortex.cullmister.commandListStuff.BindlessBuffer;
 import net.minecraft.client.render.VertexFormat;
 
 import static me.cortex.cullmister.commandListStuff.CommandListTokenWriter.*;
-import static org.lwjgl.opengl.ARBDirectStateAccess.glUnmapNamedBuffer;
-import static org.lwjgl.opengl.ARBDirectStateAccess.nglMapNamedBufferRange;
+import static org.lwjgl.opengl.ARBDirectStateAccess.*;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_SHORT;
+import static org.lwjgl.opengl.GL11C.GL_RED;
+import static org.lwjgl.opengl.GL11C.GL_UNSIGNED_BYTE;
 import static org.lwjgl.opengl.GL15.GL_DYNAMIC_COPY;
 import static org.lwjgl.opengl.GL20.GL_VERTEX_SHADER;
 import static org.lwjgl.opengl.GL30.GL_MAP_READ_BIT;
 import static org.lwjgl.opengl.GL30.nglMapBufferRange;
 import static org.lwjgl.opengl.GL30C.GL_MAP_WRITE_BIT;
+import static org.lwjgl.opengl.GL30C.GL_R8UI;
 import static org.lwjgl.opengl.GL44.GL_DYNAMIC_STORAGE_BIT;
 import static org.lwjgl.opengl.NVCommandList.*;
 import static org.lwjgl.opengl.NVShaderBufferLoad.GL_BUFFER_GPU_ADDRESS_NV;
 import static org.lwjgl.opengl.NVShaderBufferLoad.glGetNamedBufferParameterui64vNV;
 
 public class RegionRenderData {
+    public long bsizeTEMPHOLDER;
+
     public BindlessBuffer visBuffer = new BindlessBuffer((1<<(Region.WIDTH_BITS*2))*Region.HEIGHT*Section.SIZE, GL_DYNAMIC_STORAGE_BIT|GL_MAP_WRITE_BIT);//the GL_DYNAMIC_STORAGE_BIT|GL_MAP_WRITE_BIT are just for testing
     public BindlessBuffer[] drawCommandsList = new BindlessBuffer[4];
     public BindlessBuffer rasterCommands;
@@ -31,6 +35,7 @@ public class RegionRenderData {
     public RegionRenderData() {
         for (int i = 0; i < 4; i++) {
             drawCommandsList[i] = new BindlessBuffer(1000000,GL_MAP_READ_BIT|GL_DYNAMIC_STORAGE_BIT|GL_MAP_WRITE_BIT);
+            glClearNamedBufferSubData(drawCommandsList[i].id,  GL_R8UI, drawCommandsOffset,drawCommandsList[i].size-drawCommandsOffset , GL_RED, GL_UNSIGNED_BYTE, new int[]{0});
         }
 
         //TODO: need to prep all the drawCommandsList and rasterCommands to bind to the IBO and UBO

@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Region {
-    public static final int HEIGHT = 5;
+    public static final int HEIGHT = 20;
     public static final int WIDTH_BITS = 4;
 
     public RegionRenderData draw = new RegionRenderData();
