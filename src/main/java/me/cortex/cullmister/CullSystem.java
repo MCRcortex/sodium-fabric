@@ -4,6 +4,7 @@ import me.cortex.cullmister.commandListStuff.BindlessBuffer;
 import me.cortex.cullmister.region.Region;
 import me.cortex.cullmister.utils.CShader;
 import me.cortex.cullmister.utils.Shader;
+import me.cortex.cullmister.utils.ShaderPreprocessor;
 import me.cortex.cullmister.utils.VAO;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import org.joml.Matrix4f;
@@ -54,6 +55,7 @@ public class CullSystem {
 
     Shader rasterPass;
     CShader commandBuilder;
+    CShader commandTerminator;
     BindlessBuffer cubeIBO = new BindlessBuffer(6*6, GL_MAP_WRITE_BIT|GL_DYNAMIC_STORAGE_BIT);
     VAO vao;
     public CullSystem() {
@@ -95,6 +97,20 @@ public class CullSystem {
         vao.bind();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeIBO.id);
         vao.unbind();
+
+        commandTerminator = new CShader(ShaderPreprocessor.preprocess("""
+                #version 460
+                #extension GL_NV_shader_buffer_load : enable
+                #extension GL_NV_gpu_shader5 : enable
+                #import <DataTypes.h>
+                                
+                layout(local_size_x = 4) in;
+                layout(location = 0) uniform SceneData *scene;
+                void main() {
+                    //TODO: see if it needs to be an atomic fetch/read
+                    *((uint32_t*)(scene->commandListLayer[gl_GlobalInvocationID.x]+scene->layerCounters[gl_GlobalInvocationID.x])) = TerminateSequenceCommandHeader;
+                }
+                """));
     }
 
     public void loadShaders() {
@@ -135,13 +151,6 @@ public class CullSystem {
             MemoryUtil.memPutLong(ptr + 4 * 4 * 4 + 4 * 3 + 4 + 4 * 4 + 8 + i*8, region.draw.drawCommandsList[i].addr);
         }
         glUnmapNamedBuffer(region.draw.UBO.id);
-
-        //TEMPORARY
-        //TODO: REPLACE
-        //glClearNamedBufferSubData(region.draw.drawCommandsList[0].id,  GL_R32UI, region.draw.drawCommandsOffset,1000, GL_RED, GL_UNSIGNED_INT, new int[]{NVHeader(GL_TERMINATE_SEQUENCE_COMMAND_NV)});
-
-        glClearNamedBufferSubData(region.draw.drawCommandsList[0].id,  GL_R8UI, region.draw.drawCommandsOffset,300000, GL_RED, GL_UNSIGNED_BYTE, new int[]{0});
-        //glClearNamedBufferSubData(region.draw.drawCommandsList[1].id,  GL_R8UI, region.draw.drawCommandsOffset,150000, GL_RED, GL_UNSIGNED_BYTE, new int[]{0});
     }
 
     void begin1() {
@@ -189,8 +198,13 @@ public class CullSystem {
         commandBuilder.bind();
     }
 
-    void end2() {
+    public void swapTerm() {
         commandBuilder.unbind();
+        commandTerminator.bind();
+    }
+
+    void end2() {
+        commandTerminator.unbind();
     }
 
     void process2(Region region) {
@@ -202,13 +216,12 @@ public class CullSystem {
 
         //commandBuilder.dispatch(1,1,1);
 
-        if (false) {
-            glMemoryBarrier(GL_ALL_BARRIER_BITS);
-            long ptr = nglMapNamedBufferRange(region.draw.drawMeta.id, 0, region.draw.drawMeta.size, GL_MAP_READ_BIT);
-            System.out.println(MemoryUtil.memGetFloat(ptr));
-            glUnmapNamedBuffer(region.draw.drawMeta.id);
-        }
-
-
     }
+
+    //TODO: need to find a way to put this into the main compute shader
+    public void capCommandLists(Region region) {
+        glUniformui64NV(0, region.draw.UBO.addr);
+        commandTerminator.dispatch(1,1,1);
+    }
+
 }

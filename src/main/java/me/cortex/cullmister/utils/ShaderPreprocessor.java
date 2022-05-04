@@ -46,9 +46,35 @@ public class ShaderPreprocessor {
         return String.join("\n", lines);
     }
 
+    public static String preprocess(String code) {
+        List<Path> includes = inbuilt;
+        LinkedList<String> lines = new LinkedList<>();
+        for (String line : code.split("\n")) {
+            if (line.startsWith("#import")) {
+                Matcher res = IMPORT_PATTERN.matcher(line);
+                if (!res.matches()) {
+                    throw new IllegalStateException("Malformed #include");
+                }
+                String name = res.group("name");
+                Path importFile = resolveImports(name, null, includes);
+                if (importFile == null)
+                    throw new IllegalStateException("Could not find import");
+                lines.addAll(resolver(importFile, includes));
+            } else {
+                lines.add(line);
+            }
+        }
+        for (Map.Entry<String, String> def : inbuiltDefines.entrySet()) {
+            lines.add(1, "#define " + def.getKey() + " " + def.getValue());
+        }
+        return String.join("\n", lines);
+    }
+
     private static Path resolveImports(String name, Path requester, List<Path> includes) {
-        if (requester.resolve(name).toFile().isFile())
-            return requester.resolve(name);
+        if (requester!=null) {
+            if (requester.resolve(name).toFile().isFile())
+                return requester.resolve(name);
+        }
         String base = name.contains("/")?name.substring(name.lastIndexOf("/")):name;
         for (Path i : includes) {
             if (i.toFile().isFile()) {

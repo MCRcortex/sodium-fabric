@@ -145,6 +145,8 @@ public class CoreRenderer {
                 if (true) {
                     culler.begin2();
                     regions.forEach(culler::process2);
+                    culler.swapTerm();
+                    regions.forEach(culler::capCommandLists);
                     culler.end2();
                 }
             }
