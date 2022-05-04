@@ -110,11 +110,11 @@ public class RegionManager {
                 min = Math.min(min, id);
             }
             MinecraftClient.getInstance().getProfiler().swap("Map");
-            long ptr = nglMapNamedBufferRange(r.draw.chunkMeta.id, Section.SIZE * min, Section.SIZE*(max-min+1), GL_MAP_WRITE_BIT|GL_MAP_UNSYNCHRONIZED_BIT);
+            long ptr = nglMapNamedBufferRange(r.draw.chunkMeta.id, (long) Section.SIZE * min, (long) Section.SIZE *(max-min+1), GL_MAP_WRITE_BIT|GL_MAP_UNSYNCHRONIZED_BIT);
 
             MinecraftClient.getInstance().getProfiler().swap("set");
             for (Int2LongMap.Entry v : r.chunkMetaUpload.int2LongEntrySet()) {
-                MemoryUtil.memCopy(v.getLongValue(), ptr + (v.getIntKey()-min)*Section.SIZE, Section.SIZE);
+                MemoryUtil.memCopy(v.getLongValue(), ptr + (long) (v.getIntKey() - min) *Section.SIZE, Section.SIZE);
                 MemoryUtil.nmemFree(v.getLongValue());
             }
             MinecraftClient.getInstance().getProfiler().swap("unmap");
@@ -160,6 +160,8 @@ public class RegionManager {
         return r;
     }
 
+
+    //TODO: need to offload deletion to seperate thread or something
     public void enqueueRemoval(ChunkSectionPos pos) {
         if (false)
             return;

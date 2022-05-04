@@ -29,6 +29,8 @@ struct SubChunk {
 
     uint64_t VBO;
 
+    uint8_t lvis[4];
+
     Range SOLID[7];
     Range CUTOUT_MIPPED[7];
     Range CUTOUT[7];

@@ -14,13 +14,14 @@ import org.lwjgl.system.MemoryUtil;
 import static org.lwjgl.opengl.ARBDirectStateAccess.*;
 import static org.lwjgl.opengl.GL15C.GL_STATIC_DRAW;
 import static org.lwjgl.opengl.GL30C.*;
+import static org.lwjgl.opengl.GL31C.glPrimitiveRestartIndex;
 import static org.lwjgl.opengl.GL42C.GL_ALL_BARRIER_BITS;
 import static org.lwjgl.opengl.GL42C.glMemoryBarrier;
 
 //TODO: Maybe change vertexRanges to be like shorts
 public class Section {
-    public static final int SIZE = 2 + 2 + 4*3 + 4*3 + 4*3 + 8
-            + 4 * 4*2*7;
+    //NOTE: STRUCT IS 8 BYTES MEMORY ALIGNED
+    public static final int SIZE = (int)Math.ceil((2 + 2 + 4*3 + 4*3 + 4*3 + 8 + 4 + 4 * 4*2*7)/8f)*8;
 
     public final SectionPos pos;
     public final short id;
@@ -50,10 +51,48 @@ public class Section {
         ptr += 12;
         MemoryUtil.memPutAddress(ptr, vertexData.addr);
         ptr += 8;
-
+        writeRenderVis(ptr);
+        ptr+=4;
         writeRenderRanges(ptr);
         //TODO: NOT THIS IS JUST FOR TESTING
         //MemoryUtil.memPutInt(ptr+4, (int) (((vertexData.size/20)/4)*6));
+    }
+
+    private long writeRenderVis(long ptr) {
+        if (SOLID == null) {
+            MemoryUtil.memPutByte(ptr, (byte) 0);
+        } else {
+            MemoryUtil.memPutByte(ptr, computeVis(SOLID));
+        }
+        ptr++;
+        if (CUTOUT_MIPPED == null) {
+            MemoryUtil.memPutByte(ptr, (byte) 0);
+        } else {
+            MemoryUtil.memPutByte(ptr, computeVis(CUTOUT_MIPPED));
+        }
+        ptr++;
+        if (CUTOUT == null) {
+            MemoryUtil.memPutByte(ptr, (byte) 0);
+        } else {
+            MemoryUtil.memPutByte(ptr, computeVis(CUTOUT));
+        }
+        ptr++;
+        if (TRANSLUCENT == null) {
+            MemoryUtil.memPutByte(ptr, (byte) 0);
+        } else {
+            MemoryUtil.memPutByte(ptr, computeVis(TRANSLUCENT));
+        }
+        return ptr + 1;
+    }
+
+    private byte computeVis(VertexRange[] ranges) {
+        byte vis = 0;
+        for (int i = 0; i<ranges.length; i++) {
+            if (ranges[i] != null && ranges[i].vertexCount()!=0) {
+                vis |= (1)<<i;
+            }
+        }
+        return vis;
     }
 
     private long writeRenderRanges(long ptr) {

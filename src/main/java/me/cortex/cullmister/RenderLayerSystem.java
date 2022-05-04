@@ -125,7 +125,7 @@ public class RenderLayerSystem {
             long ptr = nglMapNamedBufferRange( region.draw.UBO.id, 0 + 4 * 4 * 4 + 4 * 3 + 4, 4, GL_MAP_READ_BIT);
             region.draw.bsizeTEMPHOLDER = MemoryUtil.memGetInt(ptr);
             glUnmapNamedBuffer(region.draw.UBO.id);
-            //System.out.println(region.draw.bsizeTEMPHOLDER);
+            System.out.println(region.draw.bsizeTEMPHOLDER);
 
             ptr = nglMapNamedBufferRange( region.draw.drawCommandsList[0].id, region.draw.bsizeTEMPHOLDER, 4, GL_MAP_WRITE_BIT);
             NVHeader(ptr, GL_TERMINATE_SEQUENCE_COMMAND_NV);
@@ -155,7 +155,7 @@ public class RenderLayerSystem {
          */
 
         MemoryUtil.memPutLong(heapData, region.draw.drawCommandsList[0].addr);
-        MemoryUtil.memPutInt(heapData+8, 200000);
+        MemoryUtil.memPutInt(heapData+8, 300000);
         nglDrawCommandsAddressNV(GL_TRIANGLES, heapData, heapData+8, 1);
         if (false) {
             //TODO: put into drawList
