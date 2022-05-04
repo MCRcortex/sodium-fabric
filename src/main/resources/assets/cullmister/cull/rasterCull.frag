@@ -8,14 +8,5 @@ layout(location = 2) uniform uint8_t *visiblity;
 flat in uint32_t ID;
 //out vec4 colour;
 void main() {
-    /*
-    if ((visiblity[ID>>5]&(1<<(ID&31))) != 0) {
-        discard;
-        return;
-    }
-    if ((atomicOr(visiblity+(ID>>5), 1<<(ID&31))&(1<<(ID&31))) == 0) {
-
-    }*/
-
     visiblity[ID] = uint8_t(1);
 }
