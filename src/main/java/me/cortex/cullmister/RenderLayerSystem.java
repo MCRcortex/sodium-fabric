@@ -158,7 +158,7 @@ public class RenderLayerSystem {
         MemoryUtil.memPutInt(heapData+8, 400000);
         nglDrawCommandsAddressNV(GL_TRIANGLES, heapData, heapData+8, 1);
 
-        if (true) {
+        if (false) {
             //TODO: ADD AN EARLY EXIT, e.g. if the region has no water, dont render
             //TODO: put into drawList
             glDepthMask(false);

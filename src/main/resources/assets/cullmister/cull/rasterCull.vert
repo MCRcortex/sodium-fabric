@@ -23,6 +23,7 @@ void main() {
     }
     base = Vec3FtoVec3(subchunks[gl_InstanceID].bboxOffset);
     size = Vec3FtoVec3(subchunks[gl_InstanceID].bboxSize);
-    gl_Position = scene->pvmt*getBoxCorner(gl_VertexID);
+    gl_Position = (scene->pvmt*getBoxCorner(gl_VertexID));
+    gl_Position.z -= 0.00005 * gl_Position.w;
     //gl_Position = vec4(-2,-2,-2,1);
 }

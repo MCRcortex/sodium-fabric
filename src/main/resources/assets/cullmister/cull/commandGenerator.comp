@@ -54,7 +54,8 @@ void main() {
         vboAddr->addressHi = (uint32_t)((chunk->VBO>>32)&4294967295);
 
         //TODO: see if processing per layer and not batched is faster
-        uint8_t skipmsk = (chunk->lvis[0]|chunk->lvis[1]|chunk->lvis[2])&vismsk;
+        uint8_t skipmsk = (chunk->lvis[0]|chunk->lvis[1]|chunk->lvis[2]
+                        )&vismsk;
         for (uint8_t i = uint8_t(0); i < uint8_t(7); i++) {
             if ((skipmsk&(uint8_t(1)<<i))==uint8_t(0)) continue;
             //TODO: do check using bitmask instead of uint comparison
@@ -94,6 +95,7 @@ void main() {
         }
     }
 
+    /*
     {
         uint32_t numCommands = bitCount(vismsk&chunk->lvis[3]);
 
@@ -125,4 +127,5 @@ void main() {
             }
         }
     }
+    */
 }
