@@ -151,6 +151,10 @@ public class CullSystem {
             MemoryUtil.memPutLong(ptr + 4 * 4 * 4 + 4 * 3 + 4 + 4 * 4 + 8 + i*8, region.draw.drawCommandsList[i].addr);
         }
         glUnmapNamedBuffer(region.draw.UBO.id);
+
+        //TEMPORARY
+        //TODO: REPLACE
+        //glClearNamedBufferSubData(region.draw.drawCommandsList[0].id,  GL_R8UI, region.draw.drawCommandsOffset,300000, GL_RED, GL_UNSIGNED_BYTE, new int[]{0});
     }
 
     void begin1() {

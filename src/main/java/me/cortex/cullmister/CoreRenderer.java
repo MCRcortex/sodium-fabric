@@ -146,6 +146,7 @@ public class CoreRenderer {
                     culler.begin2();
                     regions.forEach(culler::process2);
                     culler.swapTerm();
+                    glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT);
                     regions.forEach(culler::capCommandLists);
                     culler.end2();
                 }
