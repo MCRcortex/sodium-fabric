@@ -1,12 +1,14 @@
 package me.cortex.cullmister;
 
 import it.unimi.dsi.fastutil.PriorityQueue;
+import it.unimi.dsi.fastutil.ints.Int2LongMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import me.cortex.cullmister.region.Region;
 import me.cortex.cullmister.region.RegionPos;
+import me.cortex.cullmister.region.Section;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.chunk.compile.ChunkBuilder;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
@@ -20,8 +22,14 @@ import net.caffeinemc.sodium.world.slice.cloned.ClonedChunkSectionCache;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.ChunkSectionPos;
+import org.lwjgl.system.MemoryUtil;
 
 import java.util.stream.Collectors;
+
+import static org.lwjgl.opengl.ARBDirectStateAccess.glUnmapNamedBuffer;
+import static org.lwjgl.opengl.ARBDirectStateAccess.nglMapNamedBufferRange;
+import static org.lwjgl.opengl.GL30C.GL_MAP_UNSYNCHRONIZED_BIT;
+import static org.lwjgl.opengl.GL30C.GL_MAP_WRITE_BIT;
 
 //Handels all the regions and dispatches all subchunks in those regions
 public class RegionManager {
@@ -90,6 +98,30 @@ public class RegionManager {
             budget--;
             MinecraftClient.getInstance().getProfiler().pop();
         }
+        MinecraftClient.getInstance().getProfiler().swap("meta set");
+        for (Region r : regions.values()) {
+            if (r.chunkMetaUpload.size() == 0)
+                continue;
+            MinecraftClient.getInstance().getProfiler().push("Collection");
+            int max = Integer.MIN_VALUE;
+            int min = Integer.MAX_VALUE;
+            for (int id : r.chunkMetaUpload.keySet()) {
+                max = Math.max(max, id);
+                min = Math.min(min, id);
+            }
+            MinecraftClient.getInstance().getProfiler().swap("Map");
+            long ptr = nglMapNamedBufferRange(r.draw.chunkMeta.id, Section.SIZE * min, Section.SIZE*(max-min+1), GL_MAP_WRITE_BIT|GL_MAP_UNSYNCHRONIZED_BIT);
+
+            MinecraftClient.getInstance().getProfiler().swap("set");
+            for (Int2LongMap.Entry v : r.chunkMetaUpload.int2LongEntrySet()) {
+                MemoryUtil.memCopy(v.getLongValue(), ptr + (v.getIntKey()-min)*Section.SIZE, Section.SIZE);
+                MemoryUtil.nmemFree(v.getLongValue());
+            }
+            MinecraftClient.getInstance().getProfiler().swap("unmap");
+            glUnmapNamedBuffer(r.draw.chunkMeta.id);
+            r.chunkMetaUpload.clear();
+            MinecraftClient.getInstance().getProfiler().pop();
+        }
         MinecraftClient.getInstance().getProfiler().pop();
     }
 
@@ -112,7 +144,9 @@ public class RegionManager {
         }
         chunkSectionsImportant.clear();
         chunkSectionsNonImportant.clear();
-        workResultsLocal.clear();
+        while(!workResultsLocal.isEmpty()) {
+            workResultsLocal.dequeue().delete();
+        }
     }
 
     public Region getRegion(ChunkSectionPos pos) {

@@ -16,6 +16,7 @@ import static org.lwjgl.opengl.GL30.nglMapBufferRange;
 import static org.lwjgl.opengl.GL30C.GL_MAP_WRITE_BIT;
 import static org.lwjgl.opengl.GL30C.GL_R8UI;
 import static org.lwjgl.opengl.GL44.GL_DYNAMIC_STORAGE_BIT;
+import static org.lwjgl.opengl.GL44.GL_MAP_PERSISTENT_BIT;
 import static org.lwjgl.opengl.NVCommandList.*;
 import static org.lwjgl.opengl.NVShaderBufferLoad.GL_BUFFER_GPU_ADDRESS_NV;
 import static org.lwjgl.opengl.NVShaderBufferLoad.glGetNamedBufferParameterui64vNV;

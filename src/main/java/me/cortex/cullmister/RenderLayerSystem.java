@@ -4,6 +4,8 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import me.cortex.cullmister.region.Region;
 import me.cortex.cullmister.utils.Shader;
 import me.cortex.cullmister.utils.VAO;
+import net.caffeinemc.gfx.api.pipeline.state.BlendFunc;
+import net.caffeinemc.gfx.opengl.GlEnum;
 import net.caffeinemc.sodium.interop.vanilla.mixin.LightmapTextureManagerAccessor;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.VertexFormat;
@@ -155,6 +157,17 @@ public class RenderLayerSystem {
         MemoryUtil.memPutLong(heapData, region.draw.drawCommandsList[0].addr);
         MemoryUtil.memPutInt(heapData+8, 200000);
         nglDrawCommandsAddressNV(GL_TRIANGLES, heapData, heapData+8, 1);
+        if (false) {
+            //TODO: put into drawList
+            glDepthMask(false);
+            RenderSystem.enableBlend();
+            RenderSystem.blendFuncSeparate(GlEnum.from(BlendFunc.SrcFactor.SRC_ALPHA), GlEnum.from(BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA), GlEnum.from(BlendFunc.SrcFactor.ONE), GlEnum.from(BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA));
+            MemoryUtil.memPutLong(heapData, region.draw.drawCommandsList[1].addr);
+            MemoryUtil.memPutInt(heapData + 8, 200000);
+            nglDrawCommandsAddressNV(GL_TRIANGLES, heapData, heapData + 8, 1);
+            RenderSystem.disableBlend();
+            glDepthMask(true);
+        }
 
 
     }

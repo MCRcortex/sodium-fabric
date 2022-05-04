@@ -110,9 +110,15 @@ public class Section {
         MinecraftClient.getInstance().getProfiler().push("Making buffer");
         vertexData = new BindlessBuffer(buffer.getLength(), GL_STATIC_DRAW, MemoryUtil.memAddress(buffer.getDirectBuffer()));
 
-        MinecraftClient.getInstance().getProfiler().swap("update meta");
+        MinecraftClient.getInstance().getProfiler().swap("update local");
         long ptrM = MemoryUtil.nmemAlloc(SIZE);
         write(ptrM);
+        if (regionIn.chunkMetaUpload.containsKey(id)) {
+            System.err.println("DUPLICATE DATA UPLOAD");
+            MemoryUtil.nmemFree(regionIn.chunkMetaUpload.get(id));
+        }
+        regionIn.chunkMetaUpload.put(id, ptrM);
+        /*
         MinecraftClient.getInstance().getProfiler().swap("set meta");
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);
         //This absolutly shits the fps so maybe do it via transfer buffer or something???
@@ -125,6 +131,7 @@ public class Section {
         }
 
         MemoryUtil.nmemFree(ptrM);
+         */
         MinecraftClient.getInstance().getProfiler().pop();
 
     }

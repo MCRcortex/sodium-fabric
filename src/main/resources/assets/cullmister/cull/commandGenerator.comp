@@ -8,7 +8,7 @@ layout(commandBindableNV) uniform;
 layout(local_size_x = 32) in;
 layout(location = 0) uniform SceneData *scene;
 layout(location = 1) uniform SubChunk *chunks;
-layout(location = 2) uniform uint8_t *visiblity;
+layout(location = 2) uniform uint32_t *visiblity;
 
 uint32_t atomicAddScene(uint32_t idx, uint32_t amount) {
     return atomicAdd(((uint32_t*)scene)+(4*4+3)+idx, amount);
@@ -20,9 +20,10 @@ void main() {
     SubChunk* chunk = chunks+gl_GlobalInvocationID.x;
     if (chunk->id != gl_GlobalInvocationID.x) return;
     //If its not visible, NOTE: this will create unactive warps, same with above
-    if (visiblity[gl_GlobalInvocationID.x] == uint8_t(0)) return;
+    if ((visiblity[gl_GlobalInvocationID.x>>5]&(1<<(gl_GlobalInvocationID.x&31))) == 0) return;
     //Reset visibility buffer
-    visiblity[gl_GlobalInvocationID.x] = uint8_t(0);
+    atomicAnd(visiblity+(gl_GlobalInvocationID.x>>5), ~uint32_t(1<<(gl_GlobalInvocationID.x&31)));
+
     uint32_t metaIdx = atomicAddScene(0, 1);
     scene->instanceData[metaIdx].offset = chunk->pos;//Vec3F(chunk->pos.x+scene->cam.x,chunk->pos.y+scene->cam.y,chunk->pos.z+scene->cam.z);
 
@@ -76,7 +77,27 @@ void main() {
             draw->baseVertex    = chunk->CUTOUT_MIPPED[i].offset;
             draw->baseInstance  = metaIdx;
         }
+        /*
+        if (chunk->TRANSLUCENT[i].count != 0) {
+            uint32_t offset = atomicAddScene(2, sizeofAttributeAddressCommand+sizeofDrawElementsInstancedCommand);
+            void* cmdAddr = (scene->commandListLayer[1]+offset);
+            AttributeAddressCommand* vboAddr = (AttributeAddressCommand*)cmdAddr;
+            DrawElementsInstancedCommand* draw = (DrawElementsInstancedCommand*)(cmdAddr+sizeofAttributeAddressCommand);
+            vboAddr->header = AttributeAddressCommandHeader;
+            vboAddr->index = 0;
+            //TODO: see if can just set it, like no use bitshift, IF NOT, CHANGE IT SO CAN
+            vboAddr->addressLo = (uint32_t)(chunk->VBO&4294967295);
+            vboAddr->addressHi = (uint32_t)((chunk->VBO>>32)&4294967295);
 
+            draw->header        = DrawElementsInstancedCommandHeader;
+            draw->mode          = __GL_TRIANGLES;
+            draw->count         = chunk->TRANSLUCENT[i].count;
+            draw->instanceCount = 1;
+            draw->firstIndex    = 0;
+            draw->baseVertex    = chunk->TRANSLUCENT[i].offset;
+            draw->baseInstance  = metaIdx;
+        }
+        */
         //TODO: need to set the last element to sequence terminator
     }
 }

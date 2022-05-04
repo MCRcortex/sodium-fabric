@@ -140,8 +140,8 @@ public class CullSystem {
         //TODO: REPLACE
         //glClearNamedBufferSubData(region.draw.drawCommandsList[0].id,  GL_R32UI, region.draw.drawCommandsOffset,1000, GL_RED, GL_UNSIGNED_INT, new int[]{NVHeader(GL_TERMINATE_SEQUENCE_COMMAND_NV)});
 
-        glClearNamedBufferSubData(region.draw.drawCommandsList[0].id,  GL_R8UI, region.draw.drawCommandsOffset,region.draw.drawCommandsList[0].size-region.draw.drawCommandsOffset , GL_RED, GL_UNSIGNED_BYTE, new int[]{0});
-        //glClearNamedBufferSubData(region.draw.drawCommandsList[1].id,  GL_R8UI, region.draw.drawCommandsOffset,region.draw.drawCommandsList[1].size-region.draw.drawCommandsOffset , GL_RED, GL_UNSIGNED_BYTE, new int[]{0});
+        glClearNamedBufferSubData(region.draw.drawCommandsList[0].id,  GL_R8UI, region.draw.drawCommandsOffset,200000, GL_RED, GL_UNSIGNED_BYTE, new int[]{0});
+        //glClearNamedBufferSubData(region.draw.drawCommandsList[1].id,  GL_R8UI, region.draw.drawCommandsOffset,150000, GL_RED, GL_UNSIGNED_BYTE, new int[]{0});
     }
 
     void begin1() {
@@ -168,7 +168,7 @@ public class CullSystem {
         glDisable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
         glDisable(GL_DEPTH_TEST);
     }
-    //TODO: THE DEPTH CHECK DOESNT WORK like for some reason its marking it all as seen or some bullshit
+    //TODO: potentially render this at a much lower "resolution" cause of speed
     void process1(Region region) {
         //glClearNamedBufferSubData(region.draw.visBuffer.id, GL_R8UI, 0, region.draw.visBuffer.size, GL_RED, GL_UNSIGNED_BYTE, new int[]{-1});
         /*

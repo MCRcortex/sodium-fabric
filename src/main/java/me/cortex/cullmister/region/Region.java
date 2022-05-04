@@ -30,6 +30,8 @@ public class Region {
     // could do like a pre pass filter on them too with hiz and indirectcomputedispatch
     public final RegionPos pos;
 
+    public Int2LongOpenHashMap chunkMetaUpload = new Int2LongOpenHashMap();
+
     public Region(RegionPos pos) {
         this.pos = pos;
     }
@@ -139,7 +141,9 @@ public class Region {
 
     public void delete() {
         //Cleanup all opengl objects
+        for (Section s : sections.values()) {
+            s.delete();
+        }
         draw.delete();
-        //TODO: delete all the sections
     }
 }
