@@ -48,15 +48,15 @@ public class CompactTerrainVertexType implements TerrainVertexType {
         return VERTEX_FORMAT;
     }
 
-    static short encodeBlockTexture(float v) {
+    public static short encodeBlockTexture(float v) {
         return (short) (v * TEXTURE_MAX_VALUE);
     }
 
-    static short encodePosition(float v) {
+    public static short encodePosition(float v) {
         return (short) ((v - POSITION_ORIGIN) * POSITION_SCALE);
     }
 
-    static int encodeLightMapTexCoord(int light) {
+    public static int encodeLightMapTexCoord(int light) {
         int r = light;
 
         // Mask off coordinate values outside 0..255

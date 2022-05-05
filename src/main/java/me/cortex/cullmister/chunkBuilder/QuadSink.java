@@ -1,5 +1,6 @@
 package me.cortex.cullmister.chunkBuilder;
 
+import me.cortex.cullmister.textures.BindlessTextureManager;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexSink;
 import net.caffeinemc.sodium.render.terrain.format.compact.CompactTerrainVertexBufferWriterUnsafe;
 import net.caffeinemc.sodium.render.terrain.format.compact.CompactTerrainVertexType;
@@ -8,11 +9,10 @@ import net.caffeinemc.sodium.render.terrain.quad.properties.ChunkMeshFace;
 import net.caffeinemc.sodium.render.vertex.buffer.VertexBufferView;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.texture.Sprite;
+import net.minecraft.client.texture.SpriteAtlasTexture;
+import net.minecraft.client.texture.TextureManager;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 //NOTE: THIS is a very dodgy solution
 // TODO: maybe make a post transformer system that pumps through the native buffer result of the chunk
@@ -37,7 +37,6 @@ public class QuadSink implements TerrainVertexSink {
     public void writeVertex(float posX, float posY, float posZ, int color, float u, float v, int light) {
         if (quadSprite == null)
             throw new IllegalStateException("quad sprite not set");
-
         //TODO: need to verify the ranges of the input u,v are within the quadsprite bounds
         float adjTexU = u - quadSprite.getMinU();
         float adjTexV = v - quadSprite.getMinV();
@@ -128,14 +127,15 @@ public class QuadSink implements TerrainVertexSink {
         }
 
 
-
+        BindlessTextureManager.Atlas atlas = BindlessTextureManager.getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE);
 
         //Emit results
-        CompactTerrainVertexBufferWriterUnsafe writer = new CompactTerrainVertexBufferWriterUnsafe(outputBuffer);
+        OptimizedTerrainVertexBufferWriterUnsafe writer = new OptimizedTerrainVertexBufferWriterUnsafe(outputBuffer);
         writer.ensureCapacity(outputQuads.size()*4);
         for (Quad quad : outputQuads) {
             for (Vert corner : quad.corners) {
-                writer.writeVertex(corner.posX(), corner.posY(), corner.posZ(), corner.color(), Math.max(corner.u()-0.0001f, 0), Math.max(corner.v()-0.0001f, 0), corner.light());
+                writer.writeVertex(corner.posX(), corner.posY(), corner.posZ(), corner.color(), Math.max(corner.u()-0.0001f, 0), Math.max(corner.v()-0.0001f, 0), corner.light(),
+                        atlas.getSpriteIndex(quad.sprite.getId()));
             }
         }
         writer.flush();
@@ -145,9 +145,59 @@ public class QuadSink implements TerrainVertexSink {
 
 
     private void mesh(List<Quad> set, List<Quad> output, RenderLayer layer, ChunkMeshFace face) {
+        //TODO: Try merge incorrect facing faces
+        if (face == ChunkMeshFace.UNASSIGNED)
+            return;
+
         //Do double directional greedy mesh
         //TODO: Find a better way to do this
 
+        Set<Quad> merged = new HashSet<>();
+
+        do {
+            List<Quad> newQuads = new LinkedList<>();
+            merged.clear();
+            for (int i = 0; i < set.size() - 1; i++) {
+                if (merged.contains(set.get(i)))
+                    continue;
+                for (int j = i + 1; j < set.size(); j++) {
+                    if (merged.contains(set.get(j)))
+                        continue;
+                    if (set.get(i).connectingVerticies(set.get(j)) > 1) {
+                        //System.out.println("QUADMERGE");
+                        if (set.get(i).connectingVerticies(set.get(j))!=2) {
+                            System.out.println("WHAT");
+                        }
+                        merged.add(set.get(i));
+                        merged.add(set.get(j));
+                        boolean[] U = new boolean[4];
+                        boolean[] V = new boolean[4];
+                        for (int A = 0; A < 4; A++) {
+                            for (int B = 0; B < 4; B++) {
+                                if (set.get(i).corners[A].isSamePos(set.get(j).corners[B])) {
+                                    U[A] = true;
+                                    V[B] = true;
+                                }
+                            }
+                        }
+                        int v = 0;
+                        Vert[] c = new Vert[4];
+                        for (int A = 0; A < 4; A++) {
+                            if (!U[A]) {
+                                c[v++] = set.get(i).corners[A];
+                            }
+                            if (!V[A]) {
+                                c[v++] = set.get(j).corners[A];
+                            }
+                        }
+                        newQuads.add(new Quad(c, set.get(i).sprite));
+                        break;
+                    }
+                }
+            }
+            set.removeAll(merged);
+            set.addAll(newQuads);
+        } while (merged.size() != 0);
         //No meshing yet
         output.addAll(set);
     }

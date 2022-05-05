@@ -59,4 +59,17 @@ public class Quad {
         return true;
     }
 
+
+
+    public int connectingVerticies(Quad other) {
+        int out = 0;
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                if (corners[i].isSamePos(other.corners[j])) {
+                    out++;
+                }
+            }
+        }
+        return out;
+    }
 }

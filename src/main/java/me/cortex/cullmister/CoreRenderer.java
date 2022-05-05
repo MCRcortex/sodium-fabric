@@ -3,12 +3,14 @@ package me.cortex.cullmister;
 import com.mojang.blaze3d.systems.RenderSystem;
 import me.cortex.cullmister.region.Region;
 import me.cortex.cullmister.region.RegionPos;
+import me.cortex.cullmister.textures.BindlessTextureManager;
 import me.cortex.cullmister.utils.ShaderPreprocessor;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.BufferRenderer;
 import net.minecraft.client.render.VertexFormat;
+import net.minecraft.client.texture.SpriteAtlasTexture;
 import net.minecraft.client.world.ClientWorld;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -51,6 +53,7 @@ public class CoreRenderer {
     int height;
 
     public CoreRenderer() {
+        //Preload the block atlas
         regionManager = new RegionManager();
         culler = new CullSystem();
         renderer = new RenderLayerSystem();

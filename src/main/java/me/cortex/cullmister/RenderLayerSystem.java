@@ -66,11 +66,13 @@ public class RenderLayerSystem {
         glVertexAttribFormat(2, 4, GL_UNSIGNED_BYTE, true, 8);
         glVertexAttribFormat(3, 2, GL_UNSIGNED_SHORT, true, 12);
         glVertexAttribFormat(4, 2, GL_UNSIGNED_SHORT, true, 16);
+        glVertexAttribIFormat(5, 1, GL_UNSIGNED_SHORT, 6);
 
         glVertexAttribBinding(1, 0);
         glVertexAttribBinding(2, 0);
         glVertexAttribBinding(3, 0);
         glVertexAttribBinding(4, 0);
+        glVertexAttribBinding(5, 0);
 
         glVertexAttribFormat(0, 3, GL_FLOAT,false, 0);
 
@@ -107,7 +109,7 @@ public class RenderLayerSystem {
         glEnableVertexAttribArray(1);
         glEnableVertexAttribArray(2);
         glEnableVertexAttribArray(3);
-        glEnableVertexAttribArray(4);
+        glEnableVertexAttribArray(5);
 
         glEnableVertexAttribArray(0);
 
@@ -187,6 +189,7 @@ public class RenderLayerSystem {
         glDisableVertexAttribArray(2);
         glDisableVertexAttribArray(3);
         glDisableVertexAttribArray(4);
+        glDisableVertexAttribArray(5);
 
         glDisableVertexAttribArray(0);
         glDisableClientState(GL_UNIFORM_BUFFER_UNIFIED_NV);

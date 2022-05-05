@@ -27,6 +27,9 @@ public class MixinModelLoader {
     @Inject(at=@At("RETURN"), method = "<init>")
     private void spritedata(ResourceManager resourceManager, BlockColors blockColors, Profiler profiler, int i, CallbackInfo ci)
     {
-        RenderSystem.recordRenderCall(()-> BindlessTextureManager.GeneratedTextureAtlass(spriteAtlasData));
+        RenderSystem.recordRenderCall(()-> {
+            BindlessTextureManager.GeneratedTextureAtlass(spriteAtlasData);
+            BindlessTextureManager.getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE).getPointerBuffer();
+        });
     }
 }
