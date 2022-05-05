@@ -2,6 +2,7 @@ package me.cortex.cullmister;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import me.cortex.cullmister.region.Region;
+import me.cortex.cullmister.textureManager.BindlessTextureManager;
 import me.cortex.cullmister.utils.Shader;
 import me.cortex.cullmister.utils.VAO;
 import net.caffeinemc.gfx.api.pipeline.state.BlendFunc;
@@ -11,6 +12,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.VertexFormat;
 import net.minecraft.client.texture.SpriteAtlasTexture;
 import net.minecraft.client.texture.TextureManager;
+import net.minecraft.util.Identifier;
 import org.lwjgl.opengl.GL33C;
 import org.lwjgl.opengl.GL45C;
 import org.lwjgl.system.MemoryUtil;
@@ -87,12 +89,13 @@ public class RenderLayerSystem {
         genericRenderShader.bind();
         RenderSystem.enableTexture();
         TextureManager tm = MinecraftClient.getInstance().getTextureManager();
-        GL45C.glBindTextureUnit(0, tm.getTexture(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE).getGlId());
+        //GL45C.glBindTextureUnit(0, tm.getTexture(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE).getGlId());
+        GL45C.glBindTextureUnit(0, BindlessTextureManager.getSprite(new Identifier("minecraft:block/light_blue_concrete")).texture.id);
+        GL45C.glBindSampler(0, texsampler);
         LightmapTextureManagerAccessor lightmapTextureManager =
                 ((LightmapTextureManagerAccessor) MinecraftClient.getInstance().gameRenderer.getLightmapTextureManager());
         GL45C.glBindTextureUnit(1, lightmapTextureManager.getTexture().getGlId());
         GL45C.glBindSampler(1, lightsampler);
-        GL45C.glBindSampler(0, mipsampler);
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LEQUAL);
         vao.bind();

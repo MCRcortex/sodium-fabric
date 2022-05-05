@@ -27,7 +27,8 @@
   },
   "accessWidener": "sodium.accesswidener",
   "mixins": [
-    "sodium.mixins.json"
+    "sodium.mixins.json",
+    "cortex.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.12.0",

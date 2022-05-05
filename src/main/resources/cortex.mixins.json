@@ -1,0 +1,17 @@
+{
+  "package": "me.cortex.cullmister.mixin",
+  "required": true,
+  "compatibilityLevel": "JAVA_17",
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "conformVisibility": true
+  },
+  "client": [
+    "MixinSpriteAtlasTexture"
+  ],
+  "mixins": [
+    "MixinModelLoader"
+  ]
+}

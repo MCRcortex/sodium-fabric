@@ -29,7 +29,8 @@ public class MixinSpriteAnimation {
     private void preTick(CallbackInfo ci) {
         SpriteVisibilityStorage parent = (SpriteVisibilityStorage) this.parent;
 
-        boolean onDemand = SodiumClientMod.options().performance.animateOnlyVisibleTextures;
+        //boolean onDemand = SodiumClientMod.options().performance.animateOnlyVisibleTextures;
+        boolean onDemand = false;
 
         if (onDemand && !parent.isActive()) {
             ci.cancel();
