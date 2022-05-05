@@ -1,5 +1,7 @@
 package net.caffeinemc.sodium.render.terrain;
 
+import me.cortex.cullmister.chunkBuilder.QuadSink;
+import me.cortex.cullmister.textures.BindlessTextureManager;
 import net.caffeinemc.sodium.render.terrain.light.LightMode;
 import net.caffeinemc.sodium.render.terrain.light.LightPipeline;
 import net.caffeinemc.sodium.render.terrain.light.LightPipelineProvider;
@@ -121,7 +123,9 @@ public class BlockRenderer {
         if (bakedQuad.hasColor()) {
             colors = this.colorBlender.getColors(world, pos, src, colorSampler, state);
         }
-        
+        if (vertices instanceof QuadSink)
+            ((QuadSink) vertices).setFollowingQuadView(src);
+
         for (int i = 0; i < 4; i++) {
             int j = orientation.getVertexIndex(i);
 
@@ -135,7 +139,6 @@ public class BlockRenderer {
             float v = src.getTexV(j);
 
             int lm = light.lm[j];
-
             vertices.writeVertex(origin, x, y, z, color, u, v, lm);
         }
 

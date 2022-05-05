@@ -1,5 +1,6 @@
 package net.caffeinemc.sodium.render.terrain;
 
+import me.cortex.cullmister.chunkBuilder.QuadSink;
 import net.caffeinemc.sodium.render.terrain.light.LightMode;
 import net.caffeinemc.sodium.render.terrain.light.LightPipeline;
 import net.caffeinemc.sodium.render.terrain.light.LightPipelineProvider;
@@ -406,6 +407,9 @@ public class FluidRenderer {
 
         var sink = meshBuilder.getVertexSink(facing);
         sink.ensureCapacity(4);
+
+        if (sink instanceof QuadSink)
+            ((QuadSink) sink).setFollowingQuadView(quad);
 
         for (int i = 0; i < 4; i++) {
             float x = quad.getX(i);

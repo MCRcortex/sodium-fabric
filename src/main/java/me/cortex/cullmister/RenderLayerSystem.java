@@ -2,7 +2,7 @@ package me.cortex.cullmister;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import me.cortex.cullmister.region.Region;
-import me.cortex.cullmister.textureManager.BindlessTextureManager;
+import me.cortex.cullmister.textures.BindlessTextureManager;
 import me.cortex.cullmister.utils.Shader;
 import me.cortex.cullmister.utils.VAO;
 import net.caffeinemc.gfx.api.pipeline.state.BlendFunc;
@@ -17,9 +17,6 @@ import org.lwjgl.opengl.GL33C;
 import org.lwjgl.opengl.GL45C;
 import org.lwjgl.system.MemoryUtil;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-
 import static me.cortex.cullmister.commandListStuff.CommandListTokenWriter.NVHeader;
 import static org.lwjgl.opengl.ARBDirectStateAccess.*;
 import static org.lwjgl.opengl.GL11.glDisableClientState;
@@ -28,7 +25,6 @@ import static org.lwjgl.opengl.GL20C.glEnableVertexAttribArray;
 import static org.lwjgl.opengl.GL33.glGenSamplers;
 import static org.lwjgl.opengl.GL33.glSamplerParameteri;
 import static org.lwjgl.opengl.GL43C.*;
-import static org.lwjgl.opengl.NVCommandList.GL_TERMINATE_SEQUENCE_COMMAND_NV;
 import static org.lwjgl.opengl.NVCommandList.nglDrawCommandsAddressNV;
 import static org.lwjgl.opengl.NVShaderBufferLoad.*;
 import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_UNIFIED_NV;
@@ -89,9 +85,9 @@ public class RenderLayerSystem {
         genericRenderShader.bind();
         RenderSystem.enableTexture();
         TextureManager tm = MinecraftClient.getInstance().getTextureManager();
-        //GL45C.glBindTextureUnit(0, tm.getTexture(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE).getGlId());
-        GL45C.glBindTextureUnit(0, BindlessTextureManager.getSprite(new Identifier("minecraft:block/light_blue_concrete")).texture.id);
-        GL45C.glBindSampler(0, texsampler);
+        GL45C.glBindTextureUnit(0, tm.getTexture(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE).getGlId());
+        GL45C.glBindTextureUnit(0, BindlessTextureManager.getSprite(new Identifier("minecraft:block/chain_command_block_back")).texture.id);
+        GL45C.glBindSampler(0, mipsampler);
         LightmapTextureManagerAccessor lightmapTextureManager =
                 ((LightmapTextureManagerAccessor) MinecraftClient.getInstance().gameRenderer.getLightmapTextureManager());
         GL45C.glBindTextureUnit(1, lightmapTextureManager.getTexture().getGlId());

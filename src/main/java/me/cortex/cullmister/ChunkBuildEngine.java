@@ -39,7 +39,13 @@ public class ChunkBuildEngine {
     List<Thread> threads = new LinkedList<>();
     public ChunkBuildEngine(ClientWorld world) {
         this.world = world;
-        vertexType = TerrainVertexFormats.COMPACT;
+
+
+        //vertexType = TerrainVertexFormats.COMPACT;
+        vertexType = TerrainVertexFormats.OPTIMIZE;
+
+
+
         mappings = ChunkRenderPassManager.createDefaultMappings();
         this.sectionCache = new ClonedChunkSectionCache(world);
 
@@ -52,8 +58,8 @@ public class ChunkBuildEngine {
         }
     }
 
-    //TODO: add a thing that if a new task is added for a chunk section that is already being dispatched,
-    // cancel that task
+    //TODO: NEED TO ADD A DISCARD THINK FOR filtering/checking if a task is valid,
+    // do this with the request frame, and check if the build result is equal to the last build time of the chunk
     public void requestRebuild(ChunkSectionPos pos, int frame, boolean important) {
         synchronized (buildTasks) {
             TerrainBuildTask et;

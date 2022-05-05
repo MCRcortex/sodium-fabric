@@ -2,7 +2,7 @@ package me.cortex.cullmister.mixin;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.datafixers.util.Pair;
-import me.cortex.cullmister.textureManager.BindlessTextureManager;
+import me.cortex.cullmister.textures.BindlessTextureManager;
 import net.minecraft.client.color.block.BlockColors;
 import net.minecraft.client.render.model.ModelLoader;
 import net.minecraft.client.texture.SpriteAtlasTexture;

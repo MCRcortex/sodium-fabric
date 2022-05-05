@@ -1,8 +1,4 @@
-package me.cortex.cullmister.textureManager;
-
-import com.mojang.blaze3d.platform.GlStateManager;
-import net.minecraft.client.texture.NativeImage;
-import org.lwjgl.opengl.GL11;
+package me.cortex.cullmister.textures;
 
 import static org.lwjgl.opengl.ARBDirectStateAccess.glCreateTextures;
 import static org.lwjgl.opengl.ARBDirectStateAccess.glTextureStorage2D;
@@ -20,14 +16,29 @@ public class BindlessTexture {
     public BindlessTexture(int width, int height, int levels, int format) {
         id = glCreateTextures(GL_TEXTURE_2D);
         glTextureStorage2D(id, levels, format, width, height);
-        /*
+    }
+
+
+    public void updateAddress() {
+        if (addr != 0) {
+            glMakeTextureHandleNonResidentNV(addr);
+        }
         addr = glGetTextureHandleNV(id);
         if (addr == 0) {
             throw new IllegalStateException();
         }
         glMakeTextureHandleResidentNV(addr);
+    }
 
-         */
+    public void updateAddress(int sampler) {
+        if (addr != 0) {
+            glMakeTextureHandleNonResidentNV(addr);
+        }
+        addr = glGetTextureSamplerHandleNV(id, sampler);
+        if (addr == 0) {
+            throw new IllegalStateException();
+        }
+        glMakeTextureHandleResidentNV(addr);
     }
 
     public void delete() {

@@ -1,11 +1,14 @@
 package net.caffeinemc.sodium.render.chunk.compile.tasks;
 
+import me.cortex.cullmister.chunkBuilder.QuadSink;
 import net.caffeinemc.sodium.render.terrain.TerrainBuildContext;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.state.BuiltChunkGeometry;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderBounds;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.caffeinemc.sodium.render.terrain.context.PreparedTerrainRenderCache;
+import net.caffeinemc.sodium.render.terrain.format.TerrainVertexSink;
+import net.caffeinemc.sodium.render.terrain.quad.properties.ChunkMeshFace;
 import net.caffeinemc.sodium.util.tasks.CancellationSource;
 import net.caffeinemc.sodium.world.slice.WorldSlice;
 import net.caffeinemc.sodium.world.slice.WorldSliceData;
@@ -136,6 +139,15 @@ public class TerrainBuildTask extends AbstractBuilderTask {
                     if (rendered) {
                         bounds.addBlock(x & 15, y & 15, z & 15);
                     }
+                }
+            }
+        }
+
+        for(RenderLayer l : RenderLayer.getBlockLayers()) {
+            for (ChunkMeshFace face : ChunkMeshFace.VALUES) {
+                TerrainVertexSink sink = buffers.get(l).getVertexSink(face);
+                if (sink instanceof QuadSink) {
+                    ((QuadSink) sink).finish(l, face);
                 }
             }
         }
