@@ -36,6 +36,8 @@ public class BindlessSprite {
             GlStateManager._pixelStore(GL_UNPACK_ROW_LENGTH, sprite.images[i].getWidth());
             sprite.images[i].upload(i,0,0,0,0,sprite.getWidth()>>i, sprite.getHeight()>>i, true , false);
         }
+
+        texture.updateAddress();
     }
 
     public long getAddress() {

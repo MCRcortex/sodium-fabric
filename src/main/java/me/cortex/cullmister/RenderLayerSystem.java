@@ -25,6 +25,7 @@ import static org.lwjgl.opengl.GL20C.glEnableVertexAttribArray;
 import static org.lwjgl.opengl.GL33.glGenSamplers;
 import static org.lwjgl.opengl.GL33.glSamplerParameteri;
 import static org.lwjgl.opengl.GL43C.*;
+import static org.lwjgl.opengl.NVBindlessTexture.glUniformHandleui64NV;
 import static org.lwjgl.opengl.NVCommandList.nglDrawCommandsAddressNV;
 import static org.lwjgl.opengl.NVShaderBufferLoad.*;
 import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_UNIFIED_NV;
@@ -85,13 +86,16 @@ public class RenderLayerSystem {
         genericRenderShader.bind();
         RenderSystem.enableTexture();
         TextureManager tm = MinecraftClient.getInstance().getTextureManager();
-        GL45C.glBindTextureUnit(0, tm.getTexture(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE).getGlId());
-        GL45C.glBindTextureUnit(0, BindlessTextureManager.getSprite(new Identifier("minecraft:block/chain_command_block_back")).texture.id);
-        GL45C.glBindSampler(0, mipsampler);
+        //GL45C.glBindTextureUnit(0, tm.getTexture(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE).getGlId());
+        //GL45C.glBindTextureUnit(0, BindlessTextureManager.getSprite(new Identifier("minecraft:block/chain_command_block_back")).texture.id);
+        //GL45C.glBindSampler(0, mipsampler);
         LightmapTextureManagerAccessor lightmapTextureManager =
                 ((LightmapTextureManagerAccessor) MinecraftClient.getInstance().gameRenderer.getLightmapTextureManager());
-        GL45C.glBindTextureUnit(1, lightmapTextureManager.getTexture().getGlId());
-        GL45C.glBindSampler(1, lightsampler);
+        //GL45C.glBindTextureUnit(1, lightmapTextureManager.getTexture().getGlId());
+        //GL45C.glBindSampler(1, lightsampler);
+
+
+
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LEQUAL);
         vao.bind();
