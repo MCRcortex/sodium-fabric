@@ -46,7 +46,7 @@ public class RegionRenderData {
         //TODO: need to prep all the drawCommandsList and rasterCommands to bind to the IBO and UBO
         // also need to store the offset to add to all draw command counts as an offset into the buffer
         // also also need to figure out how to add a sequence terminator
-        drawCommandsOffset = 2*NVSize(GL_UNIFORM_ADDRESS_COMMAND_NV) + NVSize(GL_ELEMENT_ADDRESS_COMMAND_NV) + NVSize(GL_ATTRIBUTE_ADDRESS_COMMAND_NV);
+        drawCommandsOffset = NVSize(GL_UNIFORM_ADDRESS_COMMAND_NV) + NVSize(GL_ELEMENT_ADDRESS_COMMAND_NV) + NVSize(GL_ATTRIBUTE_ADDRESS_COMMAND_NV);
 
         RenderSystem.IndexBuffer ibo = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS, 0);
         //Get IBO address
@@ -54,13 +54,10 @@ public class RegionRenderData {
         glGetNamedBufferParameterui64vNV(ibo.getId(), GL_BUFFER_GPU_ADDRESS_NV, holder);
         long iboAddr = holder[0];
 
-        long textureLUTAddr = BindlessTextureManager.getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE).getPointerBuffer().addr;
-
         for (int i = 0; i < 4; i++) {
             long ptr = nglMapNamedBufferRange(drawCommandsList[i].id, 0, drawCommandsOffset, GL_MAP_WRITE_BIT);
             ptr = NVTokenIBO(ptr, GL_UNSIGNED_SHORT, iboAddr);
             ptr = NVTokenUBO(ptr, 0, GL_VERTEX_SHADER, UBO.addr);
-            ptr = NVTokenUBO(ptr, 1, GL_FRAGMENT_SHADER, textureLUTAddr);
             ptr = NVTokenVBO(ptr, 1, drawMeta.addr);
             glUnmapNamedBuffer(drawCommandsList[i].id);
         }

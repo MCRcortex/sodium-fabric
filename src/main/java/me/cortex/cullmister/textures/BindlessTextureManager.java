@@ -73,7 +73,8 @@ public class BindlessTextureManager {
             for (var is : sprites.entrySet()) {
                 short id = i++;
                 sprite2index.put(is.getKey(), id);
-                MemoryUtil.memPutAddress(ptr+8*id, is.getValue().getAddress());
+                MemoryUtil.memPutAddress(ptr+(8L*id), is.getValue().getAddress());
+                System.out.println(is.getKey()+" -> "+id);
             }
             glUnmapNamedBuffer(spritePointerBuffer.id);
         }

@@ -95,10 +95,10 @@ public class RenderLayerSystem {
         //GL45C.glBindSampler(1, lightsampler);
 
 
-
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LEQUAL);
         vao.bind();
+
 
         glEnableClientState(GL_UNIFORM_BUFFER_UNIFIED_NV);
         glEnableClientState(GL_VERTEX_ATTRIB_ARRAY_UNIFIED_NV);
@@ -110,6 +110,11 @@ public class RenderLayerSystem {
         glEnableVertexAttribArray(4);
 
         glEnableVertexAttribArray(0);
+
+        long textureLUTAddr = BindlessTextureManager.getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE).getPointerBuffer().addr;
+
+        glUniformui64NV(9,textureLUTAddr);
+        //TODO:/NOTE: See if doing ^ the for the UBO buffer provides any speedup
     }
 
     //TODO: need to add layers

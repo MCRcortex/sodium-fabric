@@ -18,14 +18,11 @@ in vec2 v_LightCoord; // The interpolated light map texture coordinates
 //    sampler2D u_BlockTex;
 //};
 
-//layout(location=1) uniform sampler2D *samplers;
-layout(std140, binding=1) uniform __samplers {
-    sampler2D samplers[];
-};
+layout(location=9) uniform sampler2D *samplers2;
 
 void main() {
     //colour = v_Color;return;
-    vec4 c = texture(samplers[0], v_TexCoord);
+    vec4 c = texture(samplers2[1191], v_TexCoord);
     if (c.a < 0.5)
         discard;
     //vec4 light = texture(u_LightTex, v_LightCoord);
