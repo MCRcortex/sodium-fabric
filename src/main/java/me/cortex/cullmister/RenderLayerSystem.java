@@ -167,21 +167,25 @@ public class RenderLayerSystem {
         MemoryUtil.memPutLong(heapData, region.draw.drawCommandsList[0].addr);
         MemoryUtil.memPutInt(heapData+8, 400000);
         nglDrawCommandsAddressNV(GL_TRIANGLES, heapData, heapData+8, 1);
+    }
 
-        if (false) {
-            //TODO: ADD AN EARLY EXIT, e.g. if the region has no water, dont render
-            //TODO: put into drawList
-            glDepthMask(false);
-            RenderSystem.enableBlend();
-            RenderSystem.blendFuncSeparate(GlEnum.from(BlendFunc.SrcFactor.SRC_ALPHA), GlEnum.from(BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA), GlEnum.from(BlendFunc.SrcFactor.ONE), GlEnum.from(BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA));
-            MemoryUtil.memPutLong(heapData, region.draw.drawCommandsList[1].addr);
-            MemoryUtil.memPutInt(heapData + 8, 200000);
-            nglDrawCommandsAddressNV(GL_TRIANGLES, heapData, heapData + 8, 1);
-            RenderSystem.disableBlend();
-            glDepthMask(true);
-        }
+    public void swapTransparent() {
+        //TODO: put into drawList
+        glDepthMask(false);
+        RenderSystem.enableBlend();
+        RenderSystem.blendFuncSeparate(GlEnum.from(BlendFunc.SrcFactor.SRC_ALPHA), GlEnum.from(BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA), GlEnum.from(BlendFunc.SrcFactor.ONE), GlEnum.from(BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA));
+    }
 
+    public void drawTransparent(Region region) {
+        //TODO: ADD AN EARLY EXIT, e.g. if the region has no water, dont render
+        MemoryUtil.memPutLong(heapData, region.draw.drawCommandsList[1].addr);
+        MemoryUtil.memPutInt(heapData + 8, 200000);
+        nglDrawCommandsAddressNV(GL_TRIANGLES, heapData, heapData + 8, 1);
+    }
 
+    public void endTransparent() {
+        RenderSystem.disableBlend();
+        glDepthMask(true);
     }
 
     public void end() {

@@ -1,5 +1,6 @@
 package me.cortex.cullmister.chunkBuilder;
 
+import com.ibm.icu.impl.Pair;
 import me.cortex.cullmister.textures.BindlessTextureManager;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexSink;
 import net.caffeinemc.sodium.render.terrain.format.compact.CompactTerrainVertexBufferWriterUnsafe;
@@ -71,12 +72,10 @@ public class QuadSink implements TerrainVertexSink {
 
 
 
-
-    //TODO: FIND A BETTER DATASTRUCTURE
-    ArrayList<Quad> quads = new ArrayList<>();
+    QuadClusterizer clusters = new QuadClusterizer();
     private void onQuadFilled() {
         Quad quad = new Quad(corners, quadSprite);
-        quads.add(quad);
+        clusters.add(quad);
     }
 
 
@@ -85,54 +84,19 @@ public class QuadSink implements TerrainVertexSink {
      * Called after all data has been written to the sink
      */
     public void finish(RenderLayer layer, ChunkMeshFace face) {
-        if (quads.isEmpty())
-            return;
         if (fill != 0)
             throw new IllegalStateException("Quad sink was not filled with quad");
 
-        //TODO: segment it one more time based on the position with respect to face, e.g. only those on the same 2d grid
-        // are grouped
-        //TODO: this grid needs to be with respect to face thus, no filter can be applied if face == UNASSIGNED
-        List<List<Quad>> compatibiltySets = new LinkedList<>();
-        outer:
-        for (Quad quad : quads) {
-            for (List<Quad> set : compatibiltySets) {
-                if (set.get(0).looselyCompatibleWith(quad)) {
-                    set.add(quad);
-                    continue outer;
-                }
-            }
-            compatibiltySets.add(new LinkedList<>(List.of(quad)));
-        }
-
-        List<Quad> outputQuads = new LinkedList<>();
-
-
-        /*
-        Iterator<List<Quad>> iterator = compatibiltySets.iterator();
-        while (iterator.hasNext()) {
-            List<Quad> set = iterator.next();
-            if (set.size() == 1) {
-                outputQuads.add(set.get(0));
-                iterator.remove();
-            }
-        }
-         */
-
-        for(List<Quad> set : compatibiltySets) {
-            if (set.size() == 1)
-                outputQuads.add(set.get(0));
-            else
-                mesh(set, outputQuads, layer, face);
-        }
+        if (clusters.isEmpty())
+            return;
 
 
         BindlessTextureManager.Atlas atlas = BindlessTextureManager.getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE);
 
         //Emit results
         OptimizedTerrainVertexBufferWriterUnsafe writer = new OptimizedTerrainVertexBufferWriterUnsafe(outputBuffer);
-        writer.ensureCapacity(outputQuads.size()*4);
-        for (Quad quad : outputQuads) {
+        //writer.ensureCapacity(clusters.unique.size()*4);
+        for (Quad quad : QuadOptimizer.optimize(clusters)) {
             for (Vert corner : quad.corners) {
                 writer.writeVertex(corner.posX(), corner.posY(), corner.posZ(), corner.color(), Math.max(corner.u()-0.0001f, 0), Math.max(corner.v()-0.0001f, 0), corner.light(),
                         atlas.getSpriteIndex(quad.sprite.getId()));
@@ -140,65 +104,6 @@ public class QuadSink implements TerrainVertexSink {
         }
         writer.flush();
 
-        outputQuads.size();
     }
 
-
-    private void mesh(List<Quad> set, List<Quad> output, RenderLayer layer, ChunkMeshFace face) {
-        //TODO: Try merge incorrect facing faces
-        if (face == ChunkMeshFace.UNASSIGNED)
-            return;
-
-        //Do double directional greedy mesh
-        //TODO: Find a better way to do this
-
-        Set<Quad> merged = new HashSet<>();
-
-        do {
-            List<Quad> newQuads = new LinkedList<>();
-            merged.clear();
-            for (int i = 0; i < set.size() - 1; i++) {
-                if (merged.contains(set.get(i)))
-                    continue;
-                for (int j = i + 1; j < set.size(); j++) {
-                    if (merged.contains(set.get(j)))
-                        continue;
-                    if (set.get(i).connectingVerticies(set.get(j)) > 1) {
-                        //System.out.println("QUADMERGE");
-                        if (set.get(i).connectingVerticies(set.get(j))!=2) {
-                            System.out.println("WHAT");
-                        }
-                        merged.add(set.get(i));
-                        merged.add(set.get(j));
-                        boolean[] U = new boolean[4];
-                        boolean[] V = new boolean[4];
-                        for (int A = 0; A < 4; A++) {
-                            for (int B = 0; B < 4; B++) {
-                                if (set.get(i).corners[A].isSamePos(set.get(j).corners[B])) {
-                                    U[A] = true;
-                                    V[B] = true;
-                                }
-                            }
-                        }
-                        int v = 0;
-                        Vert[] c = new Vert[4];
-                        for (int A = 0; A < 4; A++) {
-                            if (!U[A]) {
-                                c[v++] = set.get(i).corners[A];
-                            }
-                            if (!V[A]) {
-                                c[v++] = set.get(j).corners[A];
-                            }
-                        }
-                        newQuads.add(new Quad(c, set.get(i).sprite));
-                        break;
-                    }
-                }
-            }
-            set.removeAll(merged);
-            set.addAll(newQuads);
-        } while (merged.size() != 0);
-        //No meshing yet
-        output.addAll(set);
-    }
 }

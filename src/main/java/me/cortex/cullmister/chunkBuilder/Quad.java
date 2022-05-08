@@ -12,64 +12,52 @@ public class Quad {
         this.sprite = sprite;
     }
 
-    private boolean constColour() {
-        int base = corners[0].color();
-        for (Vert i : corners) {
-            if (i.color() != base)
-                return false;
-        }
-        return true;
-    }
-
-    private boolean constLight() {
-        int base = corners[0].light();
-        for (Vert i : corners) {
-            if (i.light() != base)
-                return false;
-        }
-        return true;
-    }
-
-    public boolean couldMerge() {
-        if (constColour() && constLight())
-            return true;
-        return false;
-    }
-
-    public boolean looselyCompatibleWith(Quad other) {
-        //Check that its the same sprite
-        if (!sprite.getId().equals(other.sprite.getId()))
-            return false;
-
-        //Check for colour compatibility
-
-        //TODO: see if maybe change this or something!!!
-        if (!(couldMerge()&&other.couldMerge()))
-            return false;
-        if (corners[0].color() != other.corners[0].color())
-            return false;
 
 
-        //TODO: can probably do the same thing for light that is being done for textures, e.g. each light level is a unique texture
-        //Check for light compatibility
-        if (corners[0].light() != other.corners[0].light())
-            return false;
+    public static int W = 0;
+    public static int N = 1;
+    public static int E = 2;
+    public static int S = 3;
 
-        //TODO: maybe do texture check
-        return true;
+    public static int SW = 0;
+    public static int NW = 1;
+    public static int NE = 2;
+    public static int SE = 3;
+
+    private static final int[] OPPOSITE_FACE = new int[] {E, S, W, N};
+    private static final int[][] FACE2INDEX = new int[][] {{0,1},{1,2},{2,3},{3,0}};
+
+    private static final int[][] OPPOSITE_POINT_LUT = new int[][] {
+            { 3, 2,-1,-1}, //W
+            {-1, 0, 3,-1}, //N
+            {-1,-1, 1, 0}, //E
+            { 1,-1,-1, 2}, //S
+    };
+
+    public static int getOppositeIndex(int index, int cFaceDir) {
+        return OPPOSITE_POINT_LUT[cFaceDir][index];
     }
 
 
 
-    public int connectingVerticies(Quad other) {
-        int out = 0;
+    public int mergeabilityAxis() {
+        int i = 0;
+        i|=(corners[0].isSimilar(corners[3]) && corners[1].isSimilar(corners[2]))?1:0;//Horizontal
+        i|=(corners[0].isSimilar(corners[1]) && corners[3].isSimilar(corners[2]))?2:0;//Vertical
+        return i-1;
+    }
+
+    public int connectable(Quad other) {
         for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                if (corners[i].isSamePos(other.corners[j])) {
-                    out++;
-                }
-            }
+            int[] a = FACE2INDEX[i];
+            int[] b = FACE2INDEX[OPPOSITE_FACE[i]];
+            if (    corners[a[0]].isSimilar(other.corners[b[1]]) &&
+                    corners[a[1]].isSimilar(other.corners[b[0]]) &&
+                    corners[a[0]].isSamePos(other.corners[b[1]]) &&
+                    corners[a[1]].isSamePos(other.corners[b[0]])
+                )
+                return i;
         }
-        return out;
+        return -1;
     }
 }

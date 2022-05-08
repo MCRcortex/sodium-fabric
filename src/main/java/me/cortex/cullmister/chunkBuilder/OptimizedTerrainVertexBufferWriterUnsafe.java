@@ -9,7 +9,7 @@ import org.lwjgl.system.MemoryUtil;
 
 public class OptimizedTerrainVertexBufferWriterUnsafe extends VertexBufferWriterUnsafe implements TerrainVertexSink {
     public OptimizedTerrainVertexBufferWriterUnsafe(VertexBufferView backingBuffer) {
-        super(backingBuffer, TerrainVertexFormats.COMPACT);
+        super(backingBuffer, TerrainVertexFormats.OPTIMIZE);
     }
 
     @Override

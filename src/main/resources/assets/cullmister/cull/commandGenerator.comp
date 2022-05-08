@@ -81,6 +81,7 @@ void main() {
                 draw->baseVertex    = chunk->CUTOUT_MIPPED[i].offset;
                 draw->baseInstance  = metaIdx;
             }
+
             if (chunk->CUTOUT[i].count != 0) {
                 DrawElementsInstancedCommand* draw = (DrawElementsInstancedCommand*)(cmd);
                 cmd += sizeofDrawElementsInstancedCommand;
@@ -95,7 +96,7 @@ void main() {
         }
     }
 
-    /*
+
     {
         uint32_t numCommands = bitCount(vismsk&chunk->lvis[3]);
 
@@ -127,5 +128,5 @@ void main() {
             }
         }
     }
-    */
+
 }

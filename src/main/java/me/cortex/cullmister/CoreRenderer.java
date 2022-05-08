@@ -108,7 +108,7 @@ public class CoreRenderer {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glBindTexture(GL11C.GL_TEXTURE_2D, 0);
         }
-
+        /*
         MinecraftClient.getInstance().getFramebuffer().beginWrite(true);
         glNamedFramebufferTexture(MinecraftClient.getInstance().getFramebuffer().fbo, GL_DEPTH_ATTACHMENT, depthTex, 0);
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -117,19 +117,32 @@ public class CoreRenderer {
             MinecraftClient.getInstance().getProfiler().pop();
             return;
         }
+         */
 
         MinecraftClient.getInstance().getProfiler().swap("Draw");
         if (true) {
             MinecraftClient.getInstance().getProfiler().push("prep");
             renderer.begin();
-            MinecraftClient.getInstance().getProfiler().swap("render");
+            MinecraftClient.getInstance().getProfiler().swap("render solid");
             for (Region r : regions) {
                 renderer.render(r);
+            }
+            if (true) {
+                MinecraftClient.getInstance().getProfiler().swap("swap");
+                renderer.swapTransparent();
+                MinecraftClient.getInstance().getProfiler().swap("render trans");
+                for (Region r : regions) {
+                    renderer.drawTransparent(r);
+                }
+                MinecraftClient.getInstance().getProfiler().swap("end trans");
+                renderer.endTransparent();
             }
             MinecraftClient.getInstance().getProfiler().swap("end");
             renderer.end();
             MinecraftClient.getInstance().getProfiler().pop();
         }
+
+        //glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
         if (true) {
             if (true) {
                 MinecraftClient.getInstance().getProfiler().swap("Cull Prep");
@@ -159,11 +172,11 @@ public class CoreRenderer {
 
         MinecraftClient.getInstance().getProfiler().swap("Depth clear");
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);
-        glClear(GL_DEPTH_BUFFER_BIT);
+       // glClear(GL_DEPTH_BUFFER_BIT);
 
         MinecraftClient.getInstance().getProfiler().swap("other");
-        MinecraftClient.getInstance().getFramebuffer().beginWrite(true);
-        glNamedFramebufferTexture(MinecraftClient.getInstance().getFramebuffer().fbo, GL_DEPTH_ATTACHMENT, MinecraftClient.getInstance().getFramebuffer().getDepthAttachment(), 0);
+        //MinecraftClient.getInstance().getFramebuffer().beginWrite(true);
+        //glNamedFramebufferTexture(MinecraftClient.getInstance().getFramebuffer().fbo, GL_DEPTH_ATTACHMENT, MinecraftClient.getInstance().getFramebuffer().getDepthAttachment(), 0);
         //glNamedFramebufferTexture(MinecraftClient.getInstance().getFramebuffer().fbo, GL_STENCIL_ATTACHMENT, 0, 0);
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
