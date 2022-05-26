@@ -163,7 +163,7 @@ public class CullSystem {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
         glDepthFunc(GL_LEQUAL);
-        //glCullFace(GL_BACK);
+        glCullFace(GL_BACK);
         glDepthMask(false);
         glColorMask(false, false, false, false);
         vao.bind();

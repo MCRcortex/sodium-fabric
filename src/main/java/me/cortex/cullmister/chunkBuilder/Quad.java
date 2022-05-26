@@ -24,8 +24,9 @@ public class Quad {
     public static int NE = 2;
     public static int SE = 3;
 
-    private static final int[] OPPOSITE_FACE = new int[] {E, S, W, N};
-    private static final int[][] FACE2INDEX = new int[][] {{0,1},{1,2},{2,3},{3,0}};
+    public static final int[] OPPOSITE_FACE = new int[] {E, S, W, N};
+    public static final int[] DIRINDEX = new int[] {0,1,0,1};
+    public static final int[][] FACE2INDEX = new int[][] {{0,1},{1,2},{2,3},{3,0}};
 
     private static final int[][] OPPOSITE_POINT_LUT = new int[][] {
             { 3, 2,-1,-1}, //W

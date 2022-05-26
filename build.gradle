@@ -59,6 +59,8 @@ dependencies {
     includeModImplementation fabricApi.module("fabric-rendering-fluids-v1", project.fabric_version)
     includeModImplementation fabricApi.module("fabric-rendering-data-attachment-v1", project.fabric_version)
     includeModImplementation fabricApi.module("fabric-resource-loader-v0", project.fabric_version)
+    includeModImplementation fabricApi.module("fabric-key-binding-api-v1", project.fabric_version)
+    includeModImplementation fabricApi.module("fabric-command-api-v1", project.fabric_version)
 
     includeImplementation 'org.joml:joml:1.10.4'
     includeImplementation project(":components:gfx")
@@ -67,7 +69,9 @@ dependencies {
     if (findProperty("sodium.use_third_party_mods") != "false") {
         modRuntime "maven.modrinth:lazydfu:0.1.2"
         modRuntime "maven.modrinth:starlight:1.0.2+1.18.2"
+        //modRuntime "maven.modrinth:iris:1.18.x-v1.2.4"
     }
+
 }
 
 String getVersion() {

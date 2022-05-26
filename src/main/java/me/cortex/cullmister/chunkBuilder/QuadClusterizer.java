@@ -1,13 +1,12 @@
 package me.cortex.cullmister.chunkBuilder;
 
-import com.ibm.icu.impl.Pair;
-
 import java.util.*;
 
 public class QuadClusterizer {
     List<Quad> unique = new ArrayList<>();
-    List<List<Quad>> verticalClusters = new ArrayList<>();
-    List<List<Quad>> horizontalClusters = new ArrayList<>();
+    //TODO: Instead of a list of quads need to do a list of quad connections
+    List<DirectionalQuadCluster> verticalClusters = new ArrayList<>();
+    List<DirectionalQuadCluster> horizontalClusters = new ArrayList<>();
     List<List<Quad>> biClusters = new ArrayList<>();
     public void add(Quad quad) {
         //TODO: optimize this garbage with axis optimization
@@ -15,46 +14,35 @@ public class QuadClusterizer {
         if (axis == -1) {
             unique.add(quad);
         } else if (axis == 0) {//Horizontal
-            List<List<Quad>> connectedCluster = new LinkedList<>();
-            for (List<Quad> cluster : horizontalClusters) {
-                for (Quad quadNew : cluster) {
-                    if (quad.connectable(quadNew) != -1) {
-                        connectedCluster.add(cluster);
-                        break;
-                    }
+            List<DirectionalQuadCluster> connectedCluster = new LinkedList<>();
+            for (DirectionalQuadCluster cluster : horizontalClusters) {
+                if (cluster.isJoinable(quad)) {
+                    connectedCluster.add(cluster);
                 }
             }
             if (connectedCluster.isEmpty()) {
-                horizontalClusters.add(new ArrayList<>(List.of(quad)));
+                horizontalClusters.add(new DirectionalQuadCluster(quad, quad.mergeabilityAxis()));
             } else if (connectedCluster.size() == 1) {
                 connectedCluster.get(0).add(quad);
             } else {
-                horizontalClusters.removeAll(connectedCluster);
-                List<Quad> merged = new ArrayList<>();
-                connectedCluster.forEach(merged::addAll);
-                merged.add(quad);
-                horizontalClusters.add(merged);
+                if (connectedCluster.size() >2)
+                    throw new IllegalStateException();
             }
         } else if (axis == 1) {//Vertical
-            List<List<Quad>> connectedCluster = new LinkedList<>();
-            for (List<Quad> cluster : verticalClusters) {
-                for (Quad quadNew : cluster) {
-                    if (quad.connectable(quadNew) != -1) {
-                        connectedCluster.add(cluster);
-                        break;
-                    }
+
+            List<DirectionalQuadCluster> connectedCluster = new LinkedList<>();
+            for (DirectionalQuadCluster cluster : verticalClusters) {
+                if (cluster.isJoinable(quad)) {
+                    connectedCluster.add(cluster);
                 }
             }
             if (connectedCluster.isEmpty()) {
-                verticalClusters.add(new ArrayList<>(List.of(quad)));
+                verticalClusters.add(new DirectionalQuadCluster(quad, quad.mergeabilityAxis()));
             } else if (connectedCluster.size() == 1) {
                 connectedCluster.get(0).add(quad);
             } else {
-                verticalClusters.removeAll(connectedCluster);
-                List<Quad> merged = new ArrayList<>();
-                connectedCluster.forEach(merged::addAll);
-                merged.add(quad);
-                verticalClusters.add(merged);
+                if (connectedCluster.size() >2)
+                    throw new IllegalStateException();
             }
         } else if (axis == 2) {//Bi
             List<List<Quad>> connectedCluster = new LinkedList<>();
