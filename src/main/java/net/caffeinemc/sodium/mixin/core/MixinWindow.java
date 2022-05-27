@@ -1,6 +1,7 @@
 package net.caffeinemc.sodium.mixin.core;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import me.cortex.vulkenizer.Vulkanizer;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.Blaze3DPipelineManager;
 import net.caffeinemc.gfx.opengl.device.GlRenderDevice;
@@ -32,6 +33,7 @@ public class MixinWindow {
     @Inject(method = "<init>", at = @At("TAIL"))
     private void init(WindowEventHandler eventHandler, MonitorTracker monitorTracker, WindowSettings settings, String videoMode, String title, CallbackInfo ci) {
         SodiumClientMod.DEVICE = new GlRenderDevice(new Blaze3DPipelineManager());
+        Vulkanizer.init_vulkan();
     }
 
 
