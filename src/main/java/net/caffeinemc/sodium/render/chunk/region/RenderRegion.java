@@ -1,13 +1,17 @@
 package net.caffeinemc.sodium.render.chunk.region;
 
+import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.sodium.render.arena.AsyncBufferArena;
 import net.caffeinemc.sodium.render.arena.BufferArena;
 import net.caffeinemc.sodium.render.buffer.StreamingBuffer;
+import net.caffeinemc.sodium.render.chunk.occlussion.SectionMeta;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.util.MathUtil;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.apache.commons.lang3.Validate;
+
+import java.util.Set;
 
 public class RenderRegion {
     public static final int REGION_WIDTH = 8;
@@ -30,11 +34,26 @@ public class RenderRegion {
         Validate.isTrue(MathUtil.isPowerOfTwo(REGION_LENGTH));
     }
 
+
     public final BufferArena vertexBuffers;
+    public final StreamingBuffer metaBuffer;
+    public final ImmutableBuffer visBuffer;
+
+    //FIXME: can probably move this to be a bigger buffer for all lists, note will need to be 1 PER render layer
+    // steal from RenderListBuilder
+    /*
+    public final ImmutableBuffer countBuffer;
+    public final ImmutableBuffer commandBuffer;
+    public final ImmutableBuffer instanceBuffer;
+
+     */
+
     public final int id;
 
     public RenderRegion(RenderDevice device, StreamingBuffer streamingBuffer, TerrainVertexType vertexType, int id) {
         this.vertexBuffers = new AsyncBufferArena(device, streamingBuffer, REGION_SIZE * 756, vertexType.getBufferVertexFormat().stride());
+        this.metaBuffer = new StreamingBuffer(device, 1, SectionMeta.SIZE, REGION_SIZE);//FIXME: add relevant flags
+        this.visBuffer = device.createBuffer(REGION_SIZE, Set.of());//FIXME: add relevant flags
         this.id = id;
     }
 

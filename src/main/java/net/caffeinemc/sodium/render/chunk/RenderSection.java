@@ -1,6 +1,7 @@
 package net.caffeinemc.sodium.render.chunk;
 
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
+import net.caffeinemc.sodium.render.chunk.occlussion.SectionMeta;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.chunk.state.*;
 import net.minecraft.util.math.ChunkSectionPos;
@@ -25,6 +26,7 @@ public class RenderSection {
 
     private ChunkUpdateType pendingUpdate;
     private UploadedChunkGeometry uploadedGeometry;
+    private SectionMeta sectionMeta;
 
     private boolean disposed;
 
@@ -154,10 +156,11 @@ public class RenderSection {
         }
     }
 
-    public void updateGeometry(RenderRegion region, UploadedChunkGeometry geometry) {
+    public void updateGeometry(RenderRegion region, UploadedChunkGeometry geometry, SectionMeta meta) {
         this.deleteGeometry();
         this.uploadedGeometry = geometry;
         this.region = region;
+        this.sectionMeta = meta;
     }
 
     public UploadedChunkGeometry getGeometry() {
