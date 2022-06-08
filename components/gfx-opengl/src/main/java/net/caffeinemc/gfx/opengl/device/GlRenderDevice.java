@@ -345,6 +345,13 @@ public class GlRenderDevice implements RenderDevice {
 
             GL43C.glMultiDrawElementsIndirect(GlEnum.from(primitiveType), GlEnum.from(elementType), indirectOffset, indirectCount, 0);
         }
+
+        @Override
+        public void drawElementsInstanced(PrimitiveType primitiveType, int count, ElementFormat elementType, long indices, int primcount) {
+            //FIXME: add api checks
+
+            GL31C.glDrawElementsInstanced(GlEnum.from(primitiveType), count, GlEnum.from(elementType), indices, primcount);
+        }
     }
 
     private static int getBufferStorageBits(Set<ImmutableBufferFlags> flags) {

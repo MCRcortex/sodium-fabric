@@ -17,6 +17,7 @@ import net.caffeinemc.sodium.render.chunk.compile.tasks.EmptyTerrainBuildTask;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildTask;
 import net.caffeinemc.sodium.render.chunk.draw.*;
+import net.caffeinemc.sodium.render.chunk.occlussion.GPUOcclusionManager;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
 import net.caffeinemc.sodium.render.chunk.passes.DefaultRenderPasses;
@@ -77,6 +78,7 @@ public class RenderSectionManager {
 
     private final ChunkTracker tracker;
     private final RenderDevice device;
+
 
     private Map<ChunkRenderPass, RenderListBuilder.RenderList> renderLists;
     private ChunkCameraContext camera;

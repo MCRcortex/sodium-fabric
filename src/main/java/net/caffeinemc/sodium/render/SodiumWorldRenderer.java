@@ -8,6 +8,7 @@ import net.caffeinemc.sodium.interop.vanilla.mixin.WorldRendererHolder;
 import net.caffeinemc.sodium.render.chunk.RenderSectionManager;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
+import net.caffeinemc.sodium.render.chunk.occlussion.GPUOcclusionManager;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
 import net.caffeinemc.sodium.render.terrain.context.ImmediateTerrainRenderCache;
@@ -22,10 +23,7 @@ import net.minecraft.client.render.model.ModelLoader;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.*;
 import net.minecraft.util.profiler.Profiler;
 
 import java.util.Collection;
@@ -46,6 +44,7 @@ public class SodiumWorldRenderer {
 
     private boolean useEntityCulling;
 
+    private GPUOcclusionManager occlusion;
     private RenderSectionManager renderSectionManager;
     private ChunkRenderPassManager renderPassManager;
     private ChunkTracker chunkTracker;
@@ -232,6 +231,8 @@ public class SodiumWorldRenderer {
 
         this.renderSectionManager = new RenderSectionManager(SodiumClientMod.DEVICE, this, this.renderPassManager, this.world, this.renderDistance);
         this.renderSectionManager.reloadChunks(this.chunkTracker);
+
+        this.occlusion = new GPUOcclusionManager(SodiumClientMod.DEVICE);
     }
 
     public void renderTileEntities(MatrixStack matrices, BufferBuilderStorage bufferBuilders, Long2ObjectMap<SortedSet<BlockBreakingInfo>> blockBreakingProgressions,
@@ -388,5 +389,10 @@ public class SodiumWorldRenderer {
 
     public ChunkTracker getChunkTracker() {
         return this.chunkTracker;
+    }
+
+    public void prepRenderCommands(MatrixStack matrices, Camera camera, GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f positionMatrix) {
+
+        //this.occlusion.computeOcclusionVis();
     }
 }

@@ -53,7 +53,7 @@ public class RenderRegion {
     public RenderRegion(RenderDevice device, StreamingBuffer streamingBuffer, TerrainVertexType vertexType, int id) {
         this.vertexBuffers = new AsyncBufferArena(device, streamingBuffer, REGION_SIZE * 756, vertexType.getBufferVertexFormat().stride());
         this.metaBuffer = new StreamingBuffer(device, 1, SectionMeta.SIZE, REGION_SIZE);//FIXME: add relevant flags
-        this.visBuffer = device.createBuffer(REGION_SIZE, Set.of());//FIXME: add relevant flags
+        this.visBuffer = device.createBuffer(REGION_SIZE*4, Set.of());//FIXME: add relevant flags
         this.id = id;
     }
 

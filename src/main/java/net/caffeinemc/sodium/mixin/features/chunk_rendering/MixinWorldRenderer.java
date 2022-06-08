@@ -97,6 +97,15 @@ public abstract class MixinWorldRenderer implements WorldRendererHolder {
     }
 
     /**
+     * @reason Inject a return callback, this is used to generate the render commands for the next frame
+     * @author Cortex
+     */
+    @Inject(at = @At("RETURN"), method = "render")
+    private void renderExit(MatrixStack matrices, float tickDelta, long limitTime, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f positionMatrix, CallbackInfo ci) {
+        this.renderer.prepRenderCommands(matrices, camera, gameRenderer, lightmapTextureManager, positionMatrix);
+    }
+
+    /**
      * @reason Redirect the terrain setup phase to our renderer
      * @author JellySquid
      */
