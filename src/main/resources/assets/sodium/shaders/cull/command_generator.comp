@@ -27,23 +27,23 @@ layout(std430, binding = 3) buffer CounterBuffer {
     uint cmdBuff3Count;
 };
 
-layout(std430, binding = 4) buffer InstanceDataBuffer {
+layout(std430, binding = 4) writeonly buffer InstanceDataBuffer {
     InstanceData instances[];
 };
 
-layout(std430, binding = 5) buffer CommandBuffer0 {
+layout(std430, binding = 5) writeonly buffer CommandBuffer0 {
     DrawElementsInstancedCommand cmdBuff0[];
 };
 
-layout(std430, binding = 6) buffer CommandBuffer1 {
+layout(std430, binding = 6) writeonly buffer CommandBuffer1 {
     DrawElementsInstancedCommand cmdBuff1[];
 };
 
-layout(std430, binding = 7) buffer CommandBuffer2 {
+layout(std430, binding = 7) writeonly buffer CommandBuffer2 {
     DrawElementsInstancedCommand cmdBuff2[];
 };
 
-layout(std430, binding = 8) buffer CommandBuffer3 {
+layout(std430, binding = 8) writeonly buffer CommandBuffer3 {
     DrawElementsInstancedCommand cmdBuff3[];
 };
 

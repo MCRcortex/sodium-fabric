@@ -3,6 +3,7 @@ package net.caffeinemc.gfx.opengl.device;
 import net.caffeinemc.gfx.api.buffer.*;
 import net.caffeinemc.gfx.api.device.RenderConfiguration;
 import net.caffeinemc.gfx.api.device.commands.PipelineGate;
+import net.caffeinemc.gfx.api.shader.MultiBlockBind;
 import net.caffeinemc.gfx.opengl.array.GlVertexArray;
 import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.gfx.opengl.buffer.GlDynamicBuffer;
@@ -352,6 +353,7 @@ public class GlRenderDevice implements RenderDevice {
 
             GL31C.glDrawElementsInstanced(GlEnum.from(primitiveType), count, GlEnum.from(elementType), indices, primcount);
         }
+
     }
 
     private static int getBufferStorageBits(Set<ImmutableBufferFlags> flags) {

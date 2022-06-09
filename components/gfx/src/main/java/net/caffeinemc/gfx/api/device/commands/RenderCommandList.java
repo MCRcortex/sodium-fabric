@@ -1,6 +1,7 @@
 package net.caffeinemc.gfx.api.device.commands;
 
 import net.caffeinemc.gfx.api.buffer.Buffer;
+import net.caffeinemc.gfx.api.shader.MultiBlockBind;
 import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
 

@@ -5,6 +5,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.device.RenderConfiguration;
 import net.caffeinemc.gfx.api.shader.BufferBlock;
+import net.caffeinemc.gfx.api.shader.MultiBlockBind;
 import net.caffeinemc.gfx.opengl.array.GlVertexArray;
 import net.caffeinemc.gfx.opengl.GlEnum;
 import net.caffeinemc.gfx.api.pipeline.Pipeline;
@@ -20,6 +21,7 @@ import net.caffeinemc.gfx.opengl.texture.GlSampler;
 import net.minecraft.client.render.BufferRenderer;
 import org.apache.commons.lang3.Validate;
 import org.lwjgl.opengl.GL32C;
+import org.lwjgl.opengl.GL44C;
 import org.lwjgl.opengl.GL45C;
 
 import java.util.BitSet;
@@ -122,6 +124,12 @@ public class Blaze3DPipelineManager implements GlPipelineManager {
             }
 
             GL32C.glBindBufferRange(GlEnum.from(block.type()), block.index(), GlBuffer.getHandle(buffer), offset, length);
+        }
+
+        //FIXME: add api checks
+        @Override
+        public void multiBind(MultiBlockBind blocks) {
+            GL44C.nglBindBuffersRange();
         }
 
         public void restore() {

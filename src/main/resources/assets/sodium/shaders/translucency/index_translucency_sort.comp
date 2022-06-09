@@ -1,0 +1,54 @@
+#version 460
+
+//Vertex padding assumes struct size is divisible by 4
+// it is the amount of extra stuff after the position attribute in the struct
+// divided by 4
+//TODO: move to shader constant for when compiling so that iris can easily override this
+#define VERTEX_PADDING 3
+
+struct QuadIndicies {
+    uint a1;
+    uint b1;
+    uint c1;
+    uint a2;
+    uint d2;
+    uint c2;
+};
+
+struct Vertex {
+    uint posA;
+    uint posB;
+
+    uint PAD[VERTEX_PADDING];
+};
+
+//Going to use a int to store and sort, upper 16 bits is depth while lower 16 bits is index
+
+shared uint local_sort[LOCAL_SIZE_X];
+
+//Note: when writing, locally gather all the QuadIndicies into like an array (the size is basicly number of things sorted per thread)
+//barrier
+//emit to the index buffer at the index location from local_sort from the QuadIndicie originally located at the index of the lower
+// 16 bits of local_sort
+
+//The rough idea is to operate on pairs of local_sort indicies
+//atomicMax(local_sort[i+1], atomicMin(local_sort[i], local_sort[i+1]))
+// will sort the 2 indicies i and i+1
+// if this is run over local_sort multiple times/iterations it will be closer and closer to sorted
+//the number of thse iterations could be dynamic depending on distance to camera
+// this would alternate with an offset of 1
+
+
+//Or you know why do you need the atomics, you dont
+
+//This should be able to maximize the number of warps, does need a sync point before however
+//uint a = local_sort[i];
+//uint b = local_sort[i+1];
+//local_sort[i]   = a < b ? a : b
+//local_sort[i+1] = a < b ? b : a
+
+
+
+
+
+

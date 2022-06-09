@@ -2,6 +2,7 @@ package net.caffeinemc.gfx.api.pipeline;
 
 import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.shader.BufferBlock;
+import net.caffeinemc.gfx.api.shader.MultiBlockBind;
 import net.caffeinemc.gfx.api.texture.Sampler;
 
 public interface PipelineState {
@@ -12,4 +13,6 @@ public interface PipelineState {
     void bindBufferBlock(BufferBlock block, Buffer buffer);
 
     void bindBufferBlock(BufferBlock block, Buffer buffer, long offset, long length);
+
+    void multiBind(MultiBlockBind bind);
 }

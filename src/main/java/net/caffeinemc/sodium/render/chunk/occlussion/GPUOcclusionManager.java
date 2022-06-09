@@ -64,6 +64,8 @@ public class GPUOcclusionManager {
                 .build(), CommandGeneratorInterface::new);
 
 
+        //TODO: create this except with all 2^6 varients of face visibility (except 0 of course)
+        // this way face culling for testing can be done
         /*
           4_________5
          /.        /|
@@ -104,16 +106,12 @@ public class GPUOcclusionManager {
 
     //Either use glClearBuffer or something faster to clear the atomic counters of all the regions render data
     public void clearRenderCommandCounters(List<RenderRegion> regions) {
-
+        //Could technically be a compute shader
     }
 
     //FIXME: do backplane culling on these cubes that are being rendered should provide and okish speed boost
     public void computeOcclusionVis(Collection<RenderRegion> regions, Frustum frustum) {
         this.device.usePipeline(this.rasterCullPipeline,  (cmd, programInterface, pipelineState) -> {
-            //FIXME: use api, im sorry burger for this
-            //long ptr = nglMapNamedBufferRange(GlBuffer.getHandle(sceneBuffer), 0, 4*4*4+3*4, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-
-            //glUnmapNamedBuffer(GlBuffer.getHandle(sceneBuffer));
             new Matrix4f().getToAddress( MemoryUtil.memAddress(sceneBuffer.view()));
 
 
@@ -128,7 +126,9 @@ public class GPUOcclusionManager {
     }
 
     public void fillRenderCommands(List<RenderRegion> regions) {
-
+        //For each region have a prebaked MultiBlockBind ready, when using the compute pipeline, bind this block for each region,
+        // (of course keeping the scene uniform the same)
+        // then dispatch compute per region with dispatch size being basicly maxSectionId/local_compute_size
     }
 
     enum EmptyTarget {
