@@ -126,7 +126,7 @@ public class RenderRegionManager {
 
         // Collect the upload results
         for (ChunkGeometryUpload upload : jobs) {
-            upload.section.updateGeometry(region, new UploadedChunkGeometry(upload.result.get(), upload.geometry.models()), null);
+            upload.section.updateGeometry(region, new UploadedChunkGeometry(upload.result.get(), upload.geometry.models()));
         }
     }
 

@@ -129,7 +129,7 @@ public class Blaze3DPipelineManager implements GlPipelineManager {
         //FIXME: add api checks
         @Override
         public void multiBind(MultiBlockBind blocks) {
-            GL44C.nglBindBuffersRange();
+            //GL44C.nglBindBuffersRange();
         }
 
         public void restore() {

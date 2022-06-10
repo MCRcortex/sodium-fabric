@@ -1,16 +1,44 @@
 package net.caffeinemc.sodium.render.chunk.occlussion;
 
+import net.caffeinemc.sodium.render.buffer.StreamingBuffer;
+import org.joml.Vector3f;
+import org.lwjgl.system.MemoryUtil;
+
+import java.nio.ByteBuffer;
+
 public class SectionMeta {
-    public static final int SIZE = 1;
-    //NOTE: in all cases of vec3, this is a non default struct that has tightly packed x,y,z floats
-    //uint32 id;
-    //vec3 origin;
-    //vec3 minBB;
-    //vec3 maxBB;
-    //uint8_t layerMSK[4];  // this is a visibility mask for the direction per layer
-    //The following are for the layer definitions, where a range consists of a uint32 offset and a uint32 count
-    //Range SOLID[7];
-    //Range CUTOUT_MIPPED[7];
-    //Range CUTOUT[7];
-    //Range TRANSLUCENT[7];
+    public static final int SIZE = 4+4*3*3+4+4*2*7*4;
+
+
+    private record Range(int offset, int count){}
+
+    private final int id;
+    private Vector3f AABBOffset;
+    private Vector3f AABBSize;
+    private Vector3f pos;
+    private int lmsk;
+    private Range[] SOLID = new Range[7];
+    private Range[] CUTOUT_MIPPED = new Range[7];
+    private Range[] CUTOUT = new Range[7];
+    private Range[] TRANSLUCENT = new Range[7];
+
+    private StreamingBuffer streamingBuffer;
+
+
+    public SectionMeta(int id) {
+        this.id = id;
+    }
+
+    public void flush() {
+        //FIXME: if already written to a section, need to clear that id if its different from this id
+        StreamingBuffer.WritableSection section = streamingBuffer.getSection(id);
+        ByteBuffer buffer = section.getBuffer().view();
+        long buffAddr = MemoryUtil.memAddress(buffer);
+        buffer.putInt(0, id);
+        AABBOffset.getToAddress(buffAddr + 4);
+        AABBSize.getToAddress(buffAddr + 4 + 4*3);
+        pos.getToAddress(buffAddr + 4 + 4*3*2);
+        buffer.putInt(4 + 4*3*3, lmsk);
+        section.flushFull();
+    }
 }

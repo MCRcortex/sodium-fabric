@@ -2,7 +2,7 @@
 
 #import <sodium:cull/datatypes.h>
 
-//FIXME: optimize local_size
+//FIXME: optimize local_size and add restrict to all bindings that can use it
 layout(local_size_x = 64) in;
 
 layout(std140, binding = 0) uniform SceneData {

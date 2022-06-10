@@ -16,6 +16,7 @@ public class RenderSection {
     private final int id;
 
     private final long regionKey;
+    public final int innerRegionKey;
     private RenderRegion region;
 
     private final int chunkX, chunkY, chunkZ;
@@ -44,6 +45,7 @@ public class RenderSection {
 
         this.id = id;
         this.regionKey = RenderRegion.getRegionCoord(this.chunkX, this.chunkY, this.chunkZ);
+        this.innerRegionKey = RenderRegion.getInnerRegionCoord(this.chunkX, this.chunkY, this.chunkZ);
     }
 
     /**
@@ -151,16 +153,20 @@ public class RenderSection {
         if (this.uploadedGeometry != null) {
             this.uploadedGeometry.delete();
             this.uploadedGeometry = null;
-
+            region.freeMetaSection(this);
             this.region = null;
         }
     }
 
-    public void updateGeometry(RenderRegion region, UploadedChunkGeometry geometry, SectionMeta meta) {
+    public void updateGeometry(RenderRegion region, UploadedChunkGeometry geometry) {
         this.deleteGeometry();
         this.uploadedGeometry = geometry;
         this.region = region;
-        this.sectionMeta = meta;
+        if (this.sectionMeta != null) {
+            this.sectionMeta = region.sectionGeometryUpdated(this);
+        } else {
+            this.sectionMeta = region.requestNewMetaSection(this);
+        }
     }
 
     public UploadedChunkGeometry getGeometry() {
@@ -201,5 +207,9 @@ public class RenderSection {
 
     public int getFlags() {
         return this.flags;
+    }
+
+    public SectionMeta getMeta() {
+        return sectionMeta;
     }
 }

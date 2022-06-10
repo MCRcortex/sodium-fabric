@@ -8,6 +8,7 @@ import net.caffeinemc.sodium.interop.vanilla.mixin.WorldRendererHolder;
 import net.caffeinemc.sodium.render.chunk.RenderSectionManager;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
+import net.caffeinemc.sodium.render.chunk.draw.ComputeTranslucencySort;
 import net.caffeinemc.sodium.render.chunk.occlussion.GPUOcclusionManager;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
@@ -45,6 +46,7 @@ public class SodiumWorldRenderer {
     private boolean useEntityCulling;
 
     private GPUOcclusionManager occlusion;
+    private ComputeTranslucencySort translucencySort;
     private RenderSectionManager renderSectionManager;
     private ChunkRenderPassManager renderPassManager;
     private ChunkTracker chunkTracker;
@@ -233,6 +235,7 @@ public class SodiumWorldRenderer {
         this.renderSectionManager.reloadChunks(this.chunkTracker);
 
         this.occlusion = new GPUOcclusionManager(SodiumClientMod.DEVICE);
+        this.translucencySort = new ComputeTranslucencySort(SodiumClientMod.DEVICE);
     }
 
     public void renderTileEntities(MatrixStack matrices, BufferBuilderStorage bufferBuilders, Long2ObjectMap<SortedSet<BlockBreakingInfo>> blockBreakingProgressions,
