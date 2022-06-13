@@ -21,7 +21,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class RenderRegionManager {
-    private final Long2ReferenceOpenHashMap<RenderRegion> regions = new Long2ReferenceOpenHashMap<>();
+    public final Long2ReferenceOpenHashMap<RenderRegion> regions = new Long2ReferenceOpenHashMap<>();
     private final IntPool idPool = new IntPool();
 
     private final RenderDevice device;
@@ -119,7 +119,7 @@ public class RenderRegionManager {
         RenderRegion region = this.regions.get(regionKey);
 
         if (region == null) {
-            this.regions.put(regionKey, region = new RenderRegion(this.device, this.streamingBuffer, this.vertexType, this.idPool.create()));
+            this.regions.put(regionKey, region = new RenderRegion(this.device, this.streamingBuffer, this.vertexType, this.idPool.create(), regionKey));
         }
 
         region.vertexBuffers.upload(uploads, frameIndex);

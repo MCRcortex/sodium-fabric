@@ -59,7 +59,7 @@ public class RenderSectionManager {
 
     private final RenderListBuilder renderListBuilder;
 
-    private final RenderRegionManager regions;
+    public final RenderRegionManager regions;
     private final ClonedChunkSectionCache sectionCache;
 
     private final ChunkTree tree;

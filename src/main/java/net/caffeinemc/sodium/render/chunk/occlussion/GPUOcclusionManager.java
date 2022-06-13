@@ -12,18 +12,24 @@ import net.caffeinemc.gfx.api.shader.ShaderType;
 import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
+import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
+import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
 import net.caffeinemc.sodium.render.shader.ShaderParser;
 import net.minecraft.util.Identifier;
+import net.minecraft.world.chunk.Chunk;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+
+import static org.lwjgl.opengl.GL11C.*;
 
 public class GPUOcclusionManager {
     private RenderDevice device;
@@ -32,7 +38,6 @@ public class GPUOcclusionManager {
     private Pipeline<RasterCullerInterface, EmptyTarget> rasterCullPipeline;
     private Pipeline<RasterCullerInterface, EmptyTarget> commandGeneratorPipeline;
     private final ImmutableBuffer indexBuffer;
-    private final MappedBuffer sceneBuffer;
     public GPUOcclusionManager(RenderDevice device) {
         this.device = device;
 
@@ -51,7 +56,8 @@ public class GPUOcclusionManager {
                 .build(), RasterCullerInterface::new);
 
         this.rasterCullPipeline = device.createPipeline(PipelineDescription.builder()
-                .setWriteMask(new WriteMask(false, false))
+                .setWriteMask(new WriteMask(true, true))
+                //.setWriteMask(new WriteMask(false, false))
                 .build(),
                 this.rasterCullProgram,
                 vertexArray);
@@ -75,33 +81,32 @@ public class GPUOcclusionManager {
         2_________3
         */
         ByteBuffer indices = ByteBuffer.allocateDirect(3*2*6);
-        //Front face
+        //Bottom face
         indices.put((byte) 0); indices.put((byte) 1); indices.put((byte) 2);
-        indices.put((byte) 2); indices.put((byte) 3); indices.put((byte) 0);
+        indices.put((byte) 1); indices.put((byte) 3); indices.put((byte) 2);
 
         //right face
-        indices.put((byte) 1); indices.put((byte) 5); indices.put((byte) 6);
-        indices.put((byte) 6); indices.put((byte) 2); indices.put((byte) 1);
+        indices.put((byte) 0); indices.put((byte) 2); indices.put((byte) 6);
+        indices.put((byte) 6); indices.put((byte) 4); indices.put((byte) 0);
 
         //Back face
-        indices.put((byte) 7); indices.put((byte) 6); indices.put((byte) 5);
-        indices.put((byte) 5); indices.put((byte) 4); indices.put((byte) 7);
+        indices.put((byte) 0); indices.put((byte) 4); indices.put((byte) 5);
+        indices.put((byte) 5); indices.put((byte) 1); indices.put((byte) 0);
 
         //Left face
-        indices.put((byte) 4); indices.put((byte) 0); indices.put((byte) 3);
-        indices.put((byte) 3); indices.put((byte) 7); indices.put((byte) 4);
+        indices.put((byte) 1); indices.put((byte) 5); indices.put((byte) 7);
+        indices.put((byte) 7); indices.put((byte) 3); indices.put((byte) 1);
 
         //Bottom face
-        indices.put((byte) 4); indices.put((byte) 5); indices.put((byte) 1);
-        indices.put((byte) 1); indices.put((byte) 0); indices.put((byte) 4);
+        indices.put((byte) 4); indices.put((byte) 6); indices.put((byte) 7);
+        indices.put((byte) 7); indices.put((byte) 5); indices.put((byte) 4);
 
         //Top face
-        indices.put((byte) 3); indices.put((byte) 2); indices.put((byte) 6);
-        indices.put((byte) 6); indices.put((byte) 7); indices.put((byte) 3);
-        indices.rewind();
+        indices.put((byte) 2); indices.put((byte) 7); indices.put((byte) 6);
+        indices.put((byte) 2); indices.put((byte) 3); indices.put((byte) 7);
+        indices.position(0);
         indexBuffer = device.createBuffer(indices, Set.of());
 
-        sceneBuffer = device.createMappedBuffer(4*4*4+3*4, Set.of(MappedBufferFlags.WRITE));
     }
 
     //Either use glClearBuffer or something faster to clear the atomic counters of all the regions render data
@@ -110,17 +115,32 @@ public class GPUOcclusionManager {
     }
 
     //FIXME: do backplane culling on these cubes that are being rendered should provide and okish speed boost
-    public void computeOcclusionVis(Collection<RenderRegion> regions, Frustum frustum) {
+
+    //FIXME cull regions that are not in frustum or are empty or have no geometry ready/after prelim region face cull
+
+    //Fixme: need to use ChunkCameraContext
+    public void computeOcclusionVis(Collection<RenderRegion> regions, ChunkRenderMatrices matrices, ChunkCameraContext cam) {
+        for (RenderRegion region : regions) {
+            //FIXME: move this to an outer/another loop that way driver has time to flush the data
+            Matrix4f mvp = new Matrix4f(matrices.projection())
+                    .mul(matrices.modelView())
+                    .translate(new Vector3f(region.getMinAsBlock().sub(cam.blockX, cam.blockY, cam.blockZ)).sub(cam.deltaX, cam.deltaY, cam.deltaZ)
+                    );
+
+            mvp.getToAddress(MemoryUtil.memAddress(region.sceneBuffer.view()));
+            region.sceneBuffer.flush();
+        }
+
         this.device.usePipeline(this.rasterCullPipeline,  (cmd, programInterface, pipelineState) -> {
-            new Matrix4f().getToAddress( MemoryUtil.memAddress(sceneBuffer.view()));
-
-
-            pipelineState.bindBufferBlock(programInterface.scene, this.sceneBuffer);
             cmd.bindElementBuffer(this.indexBuffer);
             for (RenderRegion region : regions) {
+
+
+                pipelineState.bindBufferBlock(programInterface.scene, region.sceneBuffer);
+
                 pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBuffer());
                 pipelineState.bindBufferBlock(programInterface.visbuff, region.visBuffer);
-                cmd.drawElementsInstanced(PrimitiveType.TRIANGLES, 6*6, ElementFormat.UNSIGNED_BYTE, 0, 10);
+                cmd.drawElementsInstanced(PrimitiveType.TRIANGLES, 6*6, ElementFormat.UNSIGNED_BYTE, 0, region.sectionCount);
             }
         });
     }

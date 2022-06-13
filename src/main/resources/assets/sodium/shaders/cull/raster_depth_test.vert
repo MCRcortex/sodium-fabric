@@ -5,7 +5,7 @@
 vec3 base;
 vec3 size;
 vec4 getBoxCorner(int corner) {
-    return vec4(base + vec3((corner&1), ((corner>>1)&1), ((corner>>2)&1))*size, 1);
+    return vec4(base + vec3((corner&1), ((corner>>2)&1), ((corner>>1)&1))*size, 1);
 }
 
 layout(std140, binding = 0) uniform SceneData {
@@ -37,5 +37,5 @@ void main() {
     base = Vec3FtoVec3(SECTION.bboxOffset);
     size = Vec3FtoVec3(SECTION.bboxSize);
     gl_Position = (mat_modelviewproj*getBoxCorner(gl_VertexID));
-    gl_Position.z -= 0.0005 * gl_Position.w;//Bias the depth to be closer to the camera, this is to reduce flicker
+    //gl_Position.z += 0.0005;//Bias the depth to be closer to the camera, this is to reduce flicker
 }

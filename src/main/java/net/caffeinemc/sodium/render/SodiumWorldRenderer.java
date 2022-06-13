@@ -26,6 +26,7 @@ import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.*;
 import net.minecraft.util.profiler.Profiler;
+import org.joml.Vector3f;
 
 import java.util.Collection;
 import java.util.SortedSet;
@@ -40,6 +41,7 @@ public class SodiumWorldRenderer {
     private int renderDistance;
 
     private double lastCameraX, lastCameraY, lastCameraZ;
+    private double cameraX, cameraY, cameraZ;
     private double lastCameraPitch, lastCameraYaw;
     private float lastFogDistance;
 
@@ -165,6 +167,9 @@ public class SodiumWorldRenderer {
         }
 
         Vec3d pos = camera.getPos();
+        this.cameraX = pos.x;
+        this.cameraY = pos.y;
+        this.cameraZ = pos.z;
         float pitch = camera.getPitch();
         float yaw = camera.getYaw();
         float fogDistance = RenderSystem.getShaderFogEnd();
@@ -209,8 +214,12 @@ public class SodiumWorldRenderer {
      * Performs a render pass for the given {@link RenderLayer} and draws all visible chunks for it.
      */
     public void drawChunkLayer(RenderLayer renderLayer, MatrixStack matrixStack) {
+        if (renderLayer == RenderLayer.getSolid())
+            this.occlusion.computeOcclusionVis(renderSectionManager.regions.regions.values(), ChunkRenderMatrices.from(matrixStack), new ChunkCameraContext(cameraX, cameraY, cameraZ));
+
         ChunkRenderPass renderPass = this.renderPassManager.getRenderPassForLayer(renderLayer);
         this.renderSectionManager.renderLayer(ChunkRenderMatrices.from(matrixStack), renderPass);
+
     }
 
     public void reload() {
@@ -395,7 +404,6 @@ public class SodiumWorldRenderer {
     }
 
     public void prepRenderCommands(MatrixStack matrices, Camera camera, GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f positionMatrix) {
-
-        //this.occlusion.computeOcclusionVis();
+        //this.occlusion.computeOcclusionVis(renderSectionManager.regions.regions.values(), ChunkRenderMatrices.from(matrices), new Vector3f((float) camera.getPos().x, (float) camera.getPos().y, (float) camera.getPos().z));
     }
 }

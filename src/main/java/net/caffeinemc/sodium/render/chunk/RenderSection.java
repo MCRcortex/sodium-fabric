@@ -5,6 +5,8 @@ import net.caffeinemc.sodium.render.chunk.occlussion.SectionMeta;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.chunk.state.*;
 import net.minecraft.util.math.ChunkSectionPos;
+import org.joml.Vector3f;
+import org.joml.Vector3i;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -82,6 +84,7 @@ public class RenderSection {
 
         this.data = data;
         this.flags = data.getFlags();
+        onGeoUpdate();
     }
 
     /**
@@ -167,6 +170,33 @@ public class RenderSection {
         } else {
             this.sectionMeta = region.requestNewMetaSection(this);
         }
+        onGeoUpdate();
+    }
+
+
+    private void onGeoUpdate() {
+        if (data == ChunkRenderData.EMPTY || data == ChunkRenderData.ABSENT || data == null)
+            return;
+        if (uploadedGeometry == null)
+            return;
+
+        Vector3f secPos = new Vector3f(getSectionPos()).mul(16);
+        sectionMeta.setPos(secPos);
+        sectionMeta.setAABB(
+                new Vector3f(data.bounds.x1-(chunkX<<4),
+                        data.bounds.y1-(chunkY<<4),
+                        data.bounds.z1-(chunkZ<<4))
+                            .add(secPos)
+                            .add(0.5f, 0.5f, 0.5f),
+                new Vector3f(data.bounds.x2 - data.bounds.x1,
+                        data.bounds.y2 - data.bounds.y1,
+                        data.bounds.z2 - data.bounds.z1));//FIxME: if in - coords need to -1 from each dim that is in neg coords
+
+        sectionMeta.flush();
+    }
+
+    private Vector3i getSectionPos() {
+        return new Vector3i(chunkX&(RenderRegion.REGION_LENGTH-1),chunkY&(RenderRegion.REGION_HEIGHT-1),chunkZ&(RenderRegion.REGION_WIDTH-1));
     }
 
     public UploadedChunkGeometry getGeometry() {
