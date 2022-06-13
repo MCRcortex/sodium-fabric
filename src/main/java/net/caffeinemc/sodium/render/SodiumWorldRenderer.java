@@ -153,7 +153,7 @@ public class SodiumWorldRenderer {
 
         this.useEntityCulling = SodiumClientMod.options().performance.useEntityCulling;
 
-        if (this.client.options.getViewDistance().getValue() != this.renderDistance) {
+        if (this.client.options.getClampedViewDistance() != this.renderDistance) {
             this.reload();
         }
 
@@ -207,19 +207,19 @@ public class SodiumWorldRenderer {
 
         profiler.pop();
 
-        Entity.setRenderDistanceMultiplier(MathHelper.clamp((double) this.client.options.getViewDistance().getValue() / 8.0D, 1.0D, 2.5D) * this.client.options.getEntityDistanceScaling().getValue());
+        Entity.setRenderDistanceMultiplier(MathHelper.clamp((double) this.client.options.getClampedViewDistance() / 8.0D, 1.0D, 2.5D) * this.client.options.getEntityDistanceScaling().getValue());
     }
 
     /**
      * Performs a render pass for the given {@link RenderLayer} and draws all visible chunks for it.
      */
     public void drawChunkLayer(RenderLayer renderLayer, MatrixStack matrixStack) {
-        if (renderLayer == RenderLayer.getSolid())
+        if (renderLayer == RenderLayer.getSolid()) {
             this.occlusion.computeOcclusionVis(renderSectionManager.regions.regions.values(), ChunkRenderMatrices.from(matrixStack), new ChunkCameraContext(cameraX, cameraY, cameraZ));
+        }
 
         ChunkRenderPass renderPass = this.renderPassManager.getRenderPassForLayer(renderLayer);
         this.renderSectionManager.renderLayer(ChunkRenderMatrices.from(matrixStack), renderPass);
-
     }
 
     public void reload() {
@@ -236,7 +236,7 @@ public class SodiumWorldRenderer {
             this.renderSectionManager = null;
         }
 
-        this.renderDistance = this.client.options.getViewDistance().getValue();
+        this.renderDistance = this.client.options.getClampedViewDistance();
 
         this.renderPassManager = ChunkRenderPassManager.createDefaultMappings();
 
@@ -320,18 +320,12 @@ public class SodiumWorldRenderer {
             return true;
         }
 
-        Box box = entity.getVisibilityBoundingBox();
-
-        // Entities outside the valid world height will never map to a rendered chunk
-        // Always render these entities or they'll be culled incorrectly!
-        if (box.maxY < 0.5D || box.minY > 255.5D) {
-            return true;
-        }
-
         // Ensure entities with outlines or nametags are always visible
         if (this.client.hasOutline(entity) || entity.shouldRenderName()) {
             return true;
         }
+
+        Box box = entity.getVisibilityBoundingBox();
 
         return this.isBoxVisible(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
     }
@@ -341,13 +335,19 @@ public class SodiumWorldRenderer {
     }
 
     public boolean isBoxVisible(double x1, double y1, double z1, double x2, double y2, double z2) {
-        int minX = MathHelper.floor(x1 - 0.5D) >> 4;
-        int minY = MathHelper.floor(y1 - 0.5D) >> 4;
-        int minZ = MathHelper.floor(z1 - 0.5D) >> 4;
+        // Boxes outside the valid world height will never map to a rendered chunk
+        // Always render these boxes or they'll be culled incorrectly!
+        if (y2 < this.world.getBottomY() + 0.5D || y1 > this.world.getTopY() - 0.5D) {
+            return true;
+        }
 
-        int maxX = MathHelper.floor(x2 + 0.5D) >> 4;
-        int maxY = MathHelper.floor(y2 + 0.5D) >> 4;
-        int maxZ = MathHelper.floor(z2 + 0.5D) >> 4;
+        int minX = ChunkSectionPos.getSectionCoord(x1 - 0.5D);
+        int minY = ChunkSectionPos.getSectionCoord(y1 - 0.5D);
+        int minZ = ChunkSectionPos.getSectionCoord(z1 - 0.5D);
+
+        int maxX = ChunkSectionPos.getSectionCoord(x2 + 0.5D);
+        int maxY = ChunkSectionPos.getSectionCoord(y2 + 0.5D);
+        int maxZ = ChunkSectionPos.getSectionCoord(z2 + 0.5D);
 
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {

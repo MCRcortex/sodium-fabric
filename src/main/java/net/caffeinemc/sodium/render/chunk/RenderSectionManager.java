@@ -79,7 +79,6 @@ public class RenderSectionManager {
     private final ChunkTracker tracker;
     private final RenderDevice device;
 
-
     private Map<ChunkRenderPass, RenderListBuilder.RenderList> renderLists;
     private ChunkCameraContext camera;
 
@@ -102,7 +101,7 @@ public class RenderSectionManager {
 
         this.renderListBuilder = new RenderListBuilder(device);
 
-        this.indexBuffer = new SequenceIndexBuffer(device, SequenceBuilder.QUADS);
+        this.indexBuffer = new SequenceIndexBuffer(device, SequenceBuilder.QUADS_INT);
 
         for (var renderPass : DefaultRenderPasses.ALL) {
             this.chunkRenderers.put(
