@@ -1,6 +1,7 @@
 package net.caffeinemc.sodium.render.chunk.occlussion;
 
 import net.caffeinemc.sodium.render.buffer.StreamingBuffer;
+import net.caffeinemc.sodium.render.buffer.VertexRange;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
 
@@ -10,18 +11,15 @@ import java.nio.ByteOrder;
 public class SectionMeta {
     public static final int SIZE = 4+4*3*3+4+4*2*7*4;
 
-
-    private record Range(int offset, int count){}
-
     private final int id;
     private Vector3f AABBOffset = new Vector3f();
     private Vector3f AABBSize = new Vector3f();
     private Vector3f pos = new Vector3f();
     private int lmsk;
-    private Range[] SOLID = new Range[7];
-    private Range[] CUTOUT_MIPPED = new Range[7];
-    private Range[] CUTOUT = new Range[7];
-    private Range[] TRANSLUCENT = new Range[7];
+    public VertexRange[] SOLID = new VertexRange[7];
+    private VertexRange[] CUTOUT_MIPPED = new VertexRange[7];
+    private VertexRange[] CUTOUT = new VertexRange[7];
+    private VertexRange[] TRANSLUCENT = new VertexRange[7];
 
     private final StreamingBuffer streamingBuffer;
 
@@ -40,7 +38,11 @@ public class SectionMeta {
         AABBOffset.getToAddress(buffAddr + 4);
         AABBSize.getToAddress(buffAddr + 4 + 4*3);
         pos.getToAddress(buffAddr + 4 + 4*3*2);
-        buffer.putInt(4 + 4*3*3, lmsk);
+        computelmsk();
+        buffer.position(4 + 4*3*3);
+        buffer.putInt(lmsk);
+        writeRenderRanges(buffer);
+        buffer.rewind();
         section.flushFull();
     }
 
@@ -53,4 +55,74 @@ public class SectionMeta {
         this.AABBSize = size;
     }
 
+
+    private void computelmsk() {
+        int vismsk = 0;
+        if (SOLID != null) {
+            vismsk |= Byte.toUnsignedInt(computeVis(SOLID));
+        }
+        if (CUTOUT_MIPPED != null) {
+            vismsk |= Byte.toUnsignedInt(computeVis(CUTOUT_MIPPED))<<8;
+        }
+        if (CUTOUT != null) {
+            vismsk |= Byte.toUnsignedInt(computeVis(CUTOUT))<<16;
+        }
+        if (TRANSLUCENT != null) {
+            vismsk |= Byte.toUnsignedInt(computeVis(TRANSLUCENT))<<24;
+        }
+        lmsk = vismsk;
+    }
+
+    private byte computeVis(VertexRange[] ranges) {
+        byte vis = 0;
+        for (int i = 0; i<ranges.length; i++) {
+            if (ranges[i] != null && ranges[i].vertexCount()!=0) {
+                vis |= (1)<<i;
+            }
+        }
+        return vis;
+    }
+
+
+    private void writeRenderRanges(ByteBuffer buffer) {
+        if (SOLID == null) {
+            buffer.put(new byte[2*4*7]);
+        } else {
+            writeRangeBlock(buffer, SOLID);
+        }
+        if (CUTOUT_MIPPED == null) {
+            buffer.put(new byte[2*4*7]);
+        } else {
+            writeRangeBlock(buffer, CUTOUT_MIPPED);
+        }
+        if (CUTOUT == null) {
+            buffer.put(new byte[2*4*7]);
+        } else {
+            writeRangeBlock(buffer, CUTOUT);
+        }
+        if (TRANSLUCENT == null) {
+            buffer.put(new byte[2*4*7]);
+        } else {
+            writeRangeBlock(buffer, TRANSLUCENT);
+        }
+    }
+
+    private void writeRangeBlock(ByteBuffer buffer, VertexRange[] ranges) {
+        for (VertexRange r : ranges) {
+            if (r == null) {
+                buffer.putInt(0);
+                buffer.putInt(0);
+            } else {
+                buffer.putInt(r.firstVertex());
+                buffer.putInt(r.vertexCount());//Assume already in (/4)*6 form
+            }
+        }
+    }
+
+    public void reset() {
+        SOLID = new VertexRange[SOLID.length];
+        CUTOUT = new VertexRange[CUTOUT.length];
+        CUTOUT_MIPPED = new VertexRange[CUTOUT_MIPPED.length];
+        TRANSLUCENT = new VertexRange[TRANSLUCENT.length];
+    }
 }

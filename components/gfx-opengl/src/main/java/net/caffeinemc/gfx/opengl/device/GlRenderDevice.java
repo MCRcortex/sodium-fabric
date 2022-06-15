@@ -3,7 +3,6 @@ package net.caffeinemc.gfx.opengl.device;
 import net.caffeinemc.gfx.api.buffer.*;
 import net.caffeinemc.gfx.api.device.RenderConfiguration;
 import net.caffeinemc.gfx.api.device.commands.PipelineGate;
-import net.caffeinemc.gfx.api.shader.MultiBlockBind;
 import net.caffeinemc.gfx.opengl.array.GlVertexArray;
 import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.gfx.opengl.buffer.GlDynamicBuffer;
@@ -187,7 +186,7 @@ public class GlRenderDevice implements RenderDevice {
         var storage = GL45C.GL_MAP_PERSISTENT_BIT | getMappedBufferStorageBits(flags);
         GL45C.glNamedBufferStorage(handle, capacity, storage);
 
-        var access = GL45C.GL_MAP_PERSISTENT_BIT | GL45C.GL_MAP_UNSYNCHRONIZED_BIT | GL45C.GL_MAP_INVALIDATE_BUFFER_BIT | getMappedBufferAccessBits(flags);
+        var access = GL45C.GL_MAP_PERSISTENT_BIT | (flags.contains(MappedBufferFlags.EXPLICIT_FLUSH)?GL45C.GL_MAP_UNSYNCHRONIZED_BIT| GL45C.GL_MAP_INVALIDATE_BUFFER_BIT:0)  | getMappedBufferAccessBits(flags);
         // for some reason, this works but glMapNamedBuffer doesn't
         ByteBuffer mapping = GL45C.glMapNamedBufferRange(handle, 0, capacity, access);
 
@@ -277,6 +276,7 @@ public class GlRenderDevice implements RenderDevice {
 
         private Buffer elementBuffer;
         private Buffer commandBuffer;
+        private Buffer paramCountBuffer;
 
         private final Buffer[] vertexBuffers;
 
@@ -332,6 +332,19 @@ public class GlRenderDevice implements RenderDevice {
         }
 
         @Override
+        public void bindParameterCountBuffer(Buffer buffer) {
+            if (RenderConfiguration.API_CHECKS) {
+                Validate.notNull(buffer, "Buffer must be non-null");
+            }
+
+            if (this.paramCountBuffer != buffer) {
+                GL45C.glBindBuffer(GL46C.GL_PARAMETER_BUFFER, GlBuffer.getHandle(buffer));
+
+                this.paramCountBuffer = buffer;
+            }
+        }
+
+        @Override
         public void multiDrawElementsIndirect(PrimitiveType primitiveType, ElementFormat elementType, long indirectOffset, int indirectCount) {
             if (RenderConfiguration.API_CHECKS) {
                 Validate.notNull(this.elementBuffer, "Element buffer target not bound");
@@ -348,12 +361,33 @@ public class GlRenderDevice implements RenderDevice {
         }
 
         @Override
+        public void multiDrawElementsIndirectCount(PrimitiveType primitiveType, ElementFormat elementType, long indirectOffset, long indirectCountOffset, int maxDrawCount, int stride) {
+            if (RenderConfiguration.API_CHECKS) {
+                Validate.notNull(this.elementBuffer, "Element buffer target not bound");
+                Validate.notNull(this.commandBuffer, "Command buffer target not bound");
+                Validate.notNull(this.paramCountBuffer, "Param buffer target not bound");
+                Validate.noNullElements(this.vertexBuffers, "One or more vertex buffer targets are not bound");
+
+                Validate.isTrue(indirectOffset >= 0, "Command offset must be greater than or equal to zero");
+                Validate.isTrue(indirectCountOffset >= 0, "Count offset must be greater than or equal to zero");
+                Validate.isTrue((indirectCountOffset%4)==0, "Count offset must have an alignment of 4");
+
+            }
+
+            GL46C.glMultiDrawElementsIndirectCount(GlEnum.from(primitiveType), GlEnum.from(elementType), indirectOffset, indirectCountOffset, maxDrawCount, stride);
+        }
+
+        @Override
         public void drawElementsInstanced(PrimitiveType primitiveType, int count, ElementFormat elementType, long indices, int primcount) {
             //FIXME: add api checks
 
             GL31C.glDrawElementsInstanced(GlEnum.from(primitiveType), count, GlEnum.from(elementType), indices, primcount);
         }
 
+        @Override
+        public void dispatchCompute(int group_x, int group_y, int group_z) {
+            GL43C.glDispatchCompute(group_x, group_y, group_z);
+        }
     }
 
     private static int getBufferStorageBits(Set<ImmutableBufferFlags> flags) {

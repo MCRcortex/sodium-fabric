@@ -269,7 +269,9 @@ public class RenderSectionManager {
         var chunkRenderer = this.chunkRenderers.get(renderPass);
 
         if (chunkRenderer != null) {
-            chunkRenderer.render(this.renderLists.get(renderPass), renderPass, matrices, this.frameIndex);
+            //chunkRenderer.render(this.renderLists.get(renderPass), renderPass, matrices, this.frameIndex);
+            //FIXME: pass in a frustum culled collection of regions
+            chunkRenderer.render(regions.regions.values(), renderPass, matrices, this.frameIndex);
         }
     }
 

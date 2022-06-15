@@ -16,6 +16,8 @@ import net.caffeinemc.gfx.api.types.PrimitiveType;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.render.buffer.StreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
+import net.caffeinemc.sodium.render.chunk.passes.DefaultRenderPasses;
+import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.chunk.shader.ChunkShaderBindingPoints;
 import net.caffeinemc.sodium.render.chunk.shader.ChunkShaderInterface;
 import net.caffeinemc.sodium.render.sequence.SequenceIndexBuffer;
@@ -28,7 +30,9 @@ import net.caffeinemc.sodium.util.TextureUtil;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import org.joml.Matrix4f;
+import org.lwjgl.opengl.GL11;
 
+import java.util.Collection;
 import java.util.List;
 
 public class DefaultChunkRenderer extends AbstractChunkRenderer {
@@ -139,7 +143,52 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
         });
     }
 
-    private void setupTextures(ChunkRenderPass pass, PipelineState pipelineState) {
+
+    @Override
+    public void render(Collection<RenderRegion> regions, ChunkRenderPass renderPass, ChunkRenderMatrices matrices, int frameIndex) {
+        if (renderPass != DefaultRenderPasses.SOLID)
+            return;
+        this.indexBuffer.ensureCapacity(1000000);//FIXME: not hardcoded
+
+        this.device.usePipeline(this.pipeline, (cmd, programInterface, pipelineState) -> {
+            this.setupTextures(renderPass, pipelineState);
+            this.setupUniforms(matrices, programInterface, pipelineState, frameIndex);
+
+            cmd.bindElementBuffer(this.indexBuffer.getBuffer());
+            for (RenderRegion region : regions) {
+                pipelineState.bindBufferBlock(
+                        programInterface.uniformInstanceData,
+                        region.instanceBuffer,
+                        0,
+                        RenderRegion.REGION_SIZE*4*3
+                );
+
+                cmd.bindCommandBuffer(region.cmd0buff);
+
+                cmd.bindParameterCountBuffer(region.counterBuffer);
+
+                cmd.bindVertexBuffer(
+                        BufferTarget.VERTICES,
+                        region.vertexBuffers.getBufferObject(),
+                        0,
+                        region.vertexBuffers.getStride()
+                );
+
+                GL11.glFinish();
+
+                cmd.multiDrawElementsIndirectCount(
+                        PrimitiveType.TRIANGLES,
+                        ElementFormat.UNSIGNED_INT,
+                        0,
+                        4+4*0,//FIXME: need to select the index (0) from the current render layer
+                        region.sectionCount*3,//FIXME: optimize this to be as close bound as possible, maybe even make it dynamic based on previous counts
+                        5*4
+                );
+            }
+        });
+    }
+
+        private void setupTextures(ChunkRenderPass pass, PipelineState pipelineState) {
         pipelineState.bindTexture(0, TextureUtil.getBlockAtlasTexture(), pass.mipped() ? this.blockTextureMippedSampler : this.blockTextureSampler);
         pipelineState.bindTexture(1, TextureUtil.getLightTexture(), this.lightTextureSampler);
     }

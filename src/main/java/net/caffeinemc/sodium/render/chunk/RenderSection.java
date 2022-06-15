@@ -1,14 +1,21 @@
 package net.caffeinemc.sodium.render.chunk;
 
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
+import net.caffeinemc.sodium.render.buffer.VertexRange;
 import net.caffeinemc.sodium.render.chunk.occlussion.SectionMeta;
+import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
+import net.caffeinemc.sodium.render.chunk.passes.DefaultRenderPasses;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.chunk.state.*;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * The render state object for a chunk section. This contains all the graphics state for each render pass along with
@@ -72,6 +79,8 @@ public class RenderSection {
      */
     public void delete() {
         this.cancelRebuildTask();
+        if (region != null)
+            region.freeMetaSection(this);
         this.deleteGeometry();
 
         this.disposed = true;
@@ -156,7 +165,6 @@ public class RenderSection {
         if (this.uploadedGeometry != null) {
             this.uploadedGeometry.delete();
             this.uploadedGeometry = null;
-            region.freeMetaSection(this);
             this.region = null;
         }
     }
@@ -173,7 +181,8 @@ public class RenderSection {
         onGeoUpdate();
     }
 
-
+    //FIXME: ULTRA BAAD DONT DO HACK TO FIGURE OUT IF THIS IS THE ISSUE
+    int measuredBase = 0;
     private void onGeoUpdate() {
         if (data == ChunkRenderData.EMPTY || data == ChunkRenderData.ABSENT || data == null)
             return;
@@ -192,6 +201,18 @@ public class RenderSection {
                         data.bounds.y2 - data.bounds.y1,
                         data.bounds.z2 - data.bounds.z1));//FIxME: if in - coords need to -1 from each dim that is in neg coords
 
+        measuredBase = uploadedGeometry.segment.getOffset();
+        sectionMeta.reset();
+        for (UploadedChunkGeometry.PackedModel model : uploadedGeometry.models) {
+            if (model.pass == DefaultRenderPasses.SOLID) {
+                for (long p : model.ranges) {
+                    int face = Integer.numberOfTrailingZeros(UploadedChunkGeometry.ModelPart.unpackFace(p));
+                    sectionMeta.SOLID[face] = new VertexRange(
+                            UploadedChunkGeometry.ModelPart.unpackFirstVertex(p)+uploadedGeometry.segment.getOffset(),
+                            UploadedChunkGeometry.ModelPart.unpackVertexCount(p));
+                }
+            }
+        }
         sectionMeta.flush();
     }
 
@@ -216,6 +237,10 @@ public class RenderSection {
     }
 
     public float getDistance(float x, float z) {
+        if (uploadedGeometry != null && uploadedGeometry.segment != null && !disposed
+            && uploadedGeometry.segment.getOffset() != measuredBase) {
+            onGeoUpdate();
+        }
         float xDist = x - this.originX;
         float zDist = z - this.originZ;
 

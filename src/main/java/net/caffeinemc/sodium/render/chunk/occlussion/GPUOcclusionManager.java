@@ -11,6 +11,7 @@ import net.caffeinemc.gfx.api.shader.ShaderDescription;
 import net.caffeinemc.gfx.api.shader.ShaderType;
 import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
+import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
@@ -22,6 +23,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.world.chunk.Chunk;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.lwjgl.opengl.GL11;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
@@ -30,13 +32,16 @@ import java.util.List;
 import java.util.Set;
 
 import static org.lwjgl.opengl.GL11C.*;
+import static org.lwjgl.opengl.GL30C.GL_R32UI;
+import static org.lwjgl.opengl.GL30C.GL_R8UI;
+import static org.lwjgl.opengl.GL45C.glClearNamedBufferData;
 
 public class GPUOcclusionManager {
     private RenderDevice device;
     private Program<RasterCullerInterface> rasterCullProgram;
     private Program<CommandGeneratorInterface> commandGeneratorProgram;
     private Pipeline<RasterCullerInterface, EmptyTarget> rasterCullPipeline;
-    private Pipeline<RasterCullerInterface, EmptyTarget> commandGeneratorPipeline;
+    private Pipeline<CommandGeneratorInterface, EmptyTarget> commandGeneratorPipeline;
     private final ImmutableBuffer indexBuffer;
     public GPUOcclusionManager(RenderDevice device) {
         this.device = device;
@@ -56,7 +61,7 @@ public class GPUOcclusionManager {
                 .build(), RasterCullerInterface::new);
 
         this.rasterCullPipeline = device.createPipeline(PipelineDescription.builder()
-                .setWriteMask(new WriteMask(true, true))
+                .setWriteMask(new WriteMask(false, false))
                 //.setWriteMask(new WriteMask(false, false))
                 .build(),
                 this.rasterCullProgram,
@@ -68,6 +73,13 @@ public class GPUOcclusionManager {
                         ShaderParser.parseSodiumShader(ShaderLoader.MINECRAFT_ASSETS,
                                 new Identifier("sodium", "cull/command_generator.comp"), constants))
                 .build(), CommandGeneratorInterface::new);
+
+        this.commandGeneratorPipeline = device.createPipeline(PipelineDescription.builder()
+                        .setWriteMask(new WriteMask(false, false))
+                        //.setWriteMask(new WriteMask(false, false))
+                        .build(),
+                this.commandGeneratorProgram,
+                vertexArray);
 
 
         //TODO: create this except with all 2^6 varients of face visibility (except 0 of course)
@@ -122,14 +134,20 @@ public class GPUOcclusionManager {
     public void computeOcclusionVis(Collection<RenderRegion> regions, ChunkRenderMatrices matrices, ChunkCameraContext cam) {
         for (RenderRegion region : regions) {
             //FIXME: move this to an outer/another loop that way driver has time to flush the data
+            Vector3f campos = new Vector3f(region.getMinAsBlock().sub(cam.blockX, cam.blockY, cam.blockZ)).sub(cam.deltaX, cam.deltaY, cam.deltaZ);
             Matrix4f mvp = new Matrix4f(matrices.projection())
                     .mul(matrices.modelView())
-                    .translate(new Vector3f(region.getMinAsBlock().sub(cam.blockX, cam.blockY, cam.blockZ)).sub(cam.deltaX, cam.deltaY, cam.deltaZ)
-                    );
+                    .translate(campos);
 
             mvp.getToAddress(MemoryUtil.memAddress(region.sceneBuffer.view()));
+            campos.getToAddress(MemoryUtil.memAddress(region.sceneBuffer.view())+4*4*4);
             region.sceneBuffer.flush();
+            //FIXME: clear  region.counterBuffer
+            //System.out.println(region.instanceBuffer.view().getFloat(0));
+            //FIXME: put into gfx
+            glClearNamedBufferData(GlBuffer.getHandle(region.counterBuffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
         }
+        GL11.glFinish();
 
         this.device.usePipeline(this.rasterCullPipeline,  (cmd, programInterface, pipelineState) -> {
             cmd.bindElementBuffer(this.indexBuffer);
@@ -143,6 +161,21 @@ public class GPUOcclusionManager {
                 cmd.drawElementsInstanced(PrimitiveType.TRIANGLES, 6*6, ElementFormat.UNSIGNED_BYTE, 0, region.sectionCount);
             }
         });
+        GL11.glFinish();
+
+        this.device.usePipeline(this.commandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
+            for (RenderRegion region : regions) {
+                pipelineState.bindBufferBlock(programInterface.scene, region.sceneBuffer);
+                pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBuffer());
+                pipelineState.bindBufferBlock(programInterface.visbuff, region.visBuffer);
+
+                pipelineState.bindBufferBlock(programInterface.counter, region.counterBuffer);
+                pipelineState.bindBufferBlock(programInterface.instancedata, region.instanceBuffer);
+                pipelineState.bindBufferBlock(programInterface.cmdbuffs[0], region.cmd0buff);
+                cmd.dispatchCompute((int)Math.ceil((double) region.sectionCount/32),1,1);
+            }
+        });
+        GL11.glFinish();
     }
 
     public void fillRenderCommands(List<RenderRegion> regions) {

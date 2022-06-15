@@ -7,8 +7,8 @@ layout(std430, binding = 2) writeonly buffer VisibilityBuffer {
 };
 
 flat in uint ID;
-out vec4 colour;
+//out vec4 colour;
 void main() {
     visiblity[ID] = 1;
-    colour.xyz = vec3(1,1,0);
+    //colour.xyz = vec3(1,1,0);
 }

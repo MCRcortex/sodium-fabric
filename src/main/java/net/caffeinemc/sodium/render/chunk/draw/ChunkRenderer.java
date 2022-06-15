@@ -1,6 +1,10 @@
 package net.caffeinemc.sodium.render.chunk.draw;
 
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
+import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
+
+import java.util.Collection;
+import java.util.List;
 
 /**
  * The chunk render backend takes care of managing the graphics resource state of chunk render containers. This includes
@@ -15,6 +19,8 @@ public interface ChunkRenderer {
      * @param frameIndex The monotonic index of the current frame being rendered
      */
     void render(RenderListBuilder.RenderList renderLists, ChunkRenderPass renderPass, ChunkRenderMatrices matrices, int frameIndex);
+
+    void render(Collection<RenderRegion> regions, ChunkRenderPass renderPass, ChunkRenderMatrices matrices, int frameIndex);
 
     /**
      * Deletes this render backend and any resources attached to it.

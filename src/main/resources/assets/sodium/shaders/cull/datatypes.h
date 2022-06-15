@@ -42,6 +42,10 @@ vec3 Vec3FtoVec3(Vec3F vec) {
     return vec3(vec.x, vec.y, vec.z);
 }
 
+Vec3F Vec3toVec3F(vec3 vec) {
+    return Vec3F(vec.x, vec.y, vec.z);
+}
+
 struct DrawElementsInstancedCommand {
   uint  count;
   uint  instanceCount;

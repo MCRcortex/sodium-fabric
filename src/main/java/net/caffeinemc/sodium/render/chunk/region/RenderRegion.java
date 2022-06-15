@@ -22,9 +22,9 @@ import org.joml.Vector3i;
 import java.util.Set;
 
 public class RenderRegion {
-    public static final int REGION_WIDTH = 8;
-    public static final int REGION_HEIGHT = 4;
-    public static final int REGION_LENGTH = 8;
+    public static final int REGION_WIDTH = 16;
+    public static final int REGION_HEIGHT = 8;
+    public static final int REGION_LENGTH = 16;
 
     private static final int REGION_WIDTH_M = RenderRegion.REGION_WIDTH - 1;
     private static final int REGION_HEIGHT_M = RenderRegion.REGION_HEIGHT - 1;
@@ -49,14 +49,20 @@ public class RenderRegion {
     public final ImmutableBuffer visBuffer;
     public final MappedBuffer sceneBuffer;
 
+    //public final ImmutableBuffer counterBuffer;
+    public final MappedBuffer counterBuffer;
+
     //FIXME: can probably move this to be a bigger buffer for all lists, note will need to be 1 PER render layer
     // steal from RenderListBuilder
     /*
     public final ImmutableBuffer countBuffer;
     public final ImmutableBuffer commandBuffer;
-    public final ImmutableBuffer instanceBuffer;
-
      */
+    public final ImmutableBuffer instanceBuffer;
+    //public final MappedBuffer instanceBuffer;
+
+    public final MappedBuffer cmd0buff;//just for testing will be moved
+
 
     public final int id;
 
@@ -64,13 +70,21 @@ public class RenderRegion {
         this.vertexBuffers = new AsyncBufferArena(device, streamingBuffer, REGION_SIZE * 756, vertexType.getBufferVertexFormat().stride());
         this.metaBuffer = new StreamingBuffer(device, 1, SectionMeta.SIZE, REGION_SIZE,
                 MappedBufferFlags.EXPLICIT_FLUSH);//FIXME: add relevant flags
-        this.visBuffer = device.createBuffer(REGION_SIZE*4, Set.of());//FIXME: add relevant flags
+        this.visBuffer = device.createBuffer(REGION_SIZE*4, Set.of());
         this.id = id;
         sceneBuffer = device.createMappedBuffer(4*4*4+3*4, Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));
         ChunkSectionPos csp = ChunkSectionPos.from(regionKey);
         regionX = csp.getSectionX();
         regionY = csp.getSectionY();
         regionZ = csp.getSectionZ();
+        this.counterBuffer = device.createMappedBuffer(5*4, Set.of(MappedBufferFlags.READ));//FIXME: add relevant flags
+        //this.counterBuffer = device.createBuffer(5*4, Set.of());
+
+        this.instanceBuffer = device.createBuffer(REGION_SIZE*4*3, Set.of());
+        //this.instanceBuffer = device.createMappedBuffer(REGION_SIZE*4*3, Set.of(MappedBufferFlags.READ));//FIXME: add relevant flags
+
+        this.cmd0buff = device.createMappedBuffer(REGION_SIZE*5*4*6, Set.of(MappedBufferFlags.READ));//FIXME: TUNE BUFFER SIZE
+
     }
 
     public void delete() {
