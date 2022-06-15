@@ -40,6 +40,9 @@ import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BARRIER_BIT;
 import static org.lwjgl.opengl.GL45C.glClearNamedBufferData;
 import static org.lwjgl.opengl.GL45C.glCopyNamedBufferSubData;
 
+//TODO: An idea on how to do smart chunk creation, have virtual chunks (that dont actually render or contain anything)
+//  where chunks might generate/update i.e. on edge of render distance of something, and if they have data and are visible
+//  then upload to gpu
 public class GPUOcclusionManager {
     private RenderDevice device;
     private Program<RasterCullerInterface> rasterCullProgram;

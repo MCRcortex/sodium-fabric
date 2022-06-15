@@ -203,6 +203,8 @@ public class SodiumWorldRenderer {
             profiler.swap("chunk_graph_rebuild");
 
             this.renderSectionManager.update(new ChunkCameraContext(camera), frustum, spectator);
+        } else {
+
         }
 
         profiler.swap("visible_chunk_tick");

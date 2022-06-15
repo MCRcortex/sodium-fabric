@@ -197,10 +197,19 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
                         ElementFormat.UNSIGNED_INT,
                         0,
                         4+4*id,//FIXME: need to select the index (0) from the current render layer
-                        (int)(count*1.1)+1,
+                        (int)(count*1.5)+1,
                         //(int)(Math.ceil(region.sectionCount*3.5)),//FIXME: optimize this to be as close bound as possible, maybe even make it dynamic based on previous counts
                         5*4
                 );
+
+                /*
+                cmd.multiDrawElementsIndirect(
+                        PrimitiveType.TRIANGLES,
+                        ElementFormat.UNSIGNED_INT,
+                        0,
+                        count
+                );
+                 */
             }
         });
     }

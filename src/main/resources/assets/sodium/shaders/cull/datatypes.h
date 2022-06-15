@@ -1,6 +1,3 @@
-#extension GL_ARB_gpu_shader_int64 : enable
-#extension GL_ARB_gpu_shader5 : enable
-
 struct Vec3F {
     float x;
     float y;
