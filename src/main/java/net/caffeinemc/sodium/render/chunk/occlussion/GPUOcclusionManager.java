@@ -34,6 +34,8 @@ import java.util.Set;
 import static org.lwjgl.opengl.GL11C.*;
 import static org.lwjgl.opengl.GL30C.GL_R32UI;
 import static org.lwjgl.opengl.GL30C.GL_R8UI;
+import static org.lwjgl.opengl.GL42C.glMemoryBarrier;
+import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BARRIER_BIT;
 import static org.lwjgl.opengl.GL45C.glClearNamedBufferData;
 
 public class GPUOcclusionManager {
@@ -147,8 +149,9 @@ public class GPUOcclusionManager {
             //FIXME: put into gfx
             glClearNamedBufferData(GlBuffer.getHandle(region.counterBuffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
         }
-        GL11.glFinish();
+        //GL11.glFinish();
 
+        //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         this.device.usePipeline(this.rasterCullPipeline,  (cmd, programInterface, pipelineState) -> {
             cmd.bindElementBuffer(this.indexBuffer);
             for (RenderRegion region : regions) {
@@ -161,7 +164,7 @@ public class GPUOcclusionManager {
                 cmd.drawElementsInstanced(PrimitiveType.TRIANGLES, 6*6, ElementFormat.UNSIGNED_BYTE, 0, region.sectionCount);
             }
         });
-        GL11.glFinish();
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
         this.device.usePipeline(this.commandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
             for (RenderRegion region : regions) {
@@ -175,7 +178,7 @@ public class GPUOcclusionManager {
                 cmd.dispatchCompute((int)Math.ceil((double) region.sectionCount/32),1,1);
             }
         });
-        GL11.glFinish();
+        //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     }
 
     public void fillRenderCommands(List<RenderRegion> regions) {

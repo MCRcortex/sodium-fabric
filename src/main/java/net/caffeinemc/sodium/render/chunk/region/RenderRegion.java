@@ -49,8 +49,8 @@ public class RenderRegion {
     public final ImmutableBuffer visBuffer;
     public final MappedBuffer sceneBuffer;
 
-    //public final ImmutableBuffer counterBuffer;
-    public final MappedBuffer counterBuffer;
+    public final ImmutableBuffer counterBuffer;
+    //public final MappedBuffer counterBuffer;
 
     //FIXME: can probably move this to be a bigger buffer for all lists, note will need to be 1 PER render layer
     // steal from RenderListBuilder
@@ -62,6 +62,7 @@ public class RenderRegion {
     //public final MappedBuffer instanceBuffer;
 
     public final MappedBuffer cmd0buff;//just for testing will be moved
+    //public final ImmutableBuffer cmd0buff;//just for testing will be moved
 
 
     public final int id;
@@ -77,13 +78,15 @@ public class RenderRegion {
         regionX = csp.getSectionX();
         regionY = csp.getSectionY();
         regionZ = csp.getSectionZ();
-        this.counterBuffer = device.createMappedBuffer(5*4, Set.of(MappedBufferFlags.READ));//FIXME: add relevant flags
-        //this.counterBuffer = device.createBuffer(5*4, Set.of());
+        //this.counterBuffer = device.createMappedBuffer(5*4, Set.of(MappedBufferFlags.READ));//FIXME: add relevant flags
+        this.counterBuffer = device.createBuffer(5*4, Set.of());
 
         this.instanceBuffer = device.createBuffer(REGION_SIZE*4*3, Set.of());
         //this.instanceBuffer = device.createMappedBuffer(REGION_SIZE*4*3, Set.of(MappedBufferFlags.READ));//FIXME: add relevant flags
 
-        this.cmd0buff = device.createMappedBuffer(REGION_SIZE*5*4*6, Set.of(MappedBufferFlags.READ));//FIXME: TUNE BUFFER SIZE
+        this.cmd0buff = device.createMappedBuffer(REGION_SIZE*5*4*6, Set.of(MappedBufferFlags.WRITE));//FIXME: TUNE BUFFER SIZE
+        //FIXME: nvidia driver bug, causes instant hard crash due to OOM
+        //this.cmd0buff = device.createBuffer(REGION_SIZE*5*4*6, Set.of());//FIXME: TUNE BUFFER SIZE
 
     }
 

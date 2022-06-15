@@ -174,14 +174,14 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
                         region.vertexBuffers.getStride()
                 );
 
-                GL11.glFinish();
+                //GL11.glFinish();
 
                 cmd.multiDrawElementsIndirectCount(
                         PrimitiveType.TRIANGLES,
                         ElementFormat.UNSIGNED_INT,
                         0,
                         4+4*0,//FIXME: need to select the index (0) from the current render layer
-                        region.sectionCount*3,//FIXME: optimize this to be as close bound as possible, maybe even make it dynamic based on previous counts
+                        (int)(region.sectionCount*4),//FIXME: optimize this to be as close bound as possible, maybe even make it dynamic based on previous counts
                         5*4
                 );
             }
