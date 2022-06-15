@@ -13,6 +13,7 @@ import net.caffeinemc.gfx.api.shader.ShaderDescription;
 import net.caffeinemc.gfx.api.shader.ShaderType;
 import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
+import net.caffeinemc.gfx.opengl.buffer.GlMappedBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.render.buffer.StreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
@@ -158,12 +159,6 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
 
             cmd.bindElementBuffer(this.indexBuffer.getBuffer());
             for (RenderRegion region : regions) {
-                pipelineState.bindBufferBlock(
-                        programInterface.uniformInstanceData,
-                        region.instanceBuffer,
-                        0,
-                        RenderRegion.REGION_SIZE*4*3
-                );
                 int id = 0;
                 if (renderPass == DefaultRenderPasses.SOLID)
                     cmd.bindCommandBuffer(region.cmd0buff);
@@ -176,6 +171,17 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
                     cmd.bindCommandBuffer(region.cmd2buff);
                     id =2;
                 }
+                int count = region.dodgyThing.view().getInt(id*4);
+                if (count == 0) {
+                    continue;
+                }
+
+                pipelineState.bindBufferBlock(
+                        programInterface.uniformInstanceData,
+                        region.instanceBuffer,
+                        0,
+                        RenderRegion.REGION_SIZE*4*3
+                );
 
                 cmd.bindParameterCountBuffer(region.counterBuffer);
 
@@ -186,14 +192,13 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
                         region.vertexBuffers.getStride()
                 );
 
-                //GL11.glFinish();
-
                 cmd.multiDrawElementsIndirectCount(
                         PrimitiveType.TRIANGLES,
                         ElementFormat.UNSIGNED_INT,
                         0,
                         4+4*id,//FIXME: need to select the index (0) from the current render layer
-                        (int)(region.sectionCount*3.5),//FIXME: optimize this to be as close bound as possible, maybe even make it dynamic based on previous counts
+                        (int)(count*1.1)+1,
+                        //(int)(Math.ceil(region.sectionCount*3.5)),//FIXME: optimize this to be as close bound as possible, maybe even make it dynamic based on previous counts
                         5*4
                 );
             }

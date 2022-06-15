@@ -25,7 +25,7 @@ import java.util.Set;
 
 public class RenderRegion {
     public static final int REGION_WIDTH = 16;
-    public static final int REGION_HEIGHT = 8;
+    public static final int REGION_HEIGHT = 16;
     public static final int REGION_LENGTH = 16;
 
     private static final int REGION_WIDTH_M = RenderRegion.REGION_WIDTH - 1;
@@ -49,8 +49,10 @@ public class RenderRegion {
     public final BufferArena vertexBuffers;
     public final StreamingBuffer metaBuffer;
     public final ImmutableBuffer visBuffer;
+    //public final MappedBuffer computeDispatchIndirectBuffer;//Nice way to not actually call 90% of compute
     public final MappedBuffer sceneBuffer;
 
+    public final MappedBuffer dodgyThing;
     public final ImmutableBuffer counterBuffer;
     //public final MappedBuffer counterBuffer;
 
@@ -85,6 +87,8 @@ public class RenderRegion {
         regionZ = csp.getSectionZ();
         //this.counterBuffer = device.createMappedBuffer(5*4, Set.of(MappedBufferFlags.READ));//FIXME: add relevant flags
         this.counterBuffer = device.createBuffer(5*4, Set.of());
+        this.dodgyThing = device.createMappedBuffer(5*4, Set.of(MappedBufferFlags.READ));
+        //this.computeDispatchIndirectBuffer = device.createMappedBuffer(3*4, Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));
 
         this.instanceBuffer = device.createBuffer(REGION_SIZE*4*3, Set.of());
         //this.instanceBuffer = device.createMappedBuffer(REGION_SIZE*4*3, Set.of(MappedBufferFlags.READ));//FIXME: add relevant flags
@@ -166,8 +170,20 @@ public class RenderRegion {
             int id = pos2id.remove(section.innerRegionKey);
             SectionMeta sectionMeta = sectionMetaMap.remove(id);
             //sectionMeta.free();//TODO: this, need to set the id of the meta to like -1
-            freeIds.add(id);
-            //Fixme: need to free as many things and reduce freeIds as much as possible to then reduce sectionCount
+
+            if (id == sectionCount-1) {
+                //Free as many sections as possible
+                sectionCount--;
+                while ((!freeIds.isEmpty()) && freeIds.lastInt() == sectionCount -1) {
+                    freeIds.remove(freeIds.lastInt());
+                    sectionCount--;
+                }
+                if (sectionCount == 0 && !freeIds.isEmpty())
+                    throw new IllegalStateException();
+            } else {
+                //Enqueue id
+                freeIds.add(id);
+            }
         }
     }
 }

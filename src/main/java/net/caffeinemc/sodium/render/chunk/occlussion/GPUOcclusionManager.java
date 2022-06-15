@@ -28,14 +28,17 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.*;
 
 import static org.lwjgl.opengl.GL11C.*;
 import static org.lwjgl.opengl.GL30C.GL_R32UI;
 import static org.lwjgl.opengl.GL30C.GL_R8UI;
+import static org.lwjgl.opengl.GL42C.GL_ALL_BARRIER_BITS;
 import static org.lwjgl.opengl.GL42C.glMemoryBarrier;
 import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BARRIER_BIT;
 import static org.lwjgl.opengl.GL45C.glClearNamedBufferData;
+import static org.lwjgl.opengl.GL45C.glCopyNamedBufferSubData;
 
 public class GPUOcclusionManager {
     private RenderDevice device;
@@ -138,6 +141,9 @@ public class GPUOcclusionManager {
     public void computeOcclusionVis(Collection<RenderRegion> regions, ChunkRenderMatrices matrices, ChunkCameraContext cam, Frustum frustum) {
         visRegions.clear();
         for (RenderRegion region : regions) {
+            if (region.sectionCount == 0) {
+                continue;
+            }
             Vector3i corner = region.getMinAsBlock();
             //FIXME: need to make a region bounding box for the min AABB of all the contained sections and use that
             if (!frustum.isBoxVisible(corner.x, corner.y, corner.z,
@@ -146,11 +152,20 @@ public class GPUOcclusionManager {
                     corner.z + RenderRegion.REGION_LENGTH * 16)) {
                 continue;
             }
-            region.weight = -new Vector3f(corner.x + RenderRegion.REGION_WIDTH * 8,
+            region.weight = new Vector3f(corner.x + RenderRegion.REGION_WIDTH * 8,
                     corner.y + RenderRegion.REGION_HEIGHT * 8,
                     corner.z + RenderRegion.REGION_LENGTH * 8).sub(cam.blockX, cam.blockY, cam.blockZ).lengthSquared();
             visRegions.add(region);
         }
+
+        /*
+        for (RenderRegion region : visRegions) {
+            ByteBuffer cdib = region.computeDispatchIndirectBuffer.view().order(ByteOrder.nativeOrder());
+            cdib.putInt(0, (int) Math.ceil((double) region.sectionCount / 32));
+            cdib.putInt(4, 0);
+            cdib.putInt(8, 1);
+            region.computeDispatchIndirectBuffer.flush();
+        }*/
 
         for (RenderRegion region : visRegions) {
             //FIXME: move this to an outer/another loop that way driver has time to flush the data
@@ -165,11 +180,13 @@ public class GPUOcclusionManager {
             //FIXME: clear  region.counterBuffer
             //System.out.println(region.instanceBuffer.view().getFloat(0));
             //FIXME: put into gfx
+            glCopyNamedBufferSubData(GlBuffer.getHandle(region.counterBuffer), GlBuffer.getHandle(region.dodgyThing),4,0,4*4);
+            //FIXME: put into gfx
             glClearNamedBufferData(GlBuffer.getHandle(region.counterBuffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
         }
         //GL11.glFinish();
 
-        //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        //glMemoryBarrier(GL_ALL_BARRIER_BITS);
         this.device.usePipeline(this.rasterCullPipeline,  (cmd, programInterface, pipelineState) -> {
             cmd.bindElementBuffer(this.indexBuffer);
             for (RenderRegion region : visRegions) {
@@ -179,11 +196,14 @@ public class GPUOcclusionManager {
 
                 pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBuffer());
                 pipelineState.bindBufferBlock(programInterface.visbuff, region.visBuffer);
+                //pipelineState.bindBufferBlock(programInterface.indirectbuff, region.computeDispatchIndirectBuffer);
+
+                //FIXME: optimize by only drawing sides facing the camera
                 cmd.drawElementsInstanced(PrimitiveType.TRIANGLES, 6*6, ElementFormat.UNSIGNED_BYTE, 0, region.sectionCount);
             }
         });
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
+        //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        //glFinish();
         this.device.usePipeline(this.commandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
             for (RenderRegion region : visRegions) {
                 pipelineState.bindBufferBlock(programInterface.scene, region.sceneBuffer);
@@ -195,7 +215,11 @@ public class GPUOcclusionManager {
                 pipelineState.bindBufferBlock(programInterface.cmdbuffs[0], region.cmd0buff);
                 pipelineState.bindBufferBlock(programInterface.cmdbuffs[1], region.cmd1buff);
                 pipelineState.bindBufferBlock(programInterface.cmdbuffs[2], region.cmd2buff);
-                cmd.dispatchCompute((int)Math.ceil((double) region.sectionCount/32),1,1);
+
+
+                cmd.dispatchCompute((int)Math.ceil((double) region.sectionCount/16),1,1);
+                //cmd.bindDispatchIndirectBuffer(region.computeDispatchIndirectBuffer);
+                //cmd.dispatchComputeIndirect(0);
             }
         });
         //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);

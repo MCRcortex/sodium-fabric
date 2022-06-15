@@ -299,6 +299,15 @@ public class GlRenderDevice implements RenderDevice {
         }
 
         @Override
+        public void bindDispatchIndirectBuffer(Buffer buffer) {
+            if (RenderConfiguration.API_CHECKS) {
+                Validate.notNull(buffer, "Buffer must be non-null");
+            }
+
+            GL45C.glBindBuffer(GL44.GL_DISPATCH_INDIRECT_BUFFER, GlBuffer.getHandle(buffer));
+        }
+
+        @Override
         public void bindVertexBuffer(T target, Buffer buffer, int offset, int stride) {
             if (RenderConfiguration.API_CHECKS) {
                 Validate.notNull(buffer, "Buffer must be non-null");
@@ -387,6 +396,11 @@ public class GlRenderDevice implements RenderDevice {
         @Override
         public void dispatchCompute(int group_x, int group_y, int group_z) {
             GL43C.glDispatchCompute(group_x, group_y, group_z);
+        }
+
+        @Override
+        public void dispatchComputeIndirect(long offset) {
+            GL43C.glDispatchComputeIndirect(offset);
         }
     }
 
