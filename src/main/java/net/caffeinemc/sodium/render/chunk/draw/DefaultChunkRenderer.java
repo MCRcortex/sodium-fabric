@@ -146,7 +146,9 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
 
     @Override
     public void render(Collection<RenderRegion> regions, ChunkRenderPass renderPass, ChunkRenderMatrices matrices, int frameIndex) {
-        if (renderPass != DefaultRenderPasses.SOLID)
+        if (renderPass == DefaultRenderPasses.TRANSLUCENT)
+            return;
+        if (renderPass == DefaultRenderPasses.TRIPWIRE)
             return;
         this.indexBuffer.ensureCapacity(1000000);//FIXME: not hardcoded
 
@@ -162,8 +164,18 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
                         0,
                         RenderRegion.REGION_SIZE*4*3
                 );
+                int id = 0;
+                if (renderPass == DefaultRenderPasses.SOLID)
+                    cmd.bindCommandBuffer(region.cmd0buff);
 
-                cmd.bindCommandBuffer(region.cmd0buff);
+                if (renderPass == DefaultRenderPasses.CUTOUT_MIPPED) {
+                    cmd.bindCommandBuffer(region.cmd1buff);
+                    id = 1;
+                }
+                if (renderPass == DefaultRenderPasses.CUTOUT) {
+                    cmd.bindCommandBuffer(region.cmd2buff);
+                    id =2;
+                }
 
                 cmd.bindParameterCountBuffer(region.counterBuffer);
 
@@ -180,8 +192,8 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
                         PrimitiveType.TRIANGLES,
                         ElementFormat.UNSIGNED_INT,
                         0,
-                        4+4*0,//FIXME: need to select the index (0) from the current render layer
-                        (int)(region.sectionCount*4),//FIXME: optimize this to be as close bound as possible, maybe even make it dynamic based on previous counts
+                        4+4*id,//FIXME: need to select the index (0) from the current render layer
+                        (int)(region.sectionCount*3.5),//FIXME: optimize this to be as close bound as possible, maybe even make it dynamic based on previous counts
                         5*4
                 );
             }

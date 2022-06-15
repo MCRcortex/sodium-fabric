@@ -23,13 +23,12 @@ import net.minecraft.util.Identifier;
 import net.minecraft.world.chunk.Chunk;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.lwjgl.opengl.GL11C.*;
 import static org.lwjgl.opengl.GL30C.GL_R32UI;
@@ -45,6 +44,9 @@ public class GPUOcclusionManager {
     private Pipeline<RasterCullerInterface, EmptyTarget> rasterCullPipeline;
     private Pipeline<CommandGeneratorInterface, EmptyTarget> commandGeneratorPipeline;
     private final ImmutableBuffer indexBuffer;
+
+    public TreeSet<RenderRegion> visRegions = new TreeSet<>(Comparator.comparingDouble(a->a.weight));
+
     public GPUOcclusionManager(RenderDevice device) {
         this.device = device;
 
@@ -133,8 +135,24 @@ public class GPUOcclusionManager {
     //FIXME cull regions that are not in frustum or are empty or have no geometry ready/after prelim region face cull
 
     //Fixme: need to use ChunkCameraContext
-    public void computeOcclusionVis(Collection<RenderRegion> regions, ChunkRenderMatrices matrices, ChunkCameraContext cam) {
+    public void computeOcclusionVis(Collection<RenderRegion> regions, ChunkRenderMatrices matrices, ChunkCameraContext cam, Frustum frustum) {
+        visRegions.clear();
         for (RenderRegion region : regions) {
+            Vector3i corner = region.getMinAsBlock();
+            //FIXME: need to make a region bounding box for the min AABB of all the contained sections and use that
+            if (!frustum.isBoxVisible(corner.x, corner.y, corner.z,
+                    corner.x + RenderRegion.REGION_WIDTH * 16,
+                    corner.y + RenderRegion.REGION_HEIGHT * 16,
+                    corner.z + RenderRegion.REGION_LENGTH * 16)) {
+                continue;
+            }
+            region.weight = -new Vector3f(corner.x + RenderRegion.REGION_WIDTH * 8,
+                    corner.y + RenderRegion.REGION_HEIGHT * 8,
+                    corner.z + RenderRegion.REGION_LENGTH * 8).sub(cam.blockX, cam.blockY, cam.blockZ).lengthSquared();
+            visRegions.add(region);
+        }
+
+        for (RenderRegion region : visRegions) {
             //FIXME: move this to an outer/another loop that way driver has time to flush the data
             Vector3f campos = new Vector3f(region.getMinAsBlock().sub(cam.blockX, cam.blockY, cam.blockZ)).sub(cam.deltaX, cam.deltaY, cam.deltaZ);
             Matrix4f mvp = new Matrix4f(matrices.projection())
@@ -154,7 +172,7 @@ public class GPUOcclusionManager {
         //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         this.device.usePipeline(this.rasterCullPipeline,  (cmd, programInterface, pipelineState) -> {
             cmd.bindElementBuffer(this.indexBuffer);
-            for (RenderRegion region : regions) {
+            for (RenderRegion region : visRegions) {
 
 
                 pipelineState.bindBufferBlock(programInterface.scene, region.sceneBuffer);
@@ -167,7 +185,7 @@ public class GPUOcclusionManager {
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
         this.device.usePipeline(this.commandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
-            for (RenderRegion region : regions) {
+            for (RenderRegion region : visRegions) {
                 pipelineState.bindBufferBlock(programInterface.scene, region.sceneBuffer);
                 pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBuffer());
                 pipelineState.bindBufferBlock(programInterface.visbuff, region.visBuffer);
@@ -175,6 +193,8 @@ public class GPUOcclusionManager {
                 pipelineState.bindBufferBlock(programInterface.counter, region.counterBuffer);
                 pipelineState.bindBufferBlock(programInterface.instancedata, region.instanceBuffer);
                 pipelineState.bindBufferBlock(programInterface.cmdbuffs[0], region.cmd0buff);
+                pipelineState.bindBufferBlock(programInterface.cmdbuffs[1], region.cmd1buff);
+                pipelineState.bindBufferBlock(programInterface.cmdbuffs[2], region.cmd2buff);
                 cmd.dispatchCompute((int)Math.ceil((double) region.sectionCount/32),1,1);
             }
         });

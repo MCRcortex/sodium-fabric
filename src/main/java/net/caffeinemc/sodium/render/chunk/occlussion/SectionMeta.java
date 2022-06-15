@@ -17,8 +17,8 @@ public class SectionMeta {
     private Vector3f pos = new Vector3f();
     private int lmsk;
     public VertexRange[] SOLID = new VertexRange[7];
-    private VertexRange[] CUTOUT_MIPPED = new VertexRange[7];
-    private VertexRange[] CUTOUT = new VertexRange[7];
+    public VertexRange[] CUTOUT_MIPPED = new VertexRange[7];
+    public VertexRange[] CUTOUT = new VertexRange[7];
     private VertexRange[] TRANSLUCENT = new VertexRange[7];
 
     private final StreamingBuffer streamingBuffer;

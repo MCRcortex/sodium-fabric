@@ -212,6 +212,22 @@ public class RenderSection {
                             UploadedChunkGeometry.ModelPart.unpackVertexCount(p));
                 }
             }
+            if (model.pass == DefaultRenderPasses.CUTOUT) {
+                for (long p : model.ranges) {
+                    int face = Integer.numberOfTrailingZeros(UploadedChunkGeometry.ModelPart.unpackFace(p));
+                    sectionMeta.CUTOUT[face] = new VertexRange(
+                            UploadedChunkGeometry.ModelPart.unpackFirstVertex(p)+uploadedGeometry.segment.getOffset(),
+                            UploadedChunkGeometry.ModelPart.unpackVertexCount(p));
+                }
+            }
+            if (model.pass == DefaultRenderPasses.CUTOUT_MIPPED) {
+                for (long p : model.ranges) {
+                    int face = Integer.numberOfTrailingZeros(UploadedChunkGeometry.ModelPart.unpackFace(p));
+                    sectionMeta.CUTOUT_MIPPED[face] = new VertexRange(
+                            UploadedChunkGeometry.ModelPart.unpackFirstVertex(p)+uploadedGeometry.segment.getOffset(),
+                            UploadedChunkGeometry.ModelPart.unpackVertexCount(p));
+                }
+            }
         }
         sectionMeta.flush();
     }

@@ -27,6 +27,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.util.math.*;
 import net.minecraft.util.profiler.Profiler;
 import org.joml.Vector3f;
+import org.lwjgl.opengl.GL11;
 
 import java.util.Collection;
 import java.util.SortedSet;
@@ -44,6 +45,8 @@ public class SodiumWorldRenderer {
     private double cameraX, cameraY, cameraZ;
     private double lastCameraPitch, lastCameraYaw;
     private float lastFogDistance;
+
+    private Frustum frustum;
 
     private boolean useEntityCulling;
 
@@ -187,6 +190,7 @@ public class SodiumWorldRenderer {
         this.lastCameraPitch = pitch;
         this.lastCameraYaw = yaw;
         this.lastFogDistance = fogDistance;
+        this.frustum = frustum;
 
         profiler.swap("chunk_update");
 
@@ -217,9 +221,9 @@ public class SodiumWorldRenderer {
 
         ChunkRenderPass renderPass = this.renderPassManager.getRenderPassForLayer(renderLayer);
         this.renderSectionManager.renderLayer(ChunkRenderMatrices.from(matrixStack), renderPass);
-        if (renderLayer == RenderLayer.getCutout())
-            this.occlusion.computeOcclusionVis(renderSectionManager.regions.regions.values(), ChunkRenderMatrices.from(matrixStack), new ChunkCameraContext(cameraX, cameraY, cameraZ));
-
+        if (renderLayer == RenderLayer.getCutout()) {
+            this.occlusion.computeOcclusionVis(renderSectionManager.regions.regions.values(), ChunkRenderMatrices.from(matrixStack), new ChunkCameraContext(cameraX, cameraY, cameraZ), frustum);
+        }
     }
 
     public void reload() {

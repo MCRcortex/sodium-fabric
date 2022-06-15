@@ -18,7 +18,9 @@ import net.minecraft.util.math.ChunkSectionPos;
 import org.apache.commons.lang3.Validate;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
+import org.lwjgl.opengl.GL11;
 
+import java.nio.ByteBuffer;
 import java.util.Set;
 
 public class RenderRegion {
@@ -61,9 +63,12 @@ public class RenderRegion {
     public final ImmutableBuffer instanceBuffer;
     //public final MappedBuffer instanceBuffer;
 
-    public final MappedBuffer cmd0buff;//just for testing will be moved
-    //public final ImmutableBuffer cmd0buff;//just for testing will be moved
+    //public final MappedBuffer cmd0buff;//just for testing will be moved
+    public final ImmutableBuffer cmd0buff;//just for testing will be moved
+    public final ImmutableBuffer cmd1buff;//just for testing will be moved
+    public final ImmutableBuffer cmd2buff;//just for testing will be moved
 
+    public float weight;//Util thing
 
     public final int id;
 
@@ -84,10 +89,12 @@ public class RenderRegion {
         this.instanceBuffer = device.createBuffer(REGION_SIZE*4*3, Set.of());
         //this.instanceBuffer = device.createMappedBuffer(REGION_SIZE*4*3, Set.of(MappedBufferFlags.READ));//FIXME: add relevant flags
 
-        this.cmd0buff = device.createMappedBuffer(REGION_SIZE*5*4*6, Set.of(MappedBufferFlags.WRITE));//FIXME: TUNE BUFFER SIZE
+        //this.cmd0buff = device.createMappedBuffer(REGION_SIZE*5*4*6, Set.of(MappedBufferFlags.WRITE));//FIXME: TUNE BUFFER SIZE
         //FIXME: nvidia driver bug, causes instant hard crash due to OOM
-        //this.cmd0buff = device.createBuffer(REGION_SIZE*5*4*6, Set.of());//FIXME: TUNE BUFFER SIZE
-
+        //If empty memory buffer is specified, this fixes it
+        this.cmd0buff = device.createBuffer(ByteBuffer.allocateDirect(REGION_SIZE*5*4*6), Set.of());//FIXME: TUNE BUFFER SIZE
+        this.cmd1buff = device.createBuffer(ByteBuffer.allocateDirect(REGION_SIZE*5*4*6), Set.of());//FIXME: TUNE BUFFER SIZE
+        this.cmd2buff = device.createBuffer(ByteBuffer.allocateDirect(REGION_SIZE*5*4*6), Set.of());//FIXME: TUNE BUFFER SIZE
     }
 
     public void delete() {
