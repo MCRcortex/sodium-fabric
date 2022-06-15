@@ -22,11 +22,10 @@ import net.minecraft.client.texture.Sprite;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.random.Xoroshiro128PlusPlusRandom;
 import net.minecraft.world.BlockRenderView;
 
 import java.util.List;
-
-import net.minecraft.world.gen.random.Xoroshiro128PlusPlusRandom;
 
 public class BlockRenderer {
     private final Xoroshiro128PlusPlusRandom random = new Xoroshiro128PlusPlusRandom(42L);
@@ -121,7 +120,7 @@ public class BlockRenderer {
         if (bakedQuad.hasColor()) {
             colors = this.colorBlender.getColors(world, pos, src, colorSampler, state);
         }
-        
+
         for (int i = 0; i < 4; i++) {
             int j = orientation.getVertexIndex(i);
 

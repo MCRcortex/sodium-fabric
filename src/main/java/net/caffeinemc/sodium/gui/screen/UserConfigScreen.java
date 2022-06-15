@@ -43,6 +43,7 @@ public class UserConfigScreen extends Screen {
     private ControlElement<?> hoveredElement;
 
     public UserConfigScreen(Screen prevScreen) {
+        // TODO: use actual translation key for this
         super(Text.translatable("Sodium Options"));
 
         this.prevScreen = prevScreen;

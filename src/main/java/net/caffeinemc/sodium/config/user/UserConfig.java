@@ -39,6 +39,7 @@ public class UserConfig {
         public boolean useParticleCulling = true;
         public boolean useBlockFaceCulling = true;
         public boolean useCompactVertexFormat = true;
+        public boolean useModelInstancing = true;
     }
 
     public static class AdvancedSettings {
@@ -61,7 +62,7 @@ public class UserConfig {
     }
 
     public enum GraphicsQuality implements TextProvider {
-        DEFAULT("generator.minecraft.normal"),
+        DEFAULT("options.gamma.default"),
         FANCY("options.clouds.fancy"),
         FAST("options.clouds.fast");
 

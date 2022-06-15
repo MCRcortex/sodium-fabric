@@ -71,8 +71,7 @@ public class ChunkColorCache {
     }
 
     private RegistryEntry<Biome>[] gatherBiomes(int level) {
-        @SuppressWarnings("unchecked")
-        RegistryEntry<Biome>[] biomeData = new RegistryEntry[this.sizeHorizontal * this.sizeHorizontal];
+        var biomeData = new RegistryEntry[this.sizeHorizontal * this.sizeHorizontal];
 
         var pos = new BlockPos.Mutable();
 
