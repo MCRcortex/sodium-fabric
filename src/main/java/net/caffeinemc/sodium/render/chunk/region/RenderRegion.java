@@ -49,6 +49,7 @@ public class RenderRegion {
     public final BufferArena vertexBuffers;
     public final StreamingBuffer metaBuffer;
     public final ImmutableBuffer visBuffer;
+    public final MappedBuffer cpuSectionVis;
     //public final MappedBuffer computeDispatchIndirectBuffer;//Nice way to not actually call 90% of compute
     public final MappedBuffer sceneBuffer;
 
@@ -79,6 +80,7 @@ public class RenderRegion {
         this.metaBuffer = new StreamingBuffer(device, 1, SectionMeta.SIZE, REGION_SIZE,
                 MappedBufferFlags.EXPLICIT_FLUSH);//FIXME: add relevant flags
         this.visBuffer = device.createBuffer(REGION_SIZE*4, Set.of());
+        this.cpuSectionVis = device.createMappedBuffer(REGION_SIZE*4, Set.of(MappedBufferFlags.READ));
         this.id = id;
         sceneBuffer = device.createMappedBuffer(4*4*4+3*4, Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));
         ChunkSectionPos csp = ChunkSectionPos.from(regionKey);

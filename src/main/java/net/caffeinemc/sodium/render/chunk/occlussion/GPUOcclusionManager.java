@@ -147,6 +147,7 @@ public class GPUOcclusionManager {
             if (region.sectionCount == 0) {
                 continue;
             }
+            //FIXME: need to maybe cut up even more cause sometimes none of the corner points are visible
             Vector3i corner = region.getMinAsBlock();
             //FIXME: need to make a region bounding box for the min AABB of all the contained sections and use that
             if (!frustum.isBoxVisible(corner.x, corner.y, corner.z,
@@ -157,7 +158,9 @@ public class GPUOcclusionManager {
             }
             region.weight = new Vector3f(corner.x + RenderRegion.REGION_WIDTH * 8,
                     corner.y + RenderRegion.REGION_HEIGHT * 8,
-                    corner.z + RenderRegion.REGION_LENGTH * 8).sub(cam.blockX, cam.blockY, cam.blockZ).lengthSquared();
+                    corner.z + RenderRegion.REGION_LENGTH * 8)
+                    .sub(cam.blockX, cam.blockY, cam.blockZ)
+                    .sub(cam.deltaX, cam.deltaY, cam.deltaZ).lengthSquared();
             visRegions.add(region);
         }
 
@@ -212,6 +215,8 @@ public class GPUOcclusionManager {
                 pipelineState.bindBufferBlock(programInterface.scene, region.sceneBuffer);
                 pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBuffer());
                 pipelineState.bindBufferBlock(programInterface.visbuff, region.visBuffer);
+
+                pipelineState.bindBufferBlock(programInterface.cpuvisbuff, region.cpuSectionVis);
 
                 pipelineState.bindBufferBlock(programInterface.counter, region.counterBuffer);
                 pipelineState.bindBufferBlock(programInterface.instancedata, region.instanceBuffer);

@@ -9,6 +9,8 @@ public class CommandGeneratorInterface {
     public final BufferBlock meta;
     public final BufferBlock visbuff;
 
+    public final BufferBlock cpuvisbuff;
+
     public final BufferBlock counter;
 
     public final BufferBlock instancedata;
@@ -19,11 +21,13 @@ public class CommandGeneratorInterface {
         meta = context.bindBufferBlock(BufferBlockType.STORAGE, 1);
         visbuff = context.bindBufferBlock(BufferBlockType.STORAGE, 2);
 
-        counter = context.bindBufferBlock(BufferBlockType.STORAGE, 3);
+        cpuvisbuff = context.bindBufferBlock(BufferBlockType.STORAGE, 3);
 
-        instancedata = context.bindBufferBlock(BufferBlockType.STORAGE, 4);
+        counter = context.bindBufferBlock(BufferBlockType.STORAGE, 4);
+
+        instancedata = context.bindBufferBlock(BufferBlockType.STORAGE, 5);
         for (int i = 0; i < 4; i++) {
-            cmdbuffs[i] = context.bindBufferBlock(BufferBlockType.STORAGE, 5+i);
+            cmdbuffs[i] = context.bindBufferBlock(BufferBlockType.STORAGE, 6+i);
         }
     }
 }

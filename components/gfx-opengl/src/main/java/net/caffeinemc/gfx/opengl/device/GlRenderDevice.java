@@ -383,7 +383,8 @@ public class GlRenderDevice implements RenderDevice {
 
             }
 
-            GL46C.glMultiDrawElementsIndirectCount(GlEnum.from(primitiveType), GlEnum.from(elementType), indirectOffset, indirectCountOffset, maxDrawCount, stride);
+            //GL46C.glMultiDrawElementsIndirectCount(GlEnum.from(primitiveType), GlEnum.from(elementType), indirectOffset, indirectCountOffset, maxDrawCount, stride);
+            ARBIndirectParameters.glMultiDrawElementsIndirectCountARB(GlEnum.from(primitiveType), GlEnum.from(elementType), indirectOffset, indirectCountOffset, maxDrawCount, stride);
         }
 
         @Override
