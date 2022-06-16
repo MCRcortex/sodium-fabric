@@ -201,9 +201,10 @@ public class SodiumWorldRenderer {
 
         if (this.renderSectionManager.isGraphDirty()) {
             profiler.swap("chunk_graph_rebuild");
-
-            this.renderSectionManager.update(new ChunkCameraContext(camera), frustum, spectator);
-        } else {
+            if (!MinecraftClient.getInstance().player.isSneaking()) {
+                //this.renderSectionManager.update(new ChunkCameraContext(camera), frustum, spectator);
+            }
+            } else {
 
         }
 
@@ -411,5 +412,11 @@ public class SodiumWorldRenderer {
 
     public void prepRenderCommands(MatrixStack matrices, Camera camera, GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f positionMatrix) {
         //this.occlusion.computeOcclusionVis(renderSectionManager.regions.regions.values(), ChunkRenderMatrices.from(matrices), new Vector3f((float) camera.getPos().x, (float) camera.getPos().y, (float) camera.getPos().z));
+    }
+
+
+
+    public void updateVisibleChunks() {
+
     }
 }
