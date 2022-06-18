@@ -246,6 +246,8 @@ public class RenderSectionManager {
             render.setData(ChunkRenderData.EMPTY);
         } else {
             render.markForUpdate(ChunkUpdateType.INITIAL_BUILD);
+            //FIXME: NEED TO BATCH TO LIKE 32 OR SOMTEHING
+            //this.rebuildQueues.get(ChunkUpdateType.INITIAL_BUILD).enqueue(this.tree.getSection(x,y,z));
         }
 
         this.onChunkDataChanged(render, ChunkRenderData.ABSENT, render.data());
@@ -261,16 +263,19 @@ public class RenderSectionManager {
     }
 
     public void renderLayer(ChunkRenderMatrices matrices, ChunkRenderPass renderPass) {
-        if (this.renderLists == null || !this.renderLists.containsKey(renderPass)) {
-            return;
-        }
 
         var chunkRenderer = this.chunkRenderers.get(renderPass);
 
         if (chunkRenderer != null) {
-            //chunkRenderer.render(this.renderLists.get(renderPass), renderPass, matrices, this.frameIndex);
-            //FIXME: pass in a frustum culled collection of regions
-            chunkRenderer.render(regions.regions.values(), renderPass, matrices, this.frameIndex);
+            if (false) {
+                if (this.renderLists == null || !this.renderLists.containsKey(renderPass)) {
+                    return;
+                }
+                chunkRenderer.render(this.renderLists.get(renderPass), renderPass, matrices, this.frameIndex);
+            } else{
+                //FIXME: pass in a frustum culled collection of regions
+                chunkRenderer.render(regions.regions.values(), renderPass, matrices, this.frameIndex);
+            }
         }
     }
 
@@ -283,6 +288,8 @@ public class RenderSectionManager {
     }
 
     public boolean isSectionVisible(int x, int y, int z) {
+        if (true)
+            return true;
         var sectionId = this.tree.getSectionId(x, y, z);
 
         if (sectionId == ChunkTree.ABSENT_VALUE) {
@@ -428,6 +435,9 @@ public class RenderSectionManager {
                 section.markForUpdate(ChunkUpdateType.IMPORTANT_REBUILD);
             } else {
                 section.markForUpdate(ChunkUpdateType.REBUILD);
+                if (section.getRegion() != null && section.getRegion().isSectionVisible(section)) {
+                    //rebuildQueues.get(ChunkUpdateType.REBUILD).enqueue(section);
+                }
             }
         }
 

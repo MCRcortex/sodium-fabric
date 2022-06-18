@@ -88,6 +88,16 @@ public class RenderRegionManager {
         void accept(RenderSection section, ChunkRenderData prev, ChunkRenderData next);
     }
 
+    public RenderRegion getOrCreateRegion(long regionKey) {
+        RenderRegion region = this.regions.get(regionKey);
+
+        if (region == null) {
+            this.regions.put(regionKey, region = new RenderRegion(this.device, this.streamingBuffer, this.vertexType, this.idPool.create(), regionKey));
+        }
+
+        return region;
+    }
+
     private void uploadGeometryBatch(long regionKey, List<TerrainBuildResult> results, int frameIndex) {
         List<PendingUpload> uploads = new ArrayList<>();
         List<ChunkGeometryUpload> jobs = new ArrayList<>(results.size());
@@ -116,12 +126,7 @@ public class RenderRegionManager {
             return;
         }
 
-        RenderRegion region = this.regions.get(regionKey);
-
-        if (region == null) {
-            this.regions.put(regionKey, region = new RenderRegion(this.device, this.streamingBuffer, this.vertexType, this.idPool.create(), regionKey));
-        }
-
+        RenderRegion region = this.getOrCreateRegion(regionKey);
         region.vertexBuffers.upload(uploads, frameIndex);
 
         // Collect the upload results

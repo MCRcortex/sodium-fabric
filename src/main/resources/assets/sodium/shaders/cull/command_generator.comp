@@ -91,10 +91,18 @@ void main() {
 
         //Atomicly compute and increment the index of the start of the grouped commands, this is done as so only 1
         // atomic operation is needed per layer
+        /*
+        uint cmd0Idx = (msk&255)==0?0:atomicAdd(cmdBuff0Count, bitCount(msk&255));
+        uint cmd1Idx = (msk&(255<<8))==0?0:atomicAdd(cmdBuff1Count, bitCount(msk&(255<<8)));
+        uint cmd2Idx = (msk&(255<<16))==0?0:atomicAdd(cmdBuff2Count, bitCount(msk&(255<<16)));
+        uint cmd3Idx = (msk&(255<<24))==0?0:atomicAdd(cmdBuff3Count, bitCount(msk&(255<<24)));
+        //barrier();
+        */
         uint cmd0Idx = atomicAdd(cmdBuff0Count, bitCount(msk & 255));
         uint cmd1Idx = atomicAdd(cmdBuff1Count, bitCount(msk & (255<<8)));
         uint cmd2Idx = atomicAdd(cmdBuff2Count, bitCount(msk & (255<<16)));
         uint cmd3Idx = atomicAdd(cmdBuff3Count, bitCount(msk & (255<<24)));
+
 
         //Skip msk is each layers mask ored together, this is used to acclerate checks in the main command gen loop
         uint skipmsk = msk|(msk>>16);
@@ -104,6 +112,8 @@ void main() {
         //All remaining work groups should be in the same "warp state" up to this loop
         // past this loop the work groups start to diverge, which is bad for performance but not much
         // can be done to fix this only reduce the amount of time its spent in this loop
+
+        //TODO: try unrolling this loop, any if false, should just be written to a dummy command index
         for (uint i = 0; skipmsk != 0; i++, skipmsk >>= 1) {
             // if no layer has a face for this side, skip
             if ((skipmsk&1) == 0) continue;

@@ -136,6 +136,9 @@ public class RenderSection {
     public void markForUpdate(ChunkUpdateType type) {
         if (this.pendingUpdate == null || type.ordinal() > this.pendingUpdate.ordinal()) {
             this.pendingUpdate = type;
+            if (region != null) {
+                region.markSectionUpdateRequest(this);
+            }
         }
     }
 

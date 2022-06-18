@@ -13,7 +13,6 @@ import net.caffeinemc.gfx.api.shader.ShaderDescription;
 import net.caffeinemc.gfx.api.shader.ShaderType;
 import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
-import net.caffeinemc.gfx.opengl.buffer.GlMappedBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.render.buffer.StreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
@@ -31,7 +30,6 @@ import net.caffeinemc.sodium.util.TextureUtil;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import org.joml.Matrix4f;
-import org.lwjgl.opengl.GL11;
 
 import java.util.Collection;
 import java.util.List;
@@ -161,29 +159,29 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
             for (RenderRegion region : regions) {
                 int id = 0;
                 if (renderPass == DefaultRenderPasses.SOLID)
-                    cmd.bindCommandBuffer(region.cmd0buff);
+                    cmd.bindCommandBuffer(region.renderData.cmd0buff);
 
                 if (renderPass == DefaultRenderPasses.CUTOUT_MIPPED) {
-                    cmd.bindCommandBuffer(region.cmd1buff);
+                    cmd.bindCommandBuffer(region.renderData.cmd1buff);
                     id = 1;
                 }
                 if (renderPass == DefaultRenderPasses.CUTOUT) {
-                    cmd.bindCommandBuffer(region.cmd2buff);
+                    cmd.bindCommandBuffer(region.renderData.cmd2buff);
                     id =2;
                 }
-                int count = region.dodgyThing.view().getInt(id*4);
+                int count = region.renderData.cpuCommandCount.view().getInt(id*4);
                 if (count == 0) {
                     continue;
                 }
 
                 pipelineState.bindBufferBlock(
                         programInterface.uniformInstanceData,
-                        region.instanceBuffer,
+                        region.renderData.instanceBuffer,
                         0,
                         RenderRegion.REGION_SIZE*4*3
                 );
 
-                cmd.bindParameterCountBuffer(region.counterBuffer);
+                cmd.bindParameterCountBuffer(region.renderData.counterBuffer);
 
                 cmd.bindVertexBuffer(
                         BufferTarget.VERTICES,
@@ -197,7 +195,7 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
                         ElementFormat.UNSIGNED_INT,
                         0,
                         4+4*id,//FIXME: need to select the index (0) from the current render layer
-                        (int)(count*1.5)+1,
+                        Math.min(Math.max((int)(count*1.5)+1, 0), RenderRegion.REGION_SIZE * 5 * 4 * 6 - 5),
                         //(int)(Math.ceil(region.sectionCount*3.5)),//FIXME: optimize this to be as close bound as possible, maybe even make it dynamic based on previous counts
                         5*4
                 );

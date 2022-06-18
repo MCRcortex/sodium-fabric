@@ -180,15 +180,13 @@ public class GPUOcclusionManager {
                     .mul(matrices.modelView())
                     .translate(campos);
 
-            mvp.getToAddress(MemoryUtil.memAddress(region.sceneBuffer.view()));
-            campos.getToAddress(MemoryUtil.memAddress(region.sceneBuffer.view())+4*4*4);
-            region.sceneBuffer.flush();
-            //FIXME: clear  region.counterBuffer
-            //System.out.println(region.instanceBuffer.view().getFloat(0));
+            mvp.getToAddress(MemoryUtil.memAddress(region.renderData.sceneBuffer.view()));
+            campos.getToAddress(MemoryUtil.memAddress(region.renderData.sceneBuffer.view())+4*4*4);
+            region.renderData.sceneBuffer.flush();
             //FIXME: put into gfx
-            glCopyNamedBufferSubData(GlBuffer.getHandle(region.counterBuffer), GlBuffer.getHandle(region.dodgyThing),4,0,4*4);
+            glCopyNamedBufferSubData(GlBuffer.getHandle(region.renderData.counterBuffer), GlBuffer.getHandle(region.renderData.cpuCommandCount),4,0,4*4);
             //FIXME: put into gfx
-            glClearNamedBufferData(GlBuffer.getHandle(region.counterBuffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
+            glClearNamedBufferData(GlBuffer.getHandle(region.renderData.counterBuffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
         }
         //GL11.glFinish();
 
@@ -198,10 +196,10 @@ public class GPUOcclusionManager {
             for (RenderRegion region : visRegions) {
 
 
-                pipelineState.bindBufferBlock(programInterface.scene, region.sceneBuffer);
+                pipelineState.bindBufferBlock(programInterface.scene, region.renderData.sceneBuffer);
 
                 pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBuffer());
-                pipelineState.bindBufferBlock(programInterface.visbuff, region.visBuffer);
+                pipelineState.bindBufferBlock(programInterface.visbuff, region.renderData.visBuffer);
                 //pipelineState.bindBufferBlock(programInterface.indirectbuff, region.computeDispatchIndirectBuffer);
 
                 //FIXME: optimize by only drawing sides facing the camera
@@ -212,17 +210,17 @@ public class GPUOcclusionManager {
         //glFinish();
         this.device.usePipeline(this.commandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
             for (RenderRegion region : visRegions) {
-                pipelineState.bindBufferBlock(programInterface.scene, region.sceneBuffer);
+                pipelineState.bindBufferBlock(programInterface.scene, region.renderData.sceneBuffer);
                 pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBuffer());
-                pipelineState.bindBufferBlock(programInterface.visbuff, region.visBuffer);
+                pipelineState.bindBufferBlock(programInterface.visbuff, region.renderData.visBuffer);
 
-                pipelineState.bindBufferBlock(programInterface.cpuvisbuff, region.cpuSectionVis);
+                pipelineState.bindBufferBlock(programInterface.cpuvisbuff, region.renderData.cpuSectionVis);
 
-                pipelineState.bindBufferBlock(programInterface.counter, region.counterBuffer);
-                pipelineState.bindBufferBlock(programInterface.instancedata, region.instanceBuffer);
-                pipelineState.bindBufferBlock(programInterface.cmdbuffs[0], region.cmd0buff);
-                pipelineState.bindBufferBlock(programInterface.cmdbuffs[1], region.cmd1buff);
-                pipelineState.bindBufferBlock(programInterface.cmdbuffs[2], region.cmd2buff);
+                pipelineState.bindBufferBlock(programInterface.counter, region.renderData.counterBuffer);
+                pipelineState.bindBufferBlock(programInterface.instancedata, region.renderData.instanceBuffer);
+                pipelineState.bindBufferBlock(programInterface.cmdbuffs[0], region.renderData.cmd0buff);
+                pipelineState.bindBufferBlock(programInterface.cmdbuffs[1], region.renderData.cmd1buff);
+                pipelineState.bindBufferBlock(programInterface.cmdbuffs[2], region.renderData.cmd2buff);
 
 
                 cmd.dispatchCompute((int)Math.ceil((double) region.sectionCount/16),1,1);

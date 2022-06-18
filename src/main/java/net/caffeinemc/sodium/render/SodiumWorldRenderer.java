@@ -202,7 +202,7 @@ public class SodiumWorldRenderer {
         if (this.renderSectionManager.isGraphDirty()) {
             profiler.swap("chunk_graph_rebuild");
             if (!MinecraftClient.getInstance().player.isSneaking()) {
-                //this.renderSectionManager.update(new ChunkCameraContext(camera), frustum, spectator);
+                this.renderSectionManager.update(new ChunkCameraContext(camera), frustum, spectator);
             }
             } else {
 
