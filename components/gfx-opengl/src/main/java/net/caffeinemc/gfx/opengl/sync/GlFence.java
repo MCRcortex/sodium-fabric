@@ -28,10 +28,10 @@ public class GlFence implements Fence {
         int result;
 
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            IntBuffer values = stack.callocInt(1);
-            GL32C.nglGetSynciv(this.id, GL32C.GL_SYNC_STATUS, 1, MemoryUtil.NULL, MemoryUtil.memAddress(values));
+            long statusPointer = stack.ncalloc(Integer.BYTES, 0, Integer.BYTES);
+            GL32C.nglGetSynciv(this.id, GL32C.GL_SYNC_STATUS, 1, MemoryUtil.NULL, statusPointer);
 
-            result = values.get(0);
+            result = MemoryUtil.memGetInt(statusPointer);
         }
 
         if (result == GL32C.GL_SIGNALED) {
@@ -41,12 +41,12 @@ public class GlFence implements Fence {
     }
 
     @Override
-    public void sync() {
+    public void sync(boolean flush) {
         if (this.poll()) {
             return;
         }
 
-        GL32C.glClientWaitSync(this.id, 0, GL32C.GL_TIMEOUT_IGNORED);
+        GL32C.glClientWaitSync(this.id, flush ? GL32C.GL_SYNC_FLUSH_COMMANDS_BIT : 0, GL32C.GL_TIMEOUT_IGNORED);
         GL32C.glDeleteSync(this.id);
 
         this.signaled = true;

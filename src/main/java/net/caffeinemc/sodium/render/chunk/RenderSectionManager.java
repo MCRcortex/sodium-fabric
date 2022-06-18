@@ -10,7 +10,7 @@ import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
-import net.caffeinemc.sodium.render.buffer.StreamingBuffer;
+import net.caffeinemc.sodium.render.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.compile.ChunkBuilder;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.AbstractBuilderTask;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.EmptyTerrainBuildTask;
@@ -65,7 +65,7 @@ public class RenderSectionManager {
     private final ChunkTree tree;
     private final int chunkViewDistance;
 
-    private final Map<ChunkUpdateType, PriorityQueue<RenderSection>> rebuildQueues = new EnumMap<>(ChunkUpdateType.class);
+    public final Map<ChunkUpdateType, PriorityQueue<RenderSection>> rebuildQueues = new EnumMap<>(ChunkUpdateType.class);
 
     private final Map<ChunkRenderPass, ChunkRenderer> chunkRenderers;
 
@@ -99,7 +99,7 @@ public class RenderSectionManager {
         this.device = device;
         this.chunkRenderers = new Reference2ReferenceOpenHashMap<>();
 
-        this.renderListBuilder = new RenderListBuilder(device);
+        this.renderListBuilder = new RenderListBuilder(device, chunkViewDistance, world);
 
         this.indexBuffer = new SequenceIndexBuffer(device, SequenceBuilder.QUADS_INT);
 
@@ -245,7 +245,7 @@ public class RenderSectionManager {
         if (section.isEmpty()) {
             render.setData(ChunkRenderData.EMPTY);
         } else {
-            render.markForUpdate(ChunkUpdateType.INITIAL_BUILD);
+            render.markForUpdate(this, ChunkUpdateType.INITIAL_BUILD);
             //FIXME: NEED TO BATCH TO LIKE 32 OR SOMTEHING
             //this.rebuildQueues.get(ChunkUpdateType.INITIAL_BUILD).enqueue(this.tree.getSection(x,y,z));
         }
@@ -432,12 +432,9 @@ public class RenderSectionManager {
 
         if (section != null && section.isBuilt()) {
             if (!this.alwaysDeferChunkUpdates && (important || this.isBlockUpdatePrioritized(section))) {
-                section.markForUpdate(ChunkUpdateType.IMPORTANT_REBUILD);
+                section.markForUpdate(this, ChunkUpdateType.IMPORTANT_REBUILD);
             } else {
-                section.markForUpdate(ChunkUpdateType.REBUILD);
-                if (section.getRegion() != null && section.getRegion().isSectionVisible(section)) {
-                    //rebuildQueues.get(ChunkUpdateType.REBUILD).enqueue(section);
-                }
+                section.markForUpdate(this, ChunkUpdateType.REBUILD);
             }
         }
 
@@ -466,6 +463,10 @@ public class RenderSectionManager {
 
             count++;
         }
+
+        deviceUsed += this.renderListBuilder.getDeviceUsedMemory();
+        deviceAllocated += this.renderListBuilder.getDeviceAllocatedMemory();
+        count += this.renderListBuilder.getDeviceBufferObjects();
 
         List<String> strings = new ArrayList<>();
         strings.add(String.format("Device buffer objects: %d", count));

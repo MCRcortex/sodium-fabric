@@ -1,7 +1,7 @@
 package net.caffeinemc.sodium.render.chunk.occlussion;
 
-import net.caffeinemc.sodium.render.buffer.StreamingBuffer;
 import net.caffeinemc.sodium.render.buffer.VertexRange;
+import net.caffeinemc.sodium.render.buffer.streaming.StreamingBuffer;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
 
@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class SectionMeta {
-    public static final int SIZE = 4+4*3*3+4+4*2*7*4;
+    public static final int SIZE = 4+4*3*3+4+4*2*7*4+4;
 
     private final int id;
     private Vector3f AABBOffset = new Vector3f();
@@ -19,7 +19,7 @@ public class SectionMeta {
     public VertexRange[] SOLID = new VertexRange[7];
     public VertexRange[] CUTOUT_MIPPED = new VertexRange[7];
     public VertexRange[] CUTOUT = new VertexRange[7];
-    private VertexRange[] TRANSLUCENT = new VertexRange[7];
+    public VertexRange[] TRANSLUCENT = new VertexRange[7];
 
     private final StreamingBuffer streamingBuffer;
 
@@ -68,7 +68,7 @@ public class SectionMeta {
             vismsk |= Byte.toUnsignedInt(computeVis(CUTOUT))<<16;
         }
         if (TRANSLUCENT != null) {
-            vismsk |= Byte.toUnsignedInt(computeVis(TRANSLUCENT))<<24;
+            vismsk |= (computeVis(TRANSLUCENT)!=0?1:0)<<24;
         }
         lmsk = vismsk;
     }

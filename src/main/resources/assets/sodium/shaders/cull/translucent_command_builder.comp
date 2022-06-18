@@ -1,0 +1,40 @@
+#version 460 core
+
+#import <sodium:cull/datatypes.h>
+
+layout(local_size_x = 32) in;
+
+layout(std430, binding = 1) restrict readonly buffer MetaData {
+    SectionMeta sections[];
+};
+
+layout(std430, binding = 2) restrict readonly buffer CounterBuffer {
+    uint instanceCounter;
+    uint cmdBuff0Count;
+    uint cmdBuff1Count;
+    uint cmdBuff2Count;
+    uint count3;
+};
+
+layout(std430, binding = 3) restrict buffer TransSorted {
+    uint translucencySorted[];
+};
+
+layout(std430, binding = 4) restrict writeonly buffer CommandBuffer3 {
+    DrawElementsInstancedCommand cmd3buff[];
+};
+#define SECTION sections[index]
+
+void main() {
+    if (count3 <= gl_GlobalInvocationID.x)
+        return;
+    uint index = translucencySorted[gl_GlobalInvocationID.x]&(4095);
+    translucencySorted[gl_GlobalInvocationID.x] = 0xFFFFFFFF;
+
+    cmd3buff[gl_GlobalInvocationID.x].count = SECTION.TRANSLUCENT[6].count;
+    cmd3buff[gl_GlobalInvocationID.x].instanceCount = 1;
+    cmd3buff[gl_GlobalInvocationID.x].firstIndex = 0;
+    cmd3buff[gl_GlobalInvocationID.x].baseVertex = SECTION.TRANSLUCENT[6].offset;
+    cmd3buff[gl_GlobalInvocationID.x].baseInstance = SECTION.instancedDataId;
+
+}

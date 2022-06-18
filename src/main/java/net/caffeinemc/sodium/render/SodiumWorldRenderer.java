@@ -224,7 +224,7 @@ public class SodiumWorldRenderer {
 
         ChunkRenderPass renderPass = this.renderPassManager.getRenderPassForLayer(renderLayer);
         this.renderSectionManager.renderLayer(ChunkRenderMatrices.from(matrixStack), renderPass);
-        if (renderLayer == RenderLayer.getCutout()) {
+        if (renderLayer == RenderLayer.getTranslucent()) {
             this.occlusion.computeOcclusionVis(renderSectionManager.regions.regions.values(), ChunkRenderMatrices.from(matrixStack), new ChunkCameraContext(cameraX, cameraY, cameraZ), frustum);
         }
     }

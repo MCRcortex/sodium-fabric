@@ -2,6 +2,7 @@ package net.caffeinemc.sodium.render.chunk.passes;
 
 import net.caffeinemc.gfx.api.pipeline.state.BlendFunc;
 import net.caffeinemc.gfx.api.pipeline.PipelineDescription;
+import net.caffeinemc.gfx.api.pipeline.state.WriteMask;
 
 public class DefaultRenderPasses {
     public static final ChunkRenderPass SOLID = new ChunkRenderPass(PipelineDescription.defaults(), true, 0.0f);
@@ -10,8 +11,10 @@ public class DefaultRenderPasses {
     public static final ChunkRenderPass TRANSLUCENT = new ChunkRenderPass(PipelineDescription.builder()
             .setBlendFunction(BlendFunc.separate(BlendFunc.SrcFactor.SRC_ALPHA, BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA,
                     BlendFunc.SrcFactor.ONE, BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA))
+            .setWriteMask(new WriteMask(true, false))
             .build(), true, 0.0f);
     public static final ChunkRenderPass TRIPWIRE = new ChunkRenderPass(PipelineDescription.defaults(), true, 0.1f);
 
     public static final ChunkRenderPass[] ALL = new ChunkRenderPass[] { SOLID, CUTOUT_MIPPED, CUTOUT, TRANSLUCENT, TRIPWIRE };
 }
+

@@ -5,12 +5,14 @@
 //FIXME: optimize local_size and add restrict to all bindings that can use it
 layout(local_size_x = 16) in;
 
-layout(std140, binding = 0) uniform SceneData {
+layout(std430, binding = 0) restrict readonly buffer SceneData {
     mat4 mat_modelviewproj;
     Vec3F negativeCameraPosRegionRelative;
+    uint max_translucency;
 };
 
-layout(std430, binding = 1) restrict readonly buffer MetaData {
+//readonly
+layout(std430, binding = 1) restrict  buffer MetaData {
     SectionMeta sections[];
 };
 #define SECTION sections[gl_GlobalInvocationID.x]
@@ -28,7 +30,7 @@ layout(std430, binding = 4) restrict buffer CounterBuffer {
     uint cmdBuff0Count;
     uint cmdBuff1Count;
     uint cmdBuff2Count;
-    uint cmdBuff3Count;
+    uint count3;
 };
 
 layout(std430, binding = 5) restrict writeonly buffer InstanceDataBuffer {
@@ -47,10 +49,28 @@ layout(std430, binding = 8) restrict writeonly buffer CommandBuffer2 {
     DrawElementsInstancedCommand cmdBuff2[];
 };
 
-layout(std430, binding = 9) restrict writeonly buffer CommandBuffer3 {
-    DrawElementsInstancedCommand cmdBuff3[];
+
+layout(std430, binding = 9) restrict buffer TransSorted {
+    uint translucency[];
 };
 
+void bubbleInsertTranslucency(uint zcur, uint index) {
+    uint i = 0;
+    //TODO: try finetune to this to closer upper bound like 1.5 or 1.75
+    uint test = index/2;
+    if (translucency[test]<=zcur) {
+        i = test;
+    }
+    //TODO: as much presorting/locating as possible
+    for (; i < max_translucency; i++) {
+        uint ztest = atomicMin(translucency[i], zcur);
+        if(ztest == 0xFFFFFFFF)
+        {
+            break;
+        }
+        zcur = (ztest > zcur) ? ztest : zcur;
+    }
+}
 
 void main() {
     if (SECTION.id != gl_GlobalInvocationID.x) return;
@@ -101,7 +121,6 @@ void main() {
         uint cmd0Idx = atomicAdd(cmdBuff0Count, bitCount(msk & 255));
         uint cmd1Idx = atomicAdd(cmdBuff1Count, bitCount(msk & (255<<8)));
         uint cmd2Idx = atomicAdd(cmdBuff2Count, bitCount(msk & (255<<16)));
-        uint cmd3Idx = atomicAdd(cmdBuff3Count, bitCount(msk & (255<<24)));
 
 
         //Skip msk is each layers mask ored together, this is used to acclerate checks in the main command gen loop
@@ -147,7 +166,7 @@ void main() {
                 cmdBuff2[cmd2Idx].baseInstance = instanceId;
                 cmd2Idx++;
             }
-
+            /*
             if ((msk&((1<<24)<<i)) != 0) {//Layer 3
                 cmdBuff3[cmd3Idx].count = SECTION.TRANSLUCENT[i].count;
                 cmdBuff3[cmd3Idx].instanceCount = 1;
@@ -155,6 +174,20 @@ void main() {
                 cmdBuff3[cmd3Idx].baseVertex = SECTION.TRANSLUCENT[i].offset;
                 cmdBuff3[cmd3Idx].baseInstance = instanceId;
                 cmd3Idx++;
+            }*/
+        }
+
+        {
+            //Insert translucency if it is visible
+            if (((msk&(255<<24))!=0)) {
+                if (max_translucency != 0) {
+                    uint index = atomicAdd(count3, 1);
+                    SECTION.instancedDataId = instanceId;
+                    uint distance = 1-uint(sqrt(dot(center, center)));//the 1- is to invert it to reverse sort
+                    //Leave 12 bits for id which should be more than enough given a region size of 16x16x16
+                    uint sortKey = (distance<<12)|SECTION.id;
+                    bubbleInsertTranslucency(sortKey, index);
+                }
             }
         }
     }

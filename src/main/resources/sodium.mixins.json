@@ -38,7 +38,6 @@
     "features.debug.MixinDebugHud",
     "features.entity.cull.MixinEntityRenderer",
     "features.entity.fast_render.MixinCuboid",
-    "features.entity.fast_render.MixinModelPart",
     "features.fast_biome_colors.MixinBackgroundRenderer",
     "features.fast_biome_colors.MixinClientWorld",
     "features.gui.MixinDebugHud",

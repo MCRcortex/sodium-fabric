@@ -1,22 +1,22 @@
-package net.caffeinemc.sodium.render.arena;
+package net.caffeinemc.sodium.render.buffer.arena;
 
 import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.buffer.ImmutableBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
-import net.caffeinemc.sodium.render.buffer.StreamingBuffer;
+import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
 import org.lwjgl.system.MemoryUtil;
 
 import java.util.*;
 //TODO: add a fragmented % and a defragment method
 //TODO: maybe also swap to a system similar to my nvidia branch with a tree set, should be alot faster
 // at finding valid memory sections
-public class SmartConstAsyncBufferArena implements BufferArena {
+public class SmartConstAsyncBufferArena implements ArenaBuffer {
     static final boolean CHECK_ASSERTIONS = false;
 
     private final int resizeIncrement;
 
     private final RenderDevice device;
-    private final StreamingBuffer streamingBuffer;
+    private final SectionedStreamingBuffer stagingBuffer;
     private Buffer arenaBuffer;
 
     private BufferSegment head;
@@ -26,9 +26,9 @@ public class SmartConstAsyncBufferArena implements BufferArena {
 
     private final int stride;
 
-    public SmartConstAsyncBufferArena(RenderDevice device, StreamingBuffer streamingBuffer, int capacity, int stride) {
+    public SmartConstAsyncBufferArena(RenderDevice device, SectionedStreamingBuffer stagingBuffer, int capacity, int stride) {
         this.device = device;
-        this.streamingBuffer = streamingBuffer;
+        this.stagingBuffer = stagingBuffer;
         this.resizeIncrement = capacity / 16;
         this.capacity = capacity;
 
@@ -204,12 +204,11 @@ public class SmartConstAsyncBufferArena implements BufferArena {
         return this.arenaBuffer;
     }
 
-    @Override
     public void upload(List<PendingUpload> uploads, int frameIndex) {
         // A linked list is used as we'll be randomly removing elements and want O(1) performance
         var pendingTransfers = new LinkedList<PendingTransfer>();
 
-        StreamingBuffer.WritableSection section = this.streamingBuffer.getSectionWithSize(
+        var section = this.stagingBuffer.getSection(
                 frameIndex,
                 uploads.stream().mapToInt(u -> u.data.getLength()).sum(),
                 true
@@ -242,7 +241,7 @@ public class SmartConstAsyncBufferArena implements BufferArena {
         section.getView().position(section.getView().position() + transferOffset);
         section.flushPartial();
 
-        Buffer backingStreamingBuffer = section.getBuffer();
+        var backingStreamingBuffer = this.stagingBuffer.getBufferObject();
 
         // Try to upload all of the data into free segments first
         pendingTransfers.removeIf(transfer -> this.tryUpload(backingStreamingBuffer, transfer));

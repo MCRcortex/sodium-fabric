@@ -3,14 +3,12 @@ package net.caffeinemc.sodium.render.chunk.region;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntAVLTreeSet;
-import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
-import net.caffeinemc.gfx.api.buffer.MappedBuffer;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
-import net.caffeinemc.sodium.render.arena.AsyncBufferArena;
-import net.caffeinemc.sodium.render.arena.BufferArena;
-import net.caffeinemc.sodium.render.arena.SmartConstAsyncBufferArena;
-import net.caffeinemc.sodium.render.buffer.StreamingBuffer;
+import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
+import net.caffeinemc.sodium.render.buffer.arena.SmartConstAsyncBufferArena;
+import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
+import net.caffeinemc.sodium.render.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.occlussion.SectionMeta;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
@@ -18,12 +16,11 @@ import net.caffeinemc.sodium.util.MathUtil;
 import net.caffeinemc.sodium.util.collections.BitArray;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.apache.commons.lang3.Validate;
-import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
-import java.nio.ByteBuffer;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class RenderRegion {
     public static final int REGION_WIDTH = 16;
@@ -48,20 +45,21 @@ public class RenderRegion {
 
     private final int regionX, regionY, regionZ;
 
-    public final BufferArena vertexBuffers;
+    public final ArenaBuffer vertexBuffers;
     public final StreamingBuffer metaBuffer;
     public final RenderRegionInstancedRenderData renderData;
+    public final AtomicInteger translucentSections = new AtomicInteger();
 
     public float weight;//Util thing
 
     public final int id;
 
-    public RenderRegion(RenderDevice device, StreamingBuffer streamingBuffer, TerrainVertexType vertexType, int id, long regionKey) {
-        this.vertexBuffers = new SmartConstAsyncBufferArena(device, streamingBuffer,
+    public RenderRegion(RenderDevice device, SectionedStreamingBuffer stagingBuffer, TerrainVertexType vertexType, int id, long regionKey) {
+        this.vertexBuffers = new SmartConstAsyncBufferArena(device, stagingBuffer,
                 REGION_SIZE * 756,
                 vertexType.getBufferVertexFormat().stride());
-        this.metaBuffer = new StreamingBuffer(device, 1, SectionMeta.SIZE, REGION_SIZE,
-                MappedBufferFlags.EXPLICIT_FLUSH);//FIXME: add relevant flags
+        this.metaBuffer = new SectionedStreamingBuffer(device, 1, SectionMeta.SIZE, REGION_SIZE,
+                Set.of(MappedBufferFlags.EXPLICIT_FLUSH));
         this.id = id;
         ChunkSectionPos csp = ChunkSectionPos.from(regionKey);
         regionX = csp.getSectionX();

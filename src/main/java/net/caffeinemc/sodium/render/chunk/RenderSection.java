@@ -133,12 +133,17 @@ public class RenderSection {
         return this.pendingUpdate;
     }
 
-    public void markForUpdate(ChunkUpdateType type) {
+    public void markForUpdate(RenderSectionManager sectionManager, ChunkUpdateType type) {
         if (this.pendingUpdate == null || type.ordinal() > this.pendingUpdate.ordinal()) {
             this.pendingUpdate = type;
+            /*
             if (region != null) {
-                region.markSectionUpdateRequest(this);
-            }
+                if (getRegion() != null && getRegion().isSectionVisible(this)) {
+                    sectionManager.rebuildQueues.get(type).enqueue(this);
+                }
+            } else if (type == ChunkUpdateType.INITIAL_BUILD) {
+                sectionManager.rebuildQueues.get(type).enqueue(this);
+            }*/
         }
     }
 
@@ -165,6 +170,11 @@ public class RenderSection {
     }
 
     public void deleteGeometry() {
+        if (region != null) {
+            if (Arrays.stream(uploadedGeometry.models).anyMatch(a->a.pass==DefaultRenderPasses.TRANSLUCENT)) {
+                region.translucentSections.decrementAndGet();
+            }
+        }
         if (this.uploadedGeometry != null) {
             this.uploadedGeometry.delete();
             this.uploadedGeometry = null;
@@ -180,6 +190,9 @@ public class RenderSection {
             this.sectionMeta = region.sectionGeometryUpdated(this);
         } else {
             this.sectionMeta = region.requestNewMetaSection(this);
+        }
+        if (Arrays.stream(uploadedGeometry.models).anyMatch(a->a.pass==DefaultRenderPasses.TRANSLUCENT)) {
+            region.translucentSections.incrementAndGet();
         }
         onGeoUpdate();
     }
@@ -230,6 +243,23 @@ public class RenderSection {
                             UploadedChunkGeometry.ModelPart.unpackFirstVertex(p)+uploadedGeometry.segment.getOffset(),
                             UploadedChunkGeometry.ModelPart.unpackVertexCount(p));
                 }
+            }
+            if (model.pass == DefaultRenderPasses.TRANSLUCENT) {
+                for (long p : model.ranges) {
+                    int face = Integer.numberOfTrailingZeros(UploadedChunkGeometry.ModelPart.unpackFace(p));
+                    sectionMeta.TRANSLUCENT[face] = new VertexRange(
+                            UploadedChunkGeometry.ModelPart.unpackFirstVertex(p)+uploadedGeometry.segment.getOffset(),
+                            UploadedChunkGeometry.ModelPart.unpackVertexCount(p));
+                }
+                int minFirst = Integer.MAX_VALUE;
+                int count = 0;
+                for (VertexRange r : sectionMeta.TRANSLUCENT) {
+                    if (r == null)
+                        continue;
+                    count += r.vertexCount();
+                    minFirst = Math.min(r.firstVertex(), minFirst);
+                }
+                sectionMeta.TRANSLUCENT[6] = new VertexRange(minFirst, count);
             }
         }
         sectionMeta.flush();

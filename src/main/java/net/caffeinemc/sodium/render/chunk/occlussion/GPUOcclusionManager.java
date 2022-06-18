@@ -47,8 +47,10 @@ public class GPUOcclusionManager {
     private RenderDevice device;
     private Program<RasterCullerInterface> rasterCullProgram;
     private Program<CommandGeneratorInterface> commandGeneratorProgram;
+    private Program<TranslucentCommandGeneratorInterface> translucentCommandGeneratorProgram;
     private Pipeline<RasterCullerInterface, EmptyTarget> rasterCullPipeline;
     private Pipeline<CommandGeneratorInterface, EmptyTarget> commandGeneratorPipeline;
+    private Pipeline<TranslucentCommandGeneratorInterface, EmptyTarget> translucentCommandGeneratorPipeline;
     private final ImmutableBuffer indexBuffer;
 
     public TreeSet<RenderRegion> visRegions = new TreeSet<>(Comparator.comparingDouble(a->a.weight));
@@ -89,6 +91,20 @@ public class GPUOcclusionManager {
                         //.setWriteMask(new WriteMask(false, false))
                         .build(),
                 this.commandGeneratorProgram,
+                vertexArray);
+
+
+
+        this.translucentCommandGeneratorProgram = this.device.createProgram(ShaderDescription.builder()
+                .addShaderSource(ShaderType.COMPUTE,
+                        ShaderParser.parseSodiumShader(ShaderLoader.MINECRAFT_ASSETS,
+                                new Identifier("sodium", "cull/translucent_command_builder.comp"), constants))
+                .build(), TranslucentCommandGeneratorInterface::new);
+
+        this.translucentCommandGeneratorPipeline = device.createPipeline(PipelineDescription.builder()
+                        .setWriteMask(new WriteMask(false, false))
+                        .build(),
+                this.translucentCommandGeneratorProgram,
                 vertexArray);
 
 
@@ -182,6 +198,8 @@ public class GPUOcclusionManager {
 
             mvp.getToAddress(MemoryUtil.memAddress(region.renderData.sceneBuffer.view()));
             campos.getToAddress(MemoryUtil.memAddress(region.renderData.sceneBuffer.view())+4*4*4);
+            region.renderData.sceneBuffer.view().order(ByteOrder.nativeOrder())
+                    .putInt(4*4*4+4*3, region.renderData.cpuCommandCount.view().getInt(0)!=0?region.translucentSections.intValue():0);
             region.renderData.sceneBuffer.flush();
             //FIXME: put into gfx
             glCopyNamedBufferSubData(GlBuffer.getHandle(region.renderData.counterBuffer), GlBuffer.getHandle(region.renderData.cpuCommandCount),4,0,4*4);
@@ -198,7 +216,7 @@ public class GPUOcclusionManager {
 
                 pipelineState.bindBufferBlock(programInterface.scene, region.renderData.sceneBuffer);
 
-                pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBuffer());
+                pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBufferObject());
                 pipelineState.bindBufferBlock(programInterface.visbuff, region.renderData.visBuffer);
                 //pipelineState.bindBufferBlock(programInterface.indirectbuff, region.computeDispatchIndirectBuffer);
 
@@ -211,7 +229,7 @@ public class GPUOcclusionManager {
         this.device.usePipeline(this.commandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
             for (RenderRegion region : visRegions) {
                 pipelineState.bindBufferBlock(programInterface.scene, region.renderData.sceneBuffer);
-                pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBuffer());
+                pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBufferObject());
                 pipelineState.bindBufferBlock(programInterface.visbuff, region.renderData.visBuffer);
 
                 pipelineState.bindBufferBlock(programInterface.cpuvisbuff, region.renderData.cpuSectionVis);
@@ -221,6 +239,7 @@ public class GPUOcclusionManager {
                 pipelineState.bindBufferBlock(programInterface.cmdbuffs[0], region.renderData.cmd0buff);
                 pipelineState.bindBufferBlock(programInterface.cmdbuffs[1], region.renderData.cmd1buff);
                 pipelineState.bindBufferBlock(programInterface.cmdbuffs[2], region.renderData.cmd2buff);
+                pipelineState.bindBufferBlock(programInterface.transSort, region.renderData.trans3);
 
 
                 cmd.dispatchCompute((int)Math.ceil((double) region.sectionCount/16),1,1);
@@ -228,7 +247,19 @@ public class GPUOcclusionManager {
                 //cmd.dispatchComputeIndirect(0);
             }
         });
-        //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        this.device.usePipeline(this.translucentCommandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
+            for (RenderRegion region : visRegions) {
+                if (region.translucentSections.intValue() == 0) {
+                    continue;
+                }
+                pipelineState.bindBufferBlock(programInterface.transSort, region.renderData.trans3);
+                pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBufferObject());
+                pipelineState.bindBufferBlock(programInterface.command, region.renderData.cmd3buff);
+                pipelineState.bindBufferBlock(programInterface.counter, region.renderData.counterBuffer);
+                cmd.dispatchCompute((int)Math.ceil((double) region.translucentSections.intValue()/32),1,1);
+            }
+        });
     }
 
     public void fillRenderCommands(List<RenderRegion> regions) {
