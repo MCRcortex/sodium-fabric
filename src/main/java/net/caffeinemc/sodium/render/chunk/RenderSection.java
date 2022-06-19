@@ -1,5 +1,6 @@
 package net.caffeinemc.sodium.render.chunk;
 
+import it.unimi.dsi.fastutil.PriorityQueue;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.buffer.VertexRange;
 import net.caffeinemc.sodium.render.chunk.occlussion.SectionMeta;
@@ -135,15 +136,16 @@ public class RenderSection {
 
     public void markForUpdate(RenderSectionManager sectionManager, ChunkUpdateType type) {
         if (this.pendingUpdate == null || type.ordinal() > this.pendingUpdate.ordinal()) {
-            this.pendingUpdate = type;
-            /*
+
             if (region != null) {
                 if (getRegion() != null && getRegion().isSectionVisible(this)) {
                     sectionManager.rebuildQueues.get(type).enqueue(this);
                 }
             } else if (type == ChunkUpdateType.INITIAL_BUILD) {
-                sectionManager.rebuildQueues.get(type).enqueue(this);
-            }*/
+                PriorityQueue<RenderSection> queue = sectionManager.rebuildQueues.get(type);
+                queue.enqueue(this);
+            }
+            this.pendingUpdate = type;
         }
     }
 
