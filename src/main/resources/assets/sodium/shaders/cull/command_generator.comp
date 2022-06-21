@@ -3,7 +3,7 @@
 #import <sodium:cull/datatypes.h>
 
 //FIXME: optimize local_size and add restrict to all bindings that can use it
-layout(local_size_x = 16) in;
+layout(local_size_x = 32) in;
 
 layout(std430, binding = 0) restrict readonly buffer SceneData {
     mat4 mat_modelviewproj;
@@ -75,6 +75,46 @@ void bubbleInsertTranslucency(uint zcur, uint index) {
         zcur = (ztest > zcur) ? ztest : zcur;
     }
 }
+uint cmd0Idx;
+uint cmd1Idx;
+uint cmd2Idx;
+uint msk;
+uint instanceId;
+//TODO: try an out of bounds idx
+#define VOID_IDX 4095
+void innerdo(uint i) {
+    uint idxx = ((msk&((1)<<i)) != 0)?cmd0Idx:VOID_IDX;
+    cmdBuff0[idxx].count = SECTION.SOLID[i].count;
+    cmdBuff0[idxx].instanceCount = 1;
+    cmdBuff0[idxx].firstIndex = 0;
+    cmdBuff0[idxx].baseVertex = SECTION.SOLID[i].offset;
+    cmdBuff0[idxx].baseInstance = instanceId;
+    cmd0Idx+=uint(((msk&((1)<<i)) != 0));
+
+    idxx = ((msk&((1<<8)<<i)) != 0)?cmd1Idx:VOID_IDX;
+    cmdBuff1[idxx].count = SECTION.CUTOUT_MIPPED[i].count;
+    cmdBuff1[idxx].instanceCount = 1;
+    cmdBuff1[idxx].firstIndex = 0;
+    cmdBuff1[idxx].baseVertex = SECTION.CUTOUT_MIPPED[i].offset;
+    cmdBuff1[idxx].baseInstance = instanceId;
+    cmd1Idx+=uint(((msk&((1<<8)<<i)) != 0));
+
+    idxx = ((msk&((1<<16)<<i)) != 0)?cmd2Idx:VOID_IDX;
+    cmdBuff2[idxx].count = SECTION.CUTOUT[i].count;
+    cmdBuff2[idxx].instanceCount = 1;
+    cmdBuff2[idxx].firstIndex = 0;
+    cmdBuff2[idxx].baseVertex = SECTION.CUTOUT[i].offset;
+    cmdBuff2[idxx].baseInstance = instanceId;
+    cmd2Idx+=uint(((msk&((1<<16)<<i)) != 0));
+}
+
+//Pray to god this gets inlined
+uint genVisMask(uint bit) {
+    uint result = 1<<bit;
+    result |= result<<8;
+    result |= result<<16;
+    return ~result;
+}
 
 void main() {
     if (SECTION.id != gl_GlobalInvocationID.x) return;
@@ -82,13 +122,26 @@ void main() {
         CPUvisiblity[gl_GlobalInvocationID.x] = 0;
         return;
     }
-    CPUvisiblity[gl_GlobalInvocationID.x] = 1;
     visiblity[gl_GlobalInvocationID.x] = 0;
 
     //TODO: cant i technically just remove hsize and it would have the same effect kinda? would be comparing 0 and bboxSize instead
     vec3 hsize = Vec3FtoVec3(SECTION.bboxSize)/2;
     vec3 center = Vec3FtoVec3(SECTION.bboxOffset) + hsize + Vec3FtoVec3(negativeCameraPosRegionRelative);
-
+    //TODO: move this to the raster_depth_test.vert shader, maybe using the depth buffer
+    if ((center.x*center.x + center.z*center.z)>(32*32*16*16)) {
+        CPUvisiblity[gl_GlobalInvocationID.x] = 0;
+        return;
+    }
+    //TODO: also try do exact face culling like in jellys pr
+    // might be slower but would heavily reduce overdraw probably
+    msk = SECTION.lvis;
+    msk &= center.y<hsize.y ? 0xFFFFFFFF : 4278124286;
+    msk &= center.y>-hsize.y? 0xFFFFFFFF : 4261281277;
+    msk &= center.x<hsize.x ? 0xFFFFFFFF : 4227595259;
+    msk &= center.x>-hsize.x? 0xFFFFFFFF : 4160223223;
+    msk &= center.z<hsize.z ? 0xFFFFFFFF : 4025479151;
+    msk &= center.z>-hsize.z? 0xFFFFFFFF : 3755991007;
+    /*
     uint vismsk = 64;
     vismsk |= center.y<hsize.y ?  1 : 0;
     vismsk |= center.y>-hsize.y?  2 : 0;
@@ -99,15 +152,17 @@ void main() {
     //Replicate vismsk to fill the full 4 bytes with the same mask, this is to easily mask all 4 layers in 1 operation
     vismsk |= vismsk<<8;
     vismsk |= vismsk<<16;
-
+    msk &= vismsk;*/
     {
         //msk is the visibility mask of all the layers, 1 byte per layer
-        uint msk = SECTION.lvis & vismsk;
         //If there is no visible face visible, just return, no need to continue
-        if (msk == 0)
+        if (msk == 0) {
+            CPUvisiblity[gl_GlobalInvocationID.x] = 0;
             return;
+        }
+        CPUvisiblity[gl_GlobalInvocationID.x] = 1;
 
-        uint instanceId = atomicAdd(instanceCounter, 1);
+        instanceId = atomicAdd(instanceCounter, 1);
         //FIXME: MAKE FASTER or move to camera transform matrix inside terrain render
         vec3 cm = Vec3FtoVec3(negativeCameraPosRegionRelative);
         vec3 ps = Vec3FtoVec3(SECTION.pos);
@@ -122,9 +177,9 @@ void main() {
         //uint cmd3Idx = (msk&(255<<24))==0?0:atomicAdd(cmdBuff3Count, bitCount(msk&(255<<24)));
         //barrier();
         */
-        uint cmd0Idx = atomicAdd(cmdBuff0Count, bitCount(msk & 255));
-        uint cmd1Idx = atomicAdd(cmdBuff1Count, bitCount(msk & (255<<8)));
-        uint cmd2Idx = atomicAdd(cmdBuff2Count, bitCount(msk & (255<<16)));
+        cmd0Idx = atomicAdd(cmdBuff0Count, bitCount(msk & 255));
+        cmd1Idx = atomicAdd(cmdBuff1Count, bitCount(msk & (255<<8)));
+        cmd2Idx = atomicAdd(cmdBuff2Count, bitCount(msk & (255<<16)));
 
 
         //Skip msk is each layers mask ored together, this is used to acclerate checks in the main command gen loop
@@ -135,19 +190,11 @@ void main() {
         //All remaining work groups should be in the same "warp state" up to this loop
         // past this loop the work groups start to diverge, which is bad for performance but not much
         // can be done to fix this only reduce the amount of time its spent in this loop
-
-        //TODO: try unrolling this loop, any if false, should just be written to a dummy command index
         for (uint i = 0; skipmsk != 0; i++, skipmsk >>= 1) {
             // if no layer has a face for this side, skip
             if ((skipmsk&1) == 0) continue;
-            //FIXME: prefill the cmdBuff with instanceCount = 1 and firstIndex = 0 as having them constantly be set
-            // to the same thing each time is a huge waste of bandwidth
-
-            //i is the current "batch/side"
             if ((msk&((1)<<i)) != 0) {//Layer 0
                 cmdBuff0[cmd0Idx].count = SECTION.SOLID[i].count;
-                cmdBuff0[cmd0Idx].instanceCount = 1;
-                cmdBuff0[cmd0Idx].firstIndex = 0;
                 cmdBuff0[cmd0Idx].baseVertex = SECTION.SOLID[i].offset;
                 cmdBuff0[cmd0Idx].baseInstance = instanceId;
                 cmd0Idx++;
@@ -155,8 +202,6 @@ void main() {
 
             if ((msk&((1<<8)<<i)) != 0) {//Layer 1
                 cmdBuff1[cmd1Idx].count = SECTION.CUTOUT_MIPPED[i].count;
-                cmdBuff1[cmd1Idx].instanceCount = 1;
-                cmdBuff1[cmd1Idx].firstIndex = 0;
                 cmdBuff1[cmd1Idx].baseVertex = SECTION.CUTOUT_MIPPED[i].offset;
                 cmdBuff1[cmd1Idx].baseInstance = instanceId;
                 cmd1Idx++;
@@ -164,21 +209,10 @@ void main() {
 
             if ((msk&((1<<16)<<i)) != 0) {//Layer 2
                 cmdBuff2[cmd2Idx].count = SECTION.CUTOUT[i].count;
-                cmdBuff2[cmd2Idx].instanceCount = 1;
-                cmdBuff2[cmd2Idx].firstIndex = 0;
                 cmdBuff2[cmd2Idx].baseVertex = SECTION.CUTOUT[i].offset;
                 cmdBuff2[cmd2Idx].baseInstance = instanceId;
                 cmd2Idx++;
             }
-            /*
-            if ((msk&((1<<24)<<i)) != 0) {//Layer 3
-                cmdBuff3[cmd3Idx].count = SECTION.TRANSLUCENT[i].count;
-                cmdBuff3[cmd3Idx].instanceCount = 1;
-                cmdBuff3[cmd3Idx].firstIndex = 0;
-                cmdBuff3[cmd3Idx].baseVertex = SECTION.TRANSLUCENT[i].offset;
-                cmdBuff3[cmd3Idx].baseInstance = instanceId;
-                cmd3Idx++;
-            }*/
         }
 
         {

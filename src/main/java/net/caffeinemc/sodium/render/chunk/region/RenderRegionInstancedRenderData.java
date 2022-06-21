@@ -1,12 +1,23 @@
 package net.caffeinemc.sodium.render.chunk.region;
 
+import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
 import net.caffeinemc.gfx.api.buffer.MappedBuffer;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
+import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
+import net.caffeinemc.sodium.SodiumClientMod;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.IntBuffer;
 import java.util.Set;
+
+import static org.lwjgl.opengl.GL11C.GL_RED;
+import static org.lwjgl.opengl.GL11C.GL_UNSIGNED_INT;
+import static org.lwjgl.opengl.GL30C.GL_R32UI;
+import static org.lwjgl.opengl.GL45C.glClearNamedBufferData;
+import static org.lwjgl.opengl.GL45C.glCopyNamedBufferSubData;
 
 public class RenderRegionInstancedRenderData {
     public final ImmutableBuffer visBuffer;
@@ -53,5 +64,46 @@ public class RenderRegionInstancedRenderData {
         //this.cmd3buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6), Set.of());//FIXME: TUNE BUFFER SIZE
         this.cmd3buff = device.createMappedBuffer(RenderRegion.REGION_SIZE*5*4*6, Set.of(MappedBufferFlags.READ));//FIXME: TUNE BUFFER SIZE
 
+
+        set0Buffer(visBuffer);
+        set0Buffer(cpuSectionVis);
+        set0Buffer(sceneBuffer);
+        set0Buffer(counterBuffer);
+        set0Buffer(cpuCommandCount);
+        set0Buffer(instanceBuffer);
+        set0Buffer(id2InstanceBuffer);
+        set0Buffer(cmd0buff);
+        set0Buffer(cmd1buff);
+        set0Buffer(cmd2buff);
+        set0Buffer(cmd3buff);
+        set0Buffer(trans3);
+        preSetupCommandBuffer(cmd0buff, RenderRegion.REGION_SIZE);
+        preSetupCommandBuffer(cmd1buff, RenderRegion.REGION_SIZE);
+        preSetupCommandBuffer(cmd2buff, RenderRegion.REGION_SIZE);
+        preSetupCommandBuffer(cmd3buff, RenderRegion.REGION_SIZE);
+
+    }
+
+    private static void set0Buffer(Buffer buffer) {
+        glClearNamedBufferData(GlBuffer.getHandle(buffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
+    }
+
+    private static final Buffer SETUP_BUFF;
+    static {
+        ByteBuffer buffer =  ByteBuffer.allocateDirect(4*5).order(ByteOrder.nativeOrder());
+        IntBuffer ib = buffer.asIntBuffer();
+        ib.put(0);
+        ib.put(1);
+        ib.put(0);
+        ib.put(0);
+        ib.put(0);
+        ib.rewind();
+        SETUP_BUFF = SodiumClientMod.DEVICE.createBuffer(buffer, Set.of());
+    }
+    private static void preSetupCommandBuffer(Buffer buffer, int times) {
+        for (int i = 0; i < times; i++) {
+            glCopyNamedBufferSubData(GlBuffer.getHandle(SETUP_BUFF), GlBuffer.getHandle(buffer),
+                    0, (long) i *5*4, 5*4);
+        }
     }
 }

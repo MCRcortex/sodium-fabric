@@ -40,9 +40,8 @@ import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BARRIER_BIT;
 import static org.lwjgl.opengl.GL45C.glClearNamedBufferData;
 import static org.lwjgl.opengl.GL45C.glCopyNamedBufferSubData;
 
-//TODO: An idea on how to do smart chunk creation, have virtual chunks (that dont actually render or contain anything)
-//  where chunks might generate/update i.e. on edge of render distance of something, and if they have data and are visible
-//  then upload to gpu
+//TODO: if a chunk is completly covered on all faces, remove it from the section list
+// this should improve performance by some amount
 public class GPUOcclusionManager {
     private RenderDevice device;
     private Program<RasterCullerInterface> rasterCullProgram;
@@ -163,6 +162,9 @@ public class GPUOcclusionManager {
             if (region.sectionCount == 0) {
                 continue;
             }
+            //if (region.getRenderData().cpuCommandCount.view().getInt(0) == 0) {
+            //    continue;
+            //}
             //FIXME: need to maybe cut up even more cause sometimes none of the corner points are visible
             Vector3i corner = region.getMinAsBlock();
             //FIXME: need to make a region bounding box for the min AABB of all the contained sections and use that
@@ -188,6 +190,8 @@ public class GPUOcclusionManager {
             cdib.putInt(8, 1);
             region.computeDispatchIndirectBuffer.flush();
         }*/
+
+        //TODO: disable multisample, and enable representitive pixel
 
         for (RenderRegion region : visRegions) {
             //FIXME: move this to an outer/another loop that way driver has time to flush the data
@@ -245,7 +249,7 @@ public class GPUOcclusionManager {
                 pipelineState.bindBufferBlock(programInterface.transSort, region.getRenderData().trans3);
 
 
-                cmd.dispatchCompute((int)Math.ceil((double) region.sectionCount/16),1,1);
+                cmd.dispatchCompute((int)Math.ceil((double) region.sectionCount/32),1,1);
                 //cmd.bindDispatchIndirectBuffer(region.computeDispatchIndirectBuffer);
                 //cmd.dispatchComputeIndirect(0);
             }
