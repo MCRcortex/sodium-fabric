@@ -1,5 +1,6 @@
 package net.caffeinemc.sodium.render.chunk.occlussion;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.caffeinemc.gfx.api.array.VertexArrayDescription;
 import net.caffeinemc.gfx.api.buffer.*;
 import net.caffeinemc.gfx.api.device.RenderDevice;
@@ -13,6 +14,7 @@ import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
 import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
+import net.caffeinemc.sodium.render.chunk.ViewportInterface;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
@@ -53,7 +55,11 @@ public class GPUOcclusionManager {
     private Pipeline<TranslucentCommandGeneratorInterface, EmptyTarget> translucentCommandGeneratorPipeline;
     private final ImmutableBuffer indexBuffer;
 
-    public TreeSet<RenderRegion> visRegions = new TreeSet<>(Comparator.comparingDouble(a->a.weight));
+    public Int2ObjectOpenHashMap<TreeSet<RenderRegion>> visRegions = new Int2ObjectOpenHashMap<>(2);
+
+    public TreeSet<RenderRegion> getVisRegion() {
+        return visRegions.computeIfAbsent(ViewportInterface.CURRENT_VIEWPORT, k->new TreeSet<>(Comparator.comparingDouble(a->a.weight)));
+    }
 
     public GPUOcclusionManager(RenderDevice device) {
         this.device = device;
@@ -158,7 +164,8 @@ public class GPUOcclusionManager {
 
     //Fixme: need to use ChunkCameraContext
     public void computeOcclusionVis(Collection<RenderRegion> regions, ChunkRenderMatrices matrices, ChunkCameraContext cam, Frustum frustum) {
-        visRegions.clear();
+        var visRegion = getVisRegion();
+        visRegion.clear();
         for (RenderRegion region : regions) {
             if (region.sectionCount == 0) {
                 continue;
@@ -180,7 +187,7 @@ public class GPUOcclusionManager {
                     corner.z + RenderRegion.REGION_LENGTH * 8)
                     .sub(cam.blockX, cam.blockY, cam.blockZ)
                     .sub(cam.deltaX, cam.deltaY, cam.deltaZ).lengthSquared();
-            visRegions.add(region);
+            visRegion.add(region);
         }
 
         /*
@@ -197,7 +204,7 @@ public class GPUOcclusionManager {
         //GL11.glFinish();
         //if (true)
         //    return;
-        for (RenderRegion region : visRegions) {
+        for (RenderRegion region : visRegion) {
             //FIXME: move this to an outer/another loop that way driver has time to flush the data
             Vector3f campos = new Vector3f(region.getMinAsBlock().sub(cam.blockX, cam.blockY, cam.blockZ)).sub(cam.deltaX, cam.deltaY, cam.deltaZ);
             Matrix4f mvp = new Matrix4f(matrices.projection())
@@ -221,7 +228,7 @@ public class GPUOcclusionManager {
         this.device.usePipeline(this.rasterCullPipeline,  (cmd, programInterface, pipelineState) -> {
             cmd.bindElementBuffer(this.indexBuffer);
             //glEnable(0x937F);
-            for (RenderRegion region : visRegions) {
+            for (RenderRegion region : visRegion) {
                 pipelineState.bindBufferBlock(programInterface.scene, region.getRenderData().sceneBuffer);
                 pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBufferObject());
                 pipelineState.bindBufferBlock(programInterface.visbuff, region.getRenderData().visBuffer);
@@ -237,7 +244,7 @@ public class GPUOcclusionManager {
         //glFinish();
         //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         this.device.usePipeline(this.commandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
-            for (RenderRegion region : visRegions) {
+            for (RenderRegion region : visRegion) {
                 pipelineState.bindBufferBlock(programInterface.scene, region.getRenderData().sceneBuffer);
                 pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBufferObject());
                 pipelineState.bindBufferBlock(programInterface.visbuff, region.getRenderData().visBuffer);
@@ -261,7 +268,7 @@ public class GPUOcclusionManager {
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
         this.device.usePipeline(this.translucentCommandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
-            for (RenderRegion region : visRegions) {
+            for (RenderRegion region : visRegion) {
                 if (region.translucentSections.intValue() == 0) {
                     continue;
                 }

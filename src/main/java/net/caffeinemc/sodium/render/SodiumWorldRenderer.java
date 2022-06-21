@@ -225,8 +225,13 @@ public class SodiumWorldRenderer {
         ChunkRenderPass renderPass = this.renderPassManager.getRenderPassForLayer(renderLayer);
         this.renderSectionManager.renderLayer(ChunkRenderMatrices.from(matrixStack), renderPass);
         if (renderLayer == RenderLayer.getTranslucent()) {
-            this.occlusion.computeOcclusionVis(renderSectionManager.regions.regions.values(), ChunkRenderMatrices.from(matrixStack), new ChunkCameraContext(cameraX, cameraY, cameraZ), frustum);
+            doOcclusion(matrixStack, cameraX, cameraY, cameraZ, frustum);
         }
+    }
+
+
+    public void doOcclusion(MatrixStack stack, double cameraX, double cameraY, double cameraZ, Frustum frustum) {
+        this.occlusion.computeOcclusionVis(renderSectionManager.regions.regions.values(), ChunkRenderMatrices.from(stack), new ChunkCameraContext(cameraX, cameraY, cameraZ), frustum);
     }
 
     public void reload() {
@@ -418,5 +423,9 @@ public class SodiumWorldRenderer {
 
     public void updateVisibleChunks() {
 
+    }
+
+    public GPUOcclusionManager getOccluder() {
+        return occlusion;
     }
 }

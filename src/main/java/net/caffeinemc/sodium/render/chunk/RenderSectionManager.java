@@ -274,7 +274,7 @@ public class RenderSectionManager {
                 chunkRenderer.render(this.renderLists.get(renderPass), renderPass, matrices, this.frameIndex);
             } else{
                 //FIXME: pass in a frustum culled collection of regions
-                chunkRenderer.render(regions.regions.values(), renderPass, matrices, this.frameIndex);
+                chunkRenderer.render(SodiumWorldRenderer.instance().getOccluder().getVisRegion(), renderPass, matrices, this.frameIndex);
             }
         }
     }
