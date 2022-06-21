@@ -23,6 +23,10 @@ layout(std430, binding = 3) restrict buffer TransSorted {
 layout(std430, binding = 4) restrict writeonly buffer CommandBuffer3 {
     DrawElementsInstancedCommand cmd3buff[];
 };
+
+layout(std430, binding = 5) restrict readonly buffer Id2InstData {
+    uint id2Inst[];
+};
 #define SECTION sections[index]
 
 void main() {
@@ -35,6 +39,6 @@ void main() {
     cmd3buff[gl_GlobalInvocationID.x].instanceCount = 1;
     cmd3buff[gl_GlobalInvocationID.x].firstIndex = 0;
     cmd3buff[gl_GlobalInvocationID.x].baseVertex = SECTION.TRANSLUCENT[6].offset;
-    cmd3buff[gl_GlobalInvocationID.x].baseInstance = SECTION.instancedDataId;
+    cmd3buff[gl_GlobalInvocationID.x].baseInstance = id2Inst[index];
 
 }

@@ -196,50 +196,53 @@ public class GPUOcclusionManager {
                     .mul(matrices.modelView())
                     .translate(campos);
 
-            mvp.getToAddress(MemoryUtil.memAddress(region.renderData.sceneBuffer.view()));
-            campos.getToAddress(MemoryUtil.memAddress(region.renderData.sceneBuffer.view())+4*4*4);
-            region.renderData.sceneBuffer.view().order(ByteOrder.nativeOrder())
-                    .putInt(4*4*4+4*3, region.renderData.cpuCommandCount.view().getInt(0)!=0?region.translucentSections.intValue():0);
-            region.renderData.sceneBuffer.flush();
+            mvp.getToAddress(MemoryUtil.memAddress(region.getRenderData().sceneBuffer.view()));
+            campos.getToAddress(MemoryUtil.memAddress(region.getRenderData().sceneBuffer.view())+4*4*4);
+            region.getRenderData().sceneBuffer.view().order(ByteOrder.nativeOrder())
+                    .putInt(4*4*4+4*3, //0
+                            region.getRenderData().cpuCommandCount.view().getInt(0)!=0?region.translucentSections.intValue():0
+                            );
+            region.getRenderData().sceneBuffer.flush();
             //FIXME: put into gfx
-            glCopyNamedBufferSubData(GlBuffer.getHandle(region.renderData.counterBuffer), GlBuffer.getHandle(region.renderData.cpuCommandCount),4,0,4*4);
+            glCopyNamedBufferSubData(GlBuffer.getHandle(region.getRenderData().counterBuffer), GlBuffer.getHandle(region.getRenderData().cpuCommandCount),4,0,4*4);
             //FIXME: put into gfx
-            glClearNamedBufferData(GlBuffer.getHandle(region.renderData.counterBuffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
+            glClearNamedBufferData(GlBuffer.getHandle(region.getRenderData().counterBuffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
         }
         //GL11.glFinish();
 
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);
         this.device.usePipeline(this.rasterCullPipeline,  (cmd, programInterface, pipelineState) -> {
             cmd.bindElementBuffer(this.indexBuffer);
+            //glEnable(0x937F);
             for (RenderRegion region : visRegions) {
-
-
-                pipelineState.bindBufferBlock(programInterface.scene, region.renderData.sceneBuffer);
-
+                pipelineState.bindBufferBlock(programInterface.scene, region.getRenderData().sceneBuffer);
                 pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBufferObject());
-                pipelineState.bindBufferBlock(programInterface.visbuff, region.renderData.visBuffer);
+                pipelineState.bindBufferBlock(programInterface.visbuff, region.getRenderData().visBuffer);
                 //pipelineState.bindBufferBlock(programInterface.indirectbuff, region.computeDispatchIndirectBuffer);
 
                 //FIXME: optimize by only drawing sides facing the camera
                 cmd.drawElementsInstanced(PrimitiveType.TRIANGLES, 6*6, ElementFormat.UNSIGNED_BYTE, 0, region.sectionCount);
             }
+            //glDisable(0x937F);
         });
         //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         //glFinish();
+        //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         this.device.usePipeline(this.commandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
             for (RenderRegion region : visRegions) {
-                pipelineState.bindBufferBlock(programInterface.scene, region.renderData.sceneBuffer);
+                pipelineState.bindBufferBlock(programInterface.scene, region.getRenderData().sceneBuffer);
                 pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBufferObject());
-                pipelineState.bindBufferBlock(programInterface.visbuff, region.renderData.visBuffer);
+                pipelineState.bindBufferBlock(programInterface.visbuff, region.getRenderData().visBuffer);
 
-                pipelineState.bindBufferBlock(programInterface.cpuvisbuff, region.renderData.cpuSectionVis);
+                pipelineState.bindBufferBlock(programInterface.cpuvisbuff, region.getRenderData().cpuSectionVis);
 
-                pipelineState.bindBufferBlock(programInterface.counter, region.renderData.counterBuffer);
-                pipelineState.bindBufferBlock(programInterface.instancedata, region.renderData.instanceBuffer);
-                pipelineState.bindBufferBlock(programInterface.cmdbuffs[0], region.renderData.cmd0buff);
-                pipelineState.bindBufferBlock(programInterface.cmdbuffs[1], region.renderData.cmd1buff);
-                pipelineState.bindBufferBlock(programInterface.cmdbuffs[2], region.renderData.cmd2buff);
-                pipelineState.bindBufferBlock(programInterface.transSort, region.renderData.trans3);
+                pipelineState.bindBufferBlock(programInterface.counter, region.getRenderData().counterBuffer);
+                pipelineState.bindBufferBlock(programInterface.instancedata, region.getRenderData().instanceBuffer);
+                pipelineState.bindBufferBlock(programInterface.id2inst, region.getRenderData().id2InstanceBuffer);
+                pipelineState.bindBufferBlock(programInterface.cmdbuffs[0], region.getRenderData().cmd0buff);
+                pipelineState.bindBufferBlock(programInterface.cmdbuffs[1], region.getRenderData().cmd1buff);
+                pipelineState.bindBufferBlock(programInterface.cmdbuffs[2], region.getRenderData().cmd2buff);
+                pipelineState.bindBufferBlock(programInterface.transSort, region.getRenderData().trans3);
 
 
                 cmd.dispatchCompute((int)Math.ceil((double) region.sectionCount/16),1,1);
@@ -248,15 +251,17 @@ public class GPUOcclusionManager {
             }
         });
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
         this.device.usePipeline(this.translucentCommandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
             for (RenderRegion region : visRegions) {
                 if (region.translucentSections.intValue() == 0) {
                     continue;
                 }
-                pipelineState.bindBufferBlock(programInterface.transSort, region.renderData.trans3);
+                pipelineState.bindBufferBlock(programInterface.transSort, region.getRenderData().trans3);
                 pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBufferObject());
-                pipelineState.bindBufferBlock(programInterface.command, region.renderData.cmd3buff);
-                pipelineState.bindBufferBlock(programInterface.counter, region.renderData.counterBuffer);
+                pipelineState.bindBufferBlock(programInterface.command, region.getRenderData().cmd3buff);
+                pipelineState.bindBufferBlock(programInterface.counter, region.getRenderData().counterBuffer);
+                pipelineState.bindBufferBlock(programInterface.id2inst, region.getRenderData().id2InstanceBuffer);
                 cmd.dispatchCompute((int)Math.ceil((double) region.translucentSections.intValue()/32),1,1);
             }
         });

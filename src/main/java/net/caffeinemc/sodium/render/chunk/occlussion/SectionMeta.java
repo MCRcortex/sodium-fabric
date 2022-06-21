@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class SectionMeta {
-    public static final int SIZE = 4+4*3*3+4+4*2*7*4+4;
+    public static final int SIZE = 4+4*3*3+4+4*2*7*4;
 
     private final int id;
     private Vector3f AABBOffset = new Vector3f();

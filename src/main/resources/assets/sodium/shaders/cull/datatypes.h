@@ -31,9 +31,6 @@ struct SectionMeta {
     //FIXME: just make 1 range cause all translucents need to be rendered
     Range TRANSLUCENT[7];
     //Range TRANSLUCENT;
-
-    //TODO: maybe move this to its own buffer or something so that the readonly modifier can be applied to the shader
-    uint instancedDataId;
 };
 
 

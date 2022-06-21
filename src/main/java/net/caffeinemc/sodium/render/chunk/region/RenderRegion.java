@@ -47,8 +47,8 @@ public class RenderRegion {
 
     public final ArenaBuffer vertexBuffers;
     public final StreamingBuffer metaBuffer;
-    public final RenderRegionInstancedRenderData renderData;
     public final AtomicInteger translucentSections = new AtomicInteger();
+    private RenderDevice device;
 
     public float weight;//Util thing
 
@@ -65,7 +65,7 @@ public class RenderRegion {
         regionX = csp.getSectionX();
         regionY = csp.getSectionY();
         regionZ = csp.getSectionZ();
-        renderData = new RenderRegionInstancedRenderData(device);
+        this.device = device;
         GL11.glFinish();
     }
 
@@ -156,12 +156,20 @@ public class RenderRegion {
     }
 
     public boolean isSectionVisible(RenderSection section) {
-        return renderData.cpuSectionVis.view().getInt(pos2id.get(section.innerRegionKey)*4) == 1;
+        return getRenderData().cpuSectionVis.view().getInt(pos2id.get(section.innerRegionKey)*4) == 1;
     }
 
     private final BitArray sectionsRequestingUpdate = new BitArray(REGION_SIZE);
 
     public void markSectionUpdateRequest(RenderSection section) {
         sectionsRequestingUpdate.set(section.innerRegionKey);
+    }
+
+
+    private RenderRegionInstancedRenderData renderData;
+    public RenderRegionInstancedRenderData getRenderData() {
+        if (renderData == null)
+            renderData = new RenderRegionInstancedRenderData(device);
+        return renderData;
     }
 }

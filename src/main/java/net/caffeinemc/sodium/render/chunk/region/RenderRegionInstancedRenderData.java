@@ -25,6 +25,7 @@ public class RenderRegionInstancedRenderData {
     public final ImmutableBuffer commandBuffer;
      */
     public final ImmutableBuffer instanceBuffer;
+    public final ImmutableBuffer id2InstanceBuffer;
     //public final MappedBuffer instanceBuffer;
 
     //public final MappedBuffer cmd0buff;//just for testing will be moved
@@ -43,6 +44,7 @@ public class RenderRegionInstancedRenderData {
         this.counterBuffer = device.createBuffer(5*4, Set.of());
         this.cpuCommandCount = device.createMappedBuffer(5*4, Set.of(MappedBufferFlags.READ));
         this.instanceBuffer = device.createBuffer(RenderRegion.REGION_SIZE*4*3, Set.of());
+        this.id2InstanceBuffer = device.createBuffer(RenderRegion.REGION_SIZE*4, Set.of());
         //If empty memory buffer is specified, this fixes it
         this.cmd0buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6), Set.of());//FIXME: TUNE BUFFER SIZE
         this.cmd1buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6), Set.of());//FIXME: TUNE BUFFER SIZE

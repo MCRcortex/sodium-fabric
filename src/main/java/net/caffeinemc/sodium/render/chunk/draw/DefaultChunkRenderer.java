@@ -164,33 +164,33 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
             for (RenderRegion region : regions) {
                 int id = 0;
                 if (renderPass == DefaultRenderPasses.SOLID)
-                    cmd.bindCommandBuffer(region.renderData.cmd0buff);
+                    cmd.bindCommandBuffer(region.getRenderData().cmd0buff);
 
                 if (renderPass == DefaultRenderPasses.CUTOUT_MIPPED) {
-                    cmd.bindCommandBuffer(region.renderData.cmd1buff);
+                    cmd.bindCommandBuffer(region.getRenderData().cmd1buff);
                     id = 1;
                 }
                 if (renderPass == DefaultRenderPasses.CUTOUT) {
-                    cmd.bindCommandBuffer(region.renderData.cmd2buff);
+                    cmd.bindCommandBuffer(region.getRenderData().cmd2buff);
                     id = 2;
                 }
                 if (renderPass == DefaultRenderPasses.TRANSLUCENT) {
-                    cmd.bindCommandBuffer(region.renderData.cmd3buff);
+                    cmd.bindCommandBuffer(region.getRenderData().cmd3buff);
                     id = 3;
                 }
-                int count = region.renderData.cpuCommandCount.view().getInt(id*4);
+                int count = region.getRenderData().cpuCommandCount.view().getInt(id*4);
                 if (count == 0) {
                     continue;
                 }
 
                 pipelineState.bindBufferBlock(
                         programInterface.uniformInstanceData,
-                        region.renderData.instanceBuffer,
+                        region.getRenderData().instanceBuffer,
                         0,
                         RenderRegion.REGION_SIZE*4*3
                 );
 
-                cmd.bindParameterCountBuffer(region.renderData.counterBuffer);
+                cmd.bindParameterCountBuffer(region.getRenderData().counterBuffer);
 
                 cmd.bindVertexBuffer(
                         BufferTarget.VERTICES,
@@ -204,7 +204,7 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
                         ElementFormat.UNSIGNED_INT,
                         0,
                         4+4*id,//FIXME: need to select the index (0) from the current render layer
-                        Math.min(Math.max((int)(count*1.5)+1, 0), RenderRegion.REGION_SIZE * 5 * 4 * 6 - 5),
+                        Math.min(Math.max((int)(count*1.5+Math.log(count)), 0), RenderRegion.REGION_SIZE * 5 * 4 * 6 - 5),
                         //(int)(Math.ceil(region.sectionCount*3.5)),//FIXME: optimize this to be as close bound as possible, maybe even make it dynamic based on previous counts
                         5*4
                 );

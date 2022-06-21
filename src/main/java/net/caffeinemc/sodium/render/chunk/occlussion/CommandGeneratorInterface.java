@@ -14,6 +14,7 @@ public class CommandGeneratorInterface {
     public final BufferBlock counter;
 
     public final BufferBlock instancedata;
+    public final BufferBlock id2inst;
     public final BufferBlock[] cmdbuffs = new BufferBlock[3];
     public final BufferBlock transSort;
 
@@ -28,10 +29,11 @@ public class CommandGeneratorInterface {
         counter = context.bindBufferBlock(BufferBlockType.STORAGE, 4);
 
         instancedata = context.bindBufferBlock(BufferBlockType.STORAGE, 5);
+        id2inst = context.bindBufferBlock(BufferBlockType.STORAGE, 6);
         for (int i = 0; i < 3; i++) {
-            cmdbuffs[i] = context.bindBufferBlock(BufferBlockType.STORAGE, 6+i);
+            cmdbuffs[i] = context.bindBufferBlock(BufferBlockType.STORAGE, 7+i);
         }
 
-        transSort = context.bindBufferBlock(BufferBlockType.STORAGE, 9);
+        transSort = context.bindBufferBlock(BufferBlockType.STORAGE, 10);
     }
 }
