@@ -25,6 +25,7 @@ import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL32C;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
@@ -36,7 +37,7 @@ import static org.lwjgl.opengl.GL30C.GL_R32UI;
 import static org.lwjgl.opengl.GL30C.GL_R8UI;
 import static org.lwjgl.opengl.GL42C.GL_ALL_BARRIER_BITS;
 import static org.lwjgl.opengl.GL42C.glMemoryBarrier;
-import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BARRIER_BIT;
+import static org.lwjgl.opengl.GL43C.*;
 import static org.lwjgl.opengl.GL45C.glClearNamedBufferData;
 import static org.lwjgl.opengl.GL45C.glCopyNamedBufferSubData;
 
@@ -193,6 +194,9 @@ public class GPUOcclusionManager {
 
         //TODO: disable multisample, and enable representitive pixel
 
+        //GL11.glFinish();
+        //if (true)
+        //    return;
         for (RenderRegion region : visRegions) {
             //FIXME: move this to an outer/another loop that way driver has time to flush the data
             Vector3f campos = new Vector3f(region.getMinAsBlock().sub(cam.blockX, cam.blockY, cam.blockZ)).sub(cam.deltaX, cam.deltaY, cam.deltaZ);
@@ -212,7 +216,6 @@ public class GPUOcclusionManager {
             //FIXME: put into gfx
             glClearNamedBufferData(GlBuffer.getHandle(region.getRenderData().counterBuffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
         }
-        //GL11.glFinish();
 
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);
         this.device.usePipeline(this.rasterCullPipeline,  (cmd, programInterface, pipelineState) -> {
@@ -229,6 +232,7 @@ public class GPUOcclusionManager {
             }
             //glDisable(0x937F);
         });
+
         //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         //glFinish();
         //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -248,8 +252,8 @@ public class GPUOcclusionManager {
                 pipelineState.bindBufferBlock(programInterface.cmdbuffs[2], region.getRenderData().cmd2buff);
                 pipelineState.bindBufferBlock(programInterface.transSort, region.getRenderData().trans3);
 
-
-                cmd.dispatchCompute((int)Math.ceil((double) region.sectionCount/32),1,1);
+                //TODO: optimize the group size
+                cmd.dispatchCompute((int)Math.ceil((double) region.sectionCount/16),1,1);
                 //cmd.bindDispatchIndirectBuffer(region.computeDispatchIndirectBuffer);
                 //cmd.dispatchComputeIndirect(0);
             }

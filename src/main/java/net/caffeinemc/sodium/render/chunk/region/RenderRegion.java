@@ -10,6 +10,7 @@ import net.caffeinemc.sodium.render.buffer.arena.SmartConstAsyncBufferArena;
 import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
 import net.caffeinemc.sodium.render.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
+import net.caffeinemc.sodium.render.chunk.ViewportInterface;
 import net.caffeinemc.sodium.render.chunk.occlussion.SectionMeta;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.util.MathUtil;
@@ -71,6 +72,10 @@ public class RenderRegion {
 
     public void delete() {
         this.vertexBuffers.delete();
+        for (RenderRegionInstancedRenderData data : renderData.values()) {
+            data.delete();
+        }
+        renderData.clear();
     }
 
     public boolean isEmpty() {
@@ -166,10 +171,14 @@ public class RenderRegion {
     }
 
 
-    private RenderRegionInstancedRenderData renderData;
+    private final Int2ObjectOpenHashMap<RenderRegionInstancedRenderData> renderData = new Int2ObjectOpenHashMap<>(1);
+    private RenderRegionInstancedRenderData renderDataCurrent;
+    private int currentViewport = -1;
     public RenderRegionInstancedRenderData getRenderData() {
-        if (renderData == null)
-            renderData = new RenderRegionInstancedRenderData(device);
-        return renderData;
+        if (currentViewport != ViewportInterface.CURRENT_VIEWPORT) {
+            renderDataCurrent = renderData.computeIfAbsent(ViewportInterface.CURRENT_VIEWPORT, k->new RenderRegionInstancedRenderData(device));
+            currentViewport = ViewportInterface.CURRENT_VIEWPORT;
+        }
+        return renderDataCurrent;
     }
 }

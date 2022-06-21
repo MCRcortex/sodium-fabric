@@ -3,7 +3,7 @@
 #import <sodium:cull/datatypes.h>
 
 //FIXME: optimize local_size and add restrict to all bindings that can use it
-layout(local_size_x = 32) in;
+layout(local_size_x = 16) in;
 
 layout(std430, binding = 0) restrict readonly buffer SceneData {
     mat4 mat_modelviewproj;

@@ -7,6 +7,7 @@ import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
+import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -82,6 +83,21 @@ public class RenderRegionInstancedRenderData {
         preSetupCommandBuffer(cmd2buff, RenderRegion.REGION_SIZE);
         preSetupCommandBuffer(cmd3buff, RenderRegion.REGION_SIZE);
 
+    }
+
+    public void delete() {
+        SodiumClientMod.DEVICE.deleteBuffer(visBuffer);
+        SodiumClientMod.DEVICE.deleteBuffer(cpuSectionVis);
+        SodiumClientMod.DEVICE.deleteBuffer(sceneBuffer);
+        SodiumClientMod.DEVICE.deleteBuffer(counterBuffer);
+        SodiumClientMod.DEVICE.deleteBuffer(cpuCommandCount);
+        SodiumClientMod.DEVICE.deleteBuffer(instanceBuffer);
+        SodiumClientMod.DEVICE.deleteBuffer(id2InstanceBuffer);
+        SodiumClientMod.DEVICE.deleteBuffer(cmd0buff);
+        SodiumClientMod.DEVICE.deleteBuffer(cmd1buff);
+        SodiumClientMod.DEVICE.deleteBuffer(cmd2buff);
+        SodiumClientMod.DEVICE.deleteBuffer(cmd3buff);
+        SodiumClientMod.DEVICE.deleteBuffer(trans3);
     }
 
     private static void set0Buffer(Buffer buffer) {
