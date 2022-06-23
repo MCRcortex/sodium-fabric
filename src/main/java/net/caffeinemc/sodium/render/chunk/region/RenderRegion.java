@@ -1,25 +1,27 @@
 package net.caffeinemc.sodium.render.chunk.region;
 
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.ints.IntAVLTreeSet;
+import it.unimi.dsi.fastutil.ints.*;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.SmartConstAsyncBufferArena;
 import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
 import net.caffeinemc.sodium.render.buffer.streaming.StreamingBuffer;
+import net.caffeinemc.sodium.render.chunk.ChunkUpdateType;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
+import net.caffeinemc.sodium.render.chunk.RenderSectionManager;
 import net.caffeinemc.sodium.render.chunk.ViewportInterface;
 import net.caffeinemc.sodium.render.chunk.occlussion.SectionMeta;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.util.MathUtil;
 import net.caffeinemc.sodium.util.collections.BitArray;
 import net.minecraft.util.math.ChunkSectionPos;
+import org.antlr.runtime.misc.IntArray;
 import org.apache.commons.lang3.Validate;
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
+import java.util.BitSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -54,8 +56,10 @@ public class RenderRegion {
     public float weight;//Util thing
 
     public final int id;
+    public final long key;
 
-    public RenderRegion(RenderDevice device, SectionedStreamingBuffer stagingBuffer, TerrainVertexType vertexType, int id, long regionKey) {
+    private final RenderSectionManager sectionManager;
+    public RenderRegion(RenderDevice device, RenderSectionManager sectionManager, SectionedStreamingBuffer stagingBuffer, TerrainVertexType vertexType, int id, long regionKey) {
         this.vertexBuffers = new SmartConstAsyncBufferArena(device, stagingBuffer,
                 REGION_SIZE * 756,
                 vertexType.getBufferVertexFormat().stride());
@@ -67,15 +71,23 @@ public class RenderRegion {
         regionY = csp.getSectionY();
         regionZ = csp.getSectionZ();
         this.device = device;
-        GL11.glFinish();
+        this.sectionManager = sectionManager;
+        this.key = regionKey;
+        //GL11.glFinish();
     }
 
+    private boolean disposed = false;
     public void delete() {
         this.vertexBuffers.delete();
         for (RenderRegionInstancedRenderData data : renderData.values()) {
             data.delete();
         }
         renderData.clear();
+        disposed = true;
+    }
+
+    public boolean isDisposed() {
+        return disposed;
     }
 
     public boolean isEmpty() {
@@ -133,7 +145,7 @@ public class RenderRegion {
 
         int id = newSectionId();
         pos2id.put(section.innerRegionKey, id);
-        SectionMeta newMeta = new SectionMeta(id, metaBuffer);
+        SectionMeta newMeta = new SectionMeta(id, metaBuffer, section);
         sectionMetaMap.put(id, newMeta);
         return newMeta;
     }
@@ -142,7 +154,7 @@ public class RenderRegion {
         if (pos2id.containsKey(section.innerRegionKey)) {
             int id = pos2id.remove(section.innerRegionKey);
             SectionMeta sectionMeta = sectionMetaMap.remove(id);
-            //sectionMeta.free();//TODO: this, need to set the id of the meta to like -1
+            sectionMeta.delete();
 
             if (id == sectionCount-1) {
                 //Free as many sections as possible
@@ -160,16 +172,85 @@ public class RenderRegion {
         }
     }
 
+    //FIXME: needs to see if it is in the current camera chunk and return true if it is
     public boolean isSectionVisible(RenderSection section) {
-        return getRenderData().cpuSectionVis.view().getInt(pos2id.get(section.innerRegionKey)*4) == 1;
+        return isSectionVisible(section.innerRegionKey);
     }
 
-    private final BitArray sectionsRequestingUpdate = new BitArray(REGION_SIZE);
+    public boolean isSectionVisible(int key) {
+        return getRenderData().cpuSectionVis.view().getInt(pos2id.get(key)*4) == 1 || (sectionManager.cameraRenderRegion == this.key && key == sectionManager.cameraRenderRegionInner);
+    }
 
+    public RenderSection getSectionOrNull(int key) {
+        if (!doesSectionExist(key))
+            return null;
+        return sectionMetaMap.get(pos2id.get(key)).theSection;
+    }
+
+    public boolean doesSectionExist(int key) {
+        if (!pos2id.containsKey(key))
+            return false;
+        if (freeIds.contains(pos2id.get(key))) {
+            return false;
+        }
+        if (sectionMetaMap.get(pos2id.get(key)) == null) {
+            return false;
+        }
+        return true;
+    }
+
+    //FIXME: use better data structure
+    private final IntOpenHashSet sectionsRequestingUpdate = new IntOpenHashSet(REGION_SIZE);
+    private int count;
     public void markSectionUpdateRequest(RenderSection section) {
-        sectionsRequestingUpdate.set(section.innerRegionKey);
+        if (!sectionsRequestingUpdate.contains(section.innerRegionKey)) {
+            count += 1;
+            sectionsRequestingUpdate.add(section.innerRegionKey);
+        }
     }
 
+    public void unmarkSectionUpdateRequest(RenderSection section) {
+        if (sectionsRequestingUpdate.contains(section.innerRegionKey)) {
+            count -= 1;
+            sectionsRequestingUpdate.remove(section.innerRegionKey);
+        }
+    }
+
+
+    //TODO: clean this up i think
+    public void onVisibleTick() {
+        if (count == 0)
+            return;
+        int budget = 1;
+        IntList toRemove = new IntArrayList(5);
+        for (int key : sectionsRequestingUpdate) {
+            if (budget == 0) {
+                return;
+            }
+            if (!doesSectionExist(key)) {
+                toRemove.add(key);
+                count--;
+                return;
+            }
+            if (isSectionVisible(key)) {
+                RenderSection section = sectionMetaMap.get(pos2id.get(key)).theSection;
+                var queue = sectionManager.rebuildQueues.get(section.getPendingUpdate());
+                if (queue == null)
+                    return;
+
+                budget--;
+                count--;
+                toRemove.add(key);
+                queue.enqueue(section);
+            }
+        }
+
+        if (toRemove.size() != 0) {
+            for (int i : toRemove) {
+                sectionsRequestingUpdate.remove(i);
+            }
+        }
+    }
 
     private final Int2ObjectOpenHashMap<RenderRegionInstancedRenderData> renderData = new Int2ObjectOpenHashMap<>(1);
     private RenderRegionInstancedRenderData renderDataCurrent;
@@ -181,4 +262,5 @@ public class RenderRegion {
         }
         return renderDataCurrent;
     }
+
 }

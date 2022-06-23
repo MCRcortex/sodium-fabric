@@ -81,6 +81,7 @@ uint cmd2Idx;
 uint msk;
 uint instanceId;
 //TODO: try an out of bounds idx
+/*
 #define VOID_IDX 4095
 void innerdo(uint i) {
     uint idxx = ((msk&((1)<<i)) != 0)?cmd0Idx:VOID_IDX;
@@ -106,24 +107,19 @@ void innerdo(uint i) {
     cmdBuff2[idxx].baseVertex = SECTION.CUTOUT[i].offset;
     cmdBuff2[idxx].baseInstance = instanceId;
     cmd2Idx+=uint(((msk&((1<<16)<<i)) != 0));
-}
+}*/
 
-//Pray to god this gets inlined
-uint genVisMask(uint bit) {
-    uint result = 1<<bit;
-    result |= result<<8;
-    result |= result<<16;
-    return ~result;
-}
 
 void main() {
-    if (SECTION.id != gl_GlobalInvocationID.x) return;
+    //Ordered this way to heavily reduce memory loads
     if (visiblity[gl_GlobalInvocationID.x] == 0) {
+        //FIXME: THIS MAKES IT SLOW DOWN BY QUITE A BIT, probably cause of all the access's to cpu memory
         CPUvisiblity[gl_GlobalInvocationID.x] = 0;
         return;
     }
     visiblity[gl_GlobalInvocationID.x] = 0;
-
+    if (SECTION.id != gl_GlobalInvocationID.x) return;
+    //const SectionMeta LOCAL_SECTION = sections[gl_GlobalInvocationID.x];
     //TODO: cant i technically just remove hsize and it would have the same effect kinda? would be comparing 0 and bboxSize instead
     vec3 hsize = Vec3FtoVec3(SECTION.bboxSize)/2;
     vec3 center = Vec3FtoVec3(SECTION.bboxOffset) + hsize + Vec3FtoVec3(negativeCameraPosRegionRelative);
@@ -217,15 +213,13 @@ void main() {
 
         {
             //Insert translucency if it is visible
-            if (((msk&(255<<24))!=0)) {
-                if (max_translucency != 0) {
-                    uint index = atomicAdd(count3, 1);
-                    id2Inst[SECTION.id] = instanceId;
-                    uint distance = 1-uint(sqrt(dot(center, center)));//the 1- is to invert it to reverse sort
-                    //Leave 12 bits for id which should be more than enough given a region size of 16x16x16
-                    uint sortKey = (distance<<12)|SECTION.id;
-                    bubbleInsertTranslucency(sortKey, index);
-                }
+            if ((max_translucency != 0) && ((msk&(255<<24))!=0)) {
+                uint index = atomicAdd(count3, 1);
+                id2Inst[SECTION.id] = instanceId;
+                uint distance = 1-uint(sqrt(dot(center, center)));//the 1- is to invert it to reverse sort
+                //Leave 12 bits for id which should be more than enough given a region size of 16x16x16
+                uint sortKey = (distance<<12)|SECTION.id;
+                bubbleInsertTranslucency(sortKey, index);
             }
         }
     }

@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.interop.vanilla.mixin.WorldRendererHolder;
+import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.RenderSectionManager;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
@@ -12,6 +13,7 @@ import net.caffeinemc.sodium.render.chunk.draw.ComputeTranslucencySort;
 import net.caffeinemc.sodium.render.chunk.occlussion.GPUOcclusionManager;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
+import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.terrain.context.ImmediateTerrainRenderCache;
 import net.caffeinemc.sodium.util.NativeBuffer;
 import net.caffeinemc.sodium.world.ChunkTracker;
@@ -26,8 +28,6 @@ import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.*;
 import net.minecraft.util.profiler.Profiler;
-import org.joml.Vector3f;
-import org.lwjgl.opengl.GL11;
 
 import java.util.Collection;
 import java.util.SortedSet;
@@ -42,7 +42,7 @@ public class SodiumWorldRenderer {
     private int renderDistance;
 
     private double lastCameraX, lastCameraY, lastCameraZ;
-    private double cameraX, cameraY, cameraZ;
+    public double cameraX, cameraY, cameraZ;
     private double lastCameraPitch, lastCameraYaw;
     private float lastFogDistance;
 
@@ -187,6 +187,11 @@ public class SodiumWorldRenderer {
         this.lastCameraX = pos.x;
         this.lastCameraY = pos.y;
         this.lastCameraZ = pos.z;
+
+        //FIXME: make less hacky
+        renderSectionManager.cameraRenderRegion =  RenderRegion.getRegionCoord((int)(pos.x/16), (int)(pos.y/16), (int)(pos.z/16));
+        renderSectionManager.cameraRenderRegionInner =  RenderRegion.getInnerRegionCoord((int)(pos.x/16), (int)(pos.y/16), (int)(pos.z/16));
+
         this.lastCameraPitch = pitch;
         this.lastCameraYaw = yaw;
         this.lastFogDistance = fogDistance;
@@ -231,7 +236,9 @@ public class SodiumWorldRenderer {
 
 
     public void doOcclusion(MatrixStack stack, double cameraX, double cameraY, double cameraZ, Frustum frustum) {
+        MinecraftClient.getInstance().getProfiler().push("gpu occluder");
         this.occlusion.computeOcclusionVis(renderSectionManager.regions.regions.values(), ChunkRenderMatrices.from(stack), new ChunkCameraContext(cameraX, cameraY, cameraZ), frustum);
+        MinecraftClient.getInstance().getProfiler().pop();
     }
 
     public void reload() {
@@ -420,12 +427,11 @@ public class SodiumWorldRenderer {
     }
 
 
-
-    public void updateVisibleChunks() {
-
-    }
-
     public GPUOcclusionManager getOccluder() {
         return occlusion;
+    }
+
+    public RenderSection getSectionInOrNull() {
+        return renderSectionManager.getSectionInOrNull();
     }
 }

@@ -29,6 +29,10 @@ public class ChunkRenderBounds {
         this.z2 = origin.getMaxZ() + 1;
     }
 
+    public boolean contains(int blockX, int blockY, int blockZ) {
+        return (x1<=blockX&&blockX<=x2) || (y1<=blockY&&blockY<=y2) || (z1<=blockZ&&blockZ<=z2);
+    }
+
     public static class Builder {
         // Bit-mask of the blocks set on each axis
         private int x = 0, y = 0, z = 0;

@@ -5,12 +5,15 @@ import net.caffeinemc.gfx.api.array.VertexArrayDescription;
 import net.caffeinemc.gfx.api.array.VertexArrayResourceBinding;
 import net.caffeinemc.gfx.api.array.attribute.VertexAttributeBinding;
 
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 import java.util.EnumSet;
 
 import net.caffeinemc.gfx.api.array.VertexArrayDescription;
 import net.caffeinemc.gfx.api.array.VertexArrayResourceBinding;
 import net.caffeinemc.gfx.api.array.attribute.VertexAttributeBinding;
 import net.caffeinemc.gfx.api.buffer.Buffer;
+import net.caffeinemc.gfx.api.buffer.MappedBuffer;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.api.pipeline.Pipeline;
@@ -21,13 +24,16 @@ import net.caffeinemc.gfx.api.shader.ShaderType;
 import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
 import net.caffeinemc.sodium.SodiumClientMod;
+import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
 import net.caffeinemc.sodium.render.buffer.streaming.StreamingBuffer;
+import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.DefaultRenderPasses;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.chunk.shader.ChunkShaderBindingPoints;
 import net.caffeinemc.sodium.render.chunk.shader.ChunkShaderInterface;
+import net.caffeinemc.sodium.render.chunk.state.UploadedChunkGeometry;
 import net.caffeinemc.sodium.render.sequence.SequenceIndexBuffer;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
@@ -36,11 +42,15 @@ import net.caffeinemc.sodium.render.terrain.format.TerrainMeshAttribute;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.util.TextureUtil;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import org.joml.Matrix4f;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL42;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 public class DefaultChunkRenderer extends AbstractChunkRenderer {
     // TODO: should these be moved?
@@ -54,6 +64,8 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
     private final StreamingBuffer bufferCameraMatrices;
     private final StreamingBuffer bufferInstanceData;
     private final StreamingBuffer bufferFogParameters;
+
+    private final MappedBuffer cameraInstancedBufferData;
 
     private final StreamingBuffer commandBuffer;
 
@@ -80,6 +92,8 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
                 EnumSet.of(MappedBufferFlags.EXPLICIT_FLUSH)
         );
         this.bufferInstanceData = instanceBuffer;
+
+        cameraInstancedBufferData = device.createMappedBuffer(4*3, Set.of(MappedBufferFlags.EXPLICIT_FLUSH, MappedBufferFlags.WRITE));
 
         this.commandBuffer = commandBuffer;
         this.indexBuffer = indexBuffer;
@@ -154,31 +168,44 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
         if (renderPass == DefaultRenderPasses.TRIPWIRE)
             return;
         this.indexBuffer.ensureCapacity(1000000);//FIXME: not hardcoded
+        int idi = -1;
+        if (renderPass == DefaultRenderPasses.SOLID) {
+            idi = 0;
+        } else if (renderPass == DefaultRenderPasses.CUTOUT_MIPPED) {
+            idi = 1;
+        } else if (renderPass == DefaultRenderPasses.CUTOUT) {
+            idi = 2;
+        } else if (renderPass == DefaultRenderPasses.TRANSLUCENT) {
+            idi = 3;
+        }
+        int rid = idi;
+
 
         this.device.usePipeline(this.pipeline, (cmd, programInterface, pipelineState) -> {
             this.setupTextures(renderPass, pipelineState);
+            //TODO: need to make matricies offset the actual chunk data, cause the instanced data passed in is 1 frame old of offset
+            // so need to update the delta between the two
             this.setupUniforms(matrices, programInterface, pipelineState, frameIndex);
 
             cmd.bindElementBuffer(this.indexBuffer.getBuffer());
             //FIXME: reverse region rendering when rendering translucent objects
             for (RenderRegion region : regions) {
-                int id = 0;
-                if (renderPass == DefaultRenderPasses.SOLID)
+                if (region.isDisposed())
+                    continue;
+                if (rid == 0) {
                     cmd.bindCommandBuffer(region.getRenderData().cmd0buff);
-
-                if (renderPass == DefaultRenderPasses.CUTOUT_MIPPED) {
+                }
+                if (rid == 1) {
                     cmd.bindCommandBuffer(region.getRenderData().cmd1buff);
-                    id = 1;
                 }
-                if (renderPass == DefaultRenderPasses.CUTOUT) {
+                if (rid == 2) {
                     cmd.bindCommandBuffer(region.getRenderData().cmd2buff);
-                    id = 2;
                 }
-                if (renderPass == DefaultRenderPasses.TRANSLUCENT) {
+                if (rid == 3) {
                     cmd.bindCommandBuffer(region.getRenderData().cmd3buff);
-                    id = 3;
                 }
-                int count = region.getRenderData().cpuCommandCount.view().getInt(id*4);
+
+                int count = region.getRenderData().cpuCommandCount.view().getInt(rid*4);
                 if (count == 0) {
                     continue;
                 }
@@ -190,8 +217,6 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
                         RenderRegion.REGION_SIZE*4*3
                 );
 
-                cmd.bindParameterCountBuffer(region.getRenderData().counterBuffer);
-
                 cmd.bindVertexBuffer(
                         BufferTarget.VERTICES,
                         region.vertexBuffers.getBufferObject(),
@@ -199,11 +224,14 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
                         region.vertexBuffers.getStride()
                 );
 
+                cmd.bindParameterCountBuffer(region.getRenderData().counterBuffer);
+
+
                 cmd.multiDrawElementsIndirectCount(
                         PrimitiveType.TRIANGLES,
                         ElementFormat.UNSIGNED_INT,
                         0,
-                        4+4*id,//FIXME: need to select the index (0) from the current render layer
+                        4+4*rid,//FIXME: need to select the index (0) from the current render layer
                         Math.min(Math.max((int)(count*1.5+Math.log(count)), 0), RenderRegion.REGION_SIZE * 5 * 4 * 6 - 5),
                         //(int)(Math.ceil(region.sectionCount*3.5)),//FIXME: optimize this to be as close bound as possible, maybe even make it dynamic based on previous counts
                         5*4
@@ -217,6 +245,52 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
                         count
                 );
                  */
+            }
+
+
+            //Hack render the chunk section the player is currently standing in
+            RenderSection sectionIn = SodiumWorldRenderer.instance().getSectionInOrNull();
+            if (sectionIn != null && !sectionIn.isDisposed()) {
+
+                //FIXME: need to check if camera is within the bounding box, else it gets drawn twice
+
+                //FIXME: need to bind a custom storage with the block offset for instanced data
+                FloatBuffer instance = cameraInstancedBufferData.view().order(ByteOrder.nativeOrder()).asFloatBuffer();
+                BlockPos corner = sectionIn.getChunkPos().getMinPos();
+                ChunkCameraContext ccc = new ChunkCameraContext(SodiumWorldRenderer.instance().cameraX,
+                        SodiumWorldRenderer.instance().cameraY,
+                        SodiumWorldRenderer.instance().cameraZ);
+
+                if (!sectionIn.data().bounds.contains(ccc.blockX, ccc.blockY, ccc.blockZ))
+                    return;
+                instance.put(((corner.getX() - ccc.blockX) - ccc.deltaX));
+                instance.put(((corner.getY() - ccc.blockY) - ccc.deltaY));
+                instance.put(((corner.getZ() - ccc.blockZ) - ccc.deltaZ));
+                instance.rewind();
+                cameraInstancedBufferData.flush();
+                pipelineState.bindBufferBlock(
+                        programInterface.uniformInstanceData,
+                        cameraInstancedBufferData,
+                        0,
+                        4 * 3
+                );
+
+                cmd.bindVertexBuffer(
+                        BufferTarget.VERTICES,
+                        sectionIn.getRegion().vertexBuffers.getBufferObject(),
+                        0,
+                        sectionIn.getRegion().vertexBuffers.getStride()
+                );
+
+                //FIXME: draw probably all faces
+                //Do drawElements here
+                for (UploadedChunkGeometry.PackedModel model : sectionIn.getGeometry().models) {
+                    if (model.pass != renderPass)
+                        continue;
+                    for (long dat : model.ranges) {
+                        GL42.glDrawElementsInstancedBaseVertexBaseInstance(GL11.GL_TRIANGLES, UploadedChunkGeometry.ModelPart.unpackVertexCount(dat), GL11.GL_UNSIGNED_INT, 0, 1, sectionIn.getGeometry().segment.getOffset() + UploadedChunkGeometry.ModelPart.unpackFirstVertex(dat), 0);
+                    }
+                }
             }
         });
     }

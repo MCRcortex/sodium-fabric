@@ -51,10 +51,10 @@ public class RenderRegionInstancedRenderData {
     public RenderRegionInstancedRenderData(RenderDevice device) {
         this.device = device;
         this.visBuffer = device.createBuffer(RenderRegion.REGION_SIZE*4, Set.of());
-        this.cpuSectionVis = device.createMappedBuffer(RenderRegion.REGION_SIZE*4, Set.of(MappedBufferFlags.READ));
+        this.cpuSectionVis = device.createMappedBuffer(RenderRegion.REGION_SIZE*4, Set.of(MappedBufferFlags.READ));//MappedBufferFlags.CLIENT_STORAGE
         this.sceneBuffer = device.createMappedBuffer(4*4*4+3*4+4, Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));
         this.counterBuffer = device.createBuffer(5*4, Set.of());
-        this.cpuCommandCount = device.createMappedBuffer(5*4, Set.of(MappedBufferFlags.READ));
+        this.cpuCommandCount = device.createMappedBuffer(5*4, Set.of(MappedBufferFlags.READ));//, MappedBufferFlags.CLIENT_STORAGE
         this.instanceBuffer = device.createBuffer(RenderRegion.REGION_SIZE*4*3, Set.of());
         this.id2InstanceBuffer = device.createBuffer(RenderRegion.REGION_SIZE*4, Set.of());
         //If empty memory buffer is specified, this fixes it

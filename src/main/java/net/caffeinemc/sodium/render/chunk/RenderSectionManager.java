@@ -17,10 +17,10 @@ import net.caffeinemc.sodium.render.chunk.compile.tasks.EmptyTerrainBuildTask;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildTask;
 import net.caffeinemc.sodium.render.chunk.draw.*;
-import net.caffeinemc.sodium.render.chunk.occlussion.GPUOcclusionManager;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
 import net.caffeinemc.sodium.render.chunk.passes.DefaultRenderPasses;
+import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegionManager;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderFlag;
@@ -76,6 +76,10 @@ public class RenderSectionManager {
     private boolean needsUpdate;
     private int frameIndex = 0;
 
+    //FIXME: move to proper location
+    public long cameraRenderRegion;
+    public int cameraRenderRegionInner;
+
     private final ChunkTracker tracker;
     private final RenderDevice device;
 
@@ -125,7 +129,7 @@ public class RenderSectionManager {
         this.needsUpdate = true;
         this.chunkViewDistance = chunkViewDistance;
 
-        this.regions = new RenderRegionManager(device, vertexType);
+        this.regions = new RenderRegionManager(device, vertexType, this);
         this.sectionCache = new ClonedChunkSectionCache(this.world);
 
         for (ChunkUpdateType type : ChunkUpdateType.values()) {
@@ -482,4 +486,13 @@ public class RenderSectionManager {
     private static TerrainVertexType createVertexType() {
         return SodiumClientMod.options().performance.useCompactVertexFormat ? TerrainVertexFormats.COMPACT : TerrainVertexFormats.STANDARD;
     }
+
+    public RenderSection getSectionInOrNull() {
+        RenderRegion region = regions.getRegionOrNull(cameraRenderRegion);
+        if (region == null) {
+            return null;
+        }
+        return region.getSectionOrNull(cameraRenderRegionInner);
+    }
+
 }

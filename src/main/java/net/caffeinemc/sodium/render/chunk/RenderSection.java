@@ -80,10 +80,16 @@ public class RenderSection {
      */
     public void delete() {
         this.cancelRebuildTask();
-        if (region != null)
+        if (region != null) {
             region.freeMetaSection(this);
+            sectionMeta = null;
+        }
         this.deleteGeometry();
 
+        if (sectionMeta != null) {
+            sectionMeta.delete();
+            sectionMeta = null;
+        }
         this.disposed = true;
     }
 
@@ -137,11 +143,13 @@ public class RenderSection {
     public void markForUpdate(RenderSectionManager sectionManager, ChunkUpdateType type) {
         if (this.pendingUpdate == null || type.ordinal() > this.pendingUpdate.ordinal()) {
 
-            if (region != null) {
-                if (getRegion() != null && getRegion().isSectionVisible(this)) {
+            if (getRegion() != null) {
+                if (getRegion().isSectionVisible(this)) {
                     sectionManager.rebuildQueues.get(type).enqueue(this);
+                } else {
+                    getRegion().markSectionUpdateRequest(this);
                 }
-            } else if (type == ChunkUpdateType.INITIAL_BUILD) {
+            } else {
                 PriorityQueue<RenderSection> queue = sectionManager.rebuildQueues.get(type);
                 queue.enqueue(this);
             }
@@ -154,7 +162,9 @@ public class RenderSection {
             this.rebuildTask.cancel(false);
             this.rebuildTask = null;
         }
-
+        if (getRegion() != null) {
+            getRegion().unmarkSectionUpdateRequest(this);
+        }
         this.rebuildTask = task;
         this.pendingUpdate = null;
     }

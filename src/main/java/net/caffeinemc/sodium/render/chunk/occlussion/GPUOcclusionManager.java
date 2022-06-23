@@ -21,6 +21,7 @@ import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
 import net.caffeinemc.sodium.render.shader.ShaderParser;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.chunk.Chunk;
 import org.joml.Matrix4f;
@@ -164,6 +165,7 @@ public class GPUOcclusionManager {
 
     //Fixme: need to use ChunkCameraContext
     public void computeOcclusionVis(Collection<RenderRegion> regions, ChunkRenderMatrices matrices, ChunkCameraContext cam, Frustum frustum) {
+        MinecraftClient.getInstance().getProfiler().push("Compute regions");
         var visRegion = getVisRegion();
         visRegion.clear();
         for (RenderRegion region : regions) {
@@ -176,6 +178,7 @@ public class GPUOcclusionManager {
             //FIXME: need to maybe cut up even more cause sometimes none of the corner points are visible
             Vector3i corner = region.getMinAsBlock();
             //FIXME: need to make a region bounding box for the min AABB of all the contained sections and use that
+
             if (!frustum.isBoxVisible(corner.x, corner.y, corner.z,
                     corner.x + RenderRegion.REGION_WIDTH * 16,
                     corner.y + RenderRegion.REGION_HEIGHT * 16,
@@ -188,6 +191,7 @@ public class GPUOcclusionManager {
                     .sub(cam.blockX, cam.blockY, cam.blockZ)
                     .sub(cam.deltaX, cam.deltaY, cam.deltaZ).lengthSquared();
             visRegion.add(region);
+            region.onVisibleTick();
         }
 
         /*
@@ -202,32 +206,36 @@ public class GPUOcclusionManager {
         //TODO: disable multisample, and enable representitive pixel
 
         //GL11.glFinish();
-        //if (true)
-        //    return;
+
+        MinecraftClient.getInstance().getProfiler().swap("Update memory");
         for (RenderRegion region : visRegion) {
             //FIXME: move this to an outer/another loop that way driver has time to flush the data
             Vector3f campos = new Vector3f(region.getMinAsBlock().sub(cam.blockX, cam.blockY, cam.blockZ)).sub(cam.deltaX, cam.deltaY, cam.deltaZ);
             Matrix4f mvp = new Matrix4f(matrices.projection())
                     .mul(matrices.modelView())
                     .translate(campos);
-
-            mvp.getToAddress(MemoryUtil.memAddress(region.getRenderData().sceneBuffer.view()));
-            campos.getToAddress(MemoryUtil.memAddress(region.getRenderData().sceneBuffer.view())+4*4*4);
-            region.getRenderData().sceneBuffer.view().order(ByteOrder.nativeOrder())
-                    .putInt(4*4*4+4*3, //0
+            ByteBuffer bb = region.getRenderData().sceneBuffer.view().order(ByteOrder.nativeOrder());
+            mvp.get(bb.asFloatBuffer());
+            bb.position(4*4*4);
+            campos.get(bb.asFloatBuffer());
+            bb.putInt(4*4*4+4*3, //0
                             region.getRenderData().cpuCommandCount.view().getInt(0)!=0?region.translucentSections.intValue():0
                             );
+            bb.rewind();
             region.getRenderData().sceneBuffer.flush();
+
             //FIXME: put into gfx
             glCopyNamedBufferSubData(GlBuffer.getHandle(region.getRenderData().counterBuffer), GlBuffer.getHandle(region.getRenderData().cpuCommandCount),4,0,4*4);
+            //glFlush();
             //FIXME: put into gfx
             glClearNamedBufferData(GlBuffer.getHandle(region.getRenderData().counterBuffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
         }
 
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);
+        MinecraftClient.getInstance().getProfiler().swap("Raster vis");
+        glEnable(0x937F);
         this.device.usePipeline(this.rasterCullPipeline,  (cmd, programInterface, pipelineState) -> {
             cmd.bindElementBuffer(this.indexBuffer);
-            //glEnable(0x937F);
             for (RenderRegion region : visRegion) {
                 pipelineState.bindBufferBlock(programInterface.scene, region.getRenderData().sceneBuffer);
                 pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBufferObject());
@@ -237,12 +245,13 @@ public class GPUOcclusionManager {
                 //FIXME: optimize by only drawing sides facing the camera
                 cmd.drawElementsInstanced(PrimitiveType.TRIANGLES, 6*6, ElementFormat.UNSIGNED_BYTE, 0, region.sectionCount);
             }
-            //glDisable(0x937F);
         });
 
+        //glDisable(0x937F);
         //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         //glFinish();
         //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        MinecraftClient.getInstance().getProfiler().swap("Command gen");
         this.device.usePipeline(this.commandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
             for (RenderRegion region : visRegion) {
                 pipelineState.bindBufferBlock(programInterface.scene, region.getRenderData().sceneBuffer);
@@ -265,21 +274,25 @@ public class GPUOcclusionManager {
                 //cmd.dispatchComputeIndirect(0);
             }
         });
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-        this.device.usePipeline(this.translucentCommandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
-            for (RenderRegion region : visRegion) {
-                if (region.translucentSections.intValue() == 0) {
-                    continue;
+        MinecraftClient.getInstance().getProfiler().swap("Translucency command gen");
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        if (true) {
+            this.device.usePipeline(this.translucentCommandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
+                for (RenderRegion region : visRegion) {
+                    if (region.translucentSections.intValue() == 0) {
+                        continue;
+                    }
+                    pipelineState.bindBufferBlock(programInterface.transSort, region.getRenderData().trans3);
+                    pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBufferObject());
+                    pipelineState.bindBufferBlock(programInterface.command, region.getRenderData().cmd3buff);
+                    pipelineState.bindBufferBlock(programInterface.counter, region.getRenderData().counterBuffer);
+                    pipelineState.bindBufferBlock(programInterface.id2inst, region.getRenderData().id2InstanceBuffer);
+                    cmd.dispatchCompute((int)Math.ceil((double) region.translucentSections.intValue()/32),1,1);
                 }
-                pipelineState.bindBufferBlock(programInterface.transSort, region.getRenderData().trans3);
-                pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBufferObject());
-                pipelineState.bindBufferBlock(programInterface.command, region.getRenderData().cmd3buff);
-                pipelineState.bindBufferBlock(programInterface.counter, region.getRenderData().counterBuffer);
-                pipelineState.bindBufferBlock(programInterface.id2inst, region.getRenderData().id2InstanceBuffer);
-                cmd.dispatchCompute((int)Math.ceil((double) region.translucentSections.intValue()/32),1,1);
-            }
-        });
+            });
+        }
+        MinecraftClient.getInstance().getProfiler().pop();
     }
 
     public void fillRenderCommands(List<RenderRegion> regions) {

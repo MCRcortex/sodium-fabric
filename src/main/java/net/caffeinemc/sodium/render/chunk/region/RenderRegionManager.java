@@ -10,6 +10,7 @@ import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
 import net.caffeinemc.sodium.render.buffer.arena.PendingUpload;
 import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
+import net.caffeinemc.sodium.render.chunk.RenderSectionManager;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
 import net.caffeinemc.sodium.render.chunk.draw.IntPool;
 import net.caffeinemc.sodium.render.chunk.state.BuiltChunkGeometry;
@@ -27,10 +28,12 @@ public class RenderRegionManager {
     private final RenderDevice device;
     private final TerrainVertexType vertexType;
     private final SectionedStreamingBuffer stagingBuffer;
+    private final RenderSectionManager sectionManager;
 
-    public RenderRegionManager(RenderDevice device, TerrainVertexType vertexType) {
+    public RenderRegionManager(RenderDevice device, TerrainVertexType vertexType, RenderSectionManager sectionManager) {
         this.device = device;
         this.vertexType = vertexType;
+        this.sectionManager = sectionManager;
 
         var maxInFlightFrames = SodiumClientMod.options().advanced.cpuRenderAheadLimit + 1;
         this.stagingBuffer = new SectionedStreamingBuffer(
@@ -94,10 +97,14 @@ public class RenderRegionManager {
         RenderRegion region = this.regions.get(regionKey);
 
         if (region == null) {
-            this.regions.put(regionKey, region = new RenderRegion(this.device, this.stagingBuffer, this.vertexType, this.idPool.create(), regionKey));
+            this.regions.put(regionKey, region = new RenderRegion(this.device, this.sectionManager, this.stagingBuffer, this.vertexType, this.idPool.create(), regionKey));
         }
 
         return region;
+    }
+
+    public RenderRegion getRegionOrNull(long regionKey) {
+        return this.regions.get(regionKey);
     }
 
     private void uploadGeometryBatch(long regionKey, List<TerrainBuildResult> results, int frameIndex) {

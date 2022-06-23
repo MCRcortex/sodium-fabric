@@ -25,7 +25,7 @@ public class MixinWindow {
         }
 
         GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MAJOR, 4);
-        GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 6);
+        GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 5);
         GLFW.glfwSetErrorCallback(MixinWindow::sodium$throwGlError);
     }
 

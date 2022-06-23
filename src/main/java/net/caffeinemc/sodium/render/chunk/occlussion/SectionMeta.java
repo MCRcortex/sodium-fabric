@@ -2,6 +2,7 @@ package net.caffeinemc.sodium.render.chunk.occlussion;
 
 import net.caffeinemc.sodium.render.buffer.VertexRange;
 import net.caffeinemc.sodium.render.buffer.streaming.StreamingBuffer;
+import net.caffeinemc.sodium.render.chunk.RenderSection;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
 
@@ -22,11 +23,12 @@ public class SectionMeta {
     public VertexRange[] TRANSLUCENT = new VertexRange[7];
 
     private final StreamingBuffer streamingBuffer;
+    public final RenderSection theSection;
 
-
-    public SectionMeta(int id, StreamingBuffer streamingBuffer) {
+    public SectionMeta(int id, StreamingBuffer streamingBuffer, RenderSection section) {
         this.id = id;
         this.streamingBuffer = streamingBuffer;
+        theSection = section;
     }
 
     public void flush() {
@@ -42,6 +44,14 @@ public class SectionMeta {
         buffer.position(4 + 4*3*3);
         buffer.putInt(lmsk);
         writeRenderRanges(buffer);
+        buffer.rewind();
+        section.flushFull();
+    }
+
+    public void delete() {
+        StreamingBuffer.WritableSection section = streamingBuffer.getSection(id);
+        ByteBuffer buffer = section.getView().order(ByteOrder.nativeOrder());
+        buffer.putInt(0, -1);
         buffer.rewind();
         section.flushFull();
     }
