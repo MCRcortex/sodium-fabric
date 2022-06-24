@@ -282,7 +282,7 @@ public class SmartConstAsyncBufferArena implements ArenaBuffer {
 
         // Copy the uploads from the streaming buffer to the arena buffer
         this.device.copyBuffer(streamingBuffer, this.arenaBuffer, transfer.offset(), this.toBytes(segment.getOffset()), transfer.length());
-        glFlush();
+        glFinish();
         transfer.holder().set(segment);
 
         return true;
