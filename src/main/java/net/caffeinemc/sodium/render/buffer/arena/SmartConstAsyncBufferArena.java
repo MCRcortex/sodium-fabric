@@ -9,6 +9,7 @@ import org.lwjgl.system.MemoryUtil;
 import java.util.*;
 
 import static org.lwjgl.opengl.GL11C.glFinish;
+import static org.lwjgl.opengl.GL11C.glFlush;
 
 //TODO: add a fragmented % and a defragment method
 //TODO: maybe also swap to a system similar to my nvidia branch with a tree set, should be alot faster
@@ -281,7 +282,7 @@ public class SmartConstAsyncBufferArena implements ArenaBuffer {
 
         // Copy the uploads from the streaming buffer to the arena buffer
         this.device.copyBuffer(streamingBuffer, this.arenaBuffer, transfer.offset(), this.toBytes(segment.getOffset()), transfer.length());
-        //glFinish();
+        glFlush();
         transfer.holder().set(segment);
 
         return true;
