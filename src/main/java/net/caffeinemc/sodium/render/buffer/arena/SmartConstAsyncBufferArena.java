@@ -7,6 +7,9 @@ import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
 import org.lwjgl.system.MemoryUtil;
 
 import java.util.*;
+
+import static org.lwjgl.opengl.GL11C.glFinish;
+
 //TODO: add a fragmented % and a defragment method
 //TODO: maybe also swap to a system similar to my nvidia branch with a tree set, should be alot faster
 // at finding valid memory sections
@@ -39,7 +42,7 @@ public class SmartConstAsyncBufferArena implements ArenaBuffer {
         this.stride = stride;
     }
 
-    private void resize(int newCapacity) {
+    private synchronized void resize(int newCapacity) {
         if (this.used > newCapacity) {
             throw new UnsupportedOperationException("New capacity must be larger than used size");
         }
@@ -77,7 +80,7 @@ public class SmartConstAsyncBufferArena implements ArenaBuffer {
             seg.mergeInto(tail);
 
 
-
+        //glFinish();
 
 
         this.checkAssertions();
@@ -106,7 +109,7 @@ public class SmartConstAsyncBufferArena implements ArenaBuffer {
         return this.toBytes(this.capacity);
     }
 
-    private BufferSegment alloc(int size) {
+    private synchronized BufferSegment alloc(int size) {
         BufferSegment a = this.findFree(size);
 
         if (a == null) {
@@ -143,7 +146,7 @@ public class SmartConstAsyncBufferArena implements ArenaBuffer {
 
     //FIXME: so when a best is found, actually check if the remaining free space is enough to store like an extra chunk
     // or something, be smart about it
-    private BufferSegment findFree(int size) {
+    private synchronized BufferSegment findFree(int size) {
         BufferSegment entry = this.head;
         BufferSegment best = null;
 
@@ -165,7 +168,7 @@ public class SmartConstAsyncBufferArena implements ArenaBuffer {
     }
 
     @Override
-    public void free(BufferSegment entry) {
+    public synchronized void free(BufferSegment entry) {
         if (entry.isFree()) {
             throw new IllegalStateException("Already freed");
         }
@@ -204,7 +207,7 @@ public class SmartConstAsyncBufferArena implements ArenaBuffer {
         return this.arenaBuffer;
     }
 
-    public void upload(List<PendingUpload> uploads, int frameIndex) {
+    public synchronized void upload(List<PendingUpload> uploads, int frameIndex) {
         // A linked list is used as we'll be randomly removing elements and want O(1) performance
         var pendingTransfers = new LinkedList<PendingTransfer>();
 
@@ -269,7 +272,7 @@ public class SmartConstAsyncBufferArena implements ArenaBuffer {
         }
     }
 
-    private boolean tryUpload(Buffer streamingBuffer, PendingTransfer transfer) {
+    private synchronized boolean tryUpload(Buffer streamingBuffer, PendingTransfer transfer) {
         BufferSegment segment = this.alloc((int) this.toElements(transfer.length()));
 
         if (segment == null) {
@@ -278,7 +281,7 @@ public class SmartConstAsyncBufferArena implements ArenaBuffer {
 
         // Copy the uploads from the streaming buffer to the arena buffer
         this.device.copyBuffer(streamingBuffer, this.arenaBuffer, transfer.offset(), this.toBytes(segment.getOffset()), transfer.length());
-
+        //glFinish();
         transfer.holder().set(segment);
 
         return true;

@@ -189,8 +189,8 @@ public class SodiumWorldRenderer {
         this.lastCameraZ = pos.z;
 
         //FIXME: make less hacky
-        renderSectionManager.cameraRenderRegion =  RenderRegion.getRegionCoord((int)(pos.x/16), (int)(pos.y/16), (int)(pos.z/16));
-        renderSectionManager.cameraRenderRegionInner =  RenderRegion.getInnerRegionCoord((int)(pos.x/16), (int)(pos.y/16), (int)(pos.z/16));
+        renderSectionManager.cameraRenderRegion =  RenderRegion.getRegionCoord((int)(pos.x)>>4, (int)(pos.y)>>4, (int)(pos.z)>>4);
+        renderSectionManager.cameraRenderRegionInner =  RenderRegion.getInnerRegionCoord((int)(pos.x)>>4, (int)(pos.y)>>4, (int)(pos.z)>>4);
 
         this.lastCameraPitch = pitch;
         this.lastCameraYaw = yaw;

@@ -189,9 +189,14 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
 
             cmd.bindElementBuffer(this.indexBuffer.getBuffer());
             //FIXME: reverse region rendering when rendering translucent objects
+
             for (RenderRegion region : regions) {
                 if (region.isDisposed())
                     continue;
+                int count = region.getRenderData().cpuCommandCount.view().getInt(rid*4);
+                if (count == 0) {
+                    continue;
+                }
                 if (rid == 0) {
                     cmd.bindCommandBuffer(region.getRenderData().cmd0buff);
                 }
@@ -205,10 +210,6 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
                     cmd.bindCommandBuffer(region.getRenderData().cmd3buff);
                 }
 
-                int count = region.getRenderData().cpuCommandCount.view().getInt(rid*4);
-                if (count == 0) {
-                    continue;
-                }
 
                 pipelineState.bindBufferBlock(
                         programInterface.uniformInstanceData,
@@ -237,20 +238,19 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
                         5*4
                 );
 
-                /*
-                cmd.multiDrawElementsIndirect(
-                        PrimitiveType.TRIANGLES,
-                        ElementFormat.UNSIGNED_INT,
-                        0,
-                        count
-                );
-                 */
+
+                //cmd.multiDrawElementsIndirect(
+                //        PrimitiveType.TRIANGLES,
+                //        ElementFormat.UNSIGNED_INT,
+                //        0,
+                //        count
+                //);
             }
 
 
             //Hack render the chunk section the player is currently standing in
             RenderSection sectionIn = SodiumWorldRenderer.instance().getSectionInOrNull();
-            if (sectionIn != null && !sectionIn.isDisposed()) {
+            if (sectionIn != null && !sectionIn.isDisposed() ) {
 
                 //FIXME: need to check if camera is within the bounding box, else it gets drawn twice
 

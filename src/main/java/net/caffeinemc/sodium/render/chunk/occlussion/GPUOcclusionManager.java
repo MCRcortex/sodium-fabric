@@ -185,6 +185,9 @@ public class GPUOcclusionManager {
                     corner.z + RenderRegion.REGION_LENGTH * 16)) {
                 continue;
             }
+            //When using RegionPreTester, need to check if its a new region thats visible in the frustum,
+            // if it is, add it reguardless of visibility
+
             region.weight = new Vector3f(corner.x + RenderRegion.REGION_WIDTH * 8,
                     corner.y + RenderRegion.REGION_HEIGHT * 8,
                     corner.z + RenderRegion.REGION_LENGTH * 8)

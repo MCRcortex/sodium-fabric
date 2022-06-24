@@ -45,7 +45,7 @@ public class RenderRegionInstancedRenderData {
     public final ImmutableBuffer cmd1buff;//just for testing will be moved
     public final ImmutableBuffer cmd2buff;//just for testing will be moved
     public final ImmutableBuffer trans3;//just for testing will be moved
-    public final MappedBuffer cmd3buff;//just for testing will be moved
+    public final ImmutableBuffer cmd3buff;//just for testing will be moved
 
     private final RenderDevice device;
     public RenderRegionInstancedRenderData(RenderDevice device) {
@@ -62,8 +62,8 @@ public class RenderRegionInstancedRenderData {
         this.cmd1buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6), Set.of());//FIXME: TUNE BUFFER SIZE
         this.cmd2buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6), Set.of());//FIXME: TUNE BUFFER SIZE
         this.trans3 = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*4), Set.of());
-        //this.cmd3buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6), Set.of());//FIXME: TUNE BUFFER SIZE
-        this.cmd3buff = device.createMappedBuffer(RenderRegion.REGION_SIZE*5*4*6, Set.of(MappedBufferFlags.READ));//FIXME: TUNE BUFFER SIZE
+        this.cmd3buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6), Set.of());//FIXME: TUNE BUFFER SIZE
+        //this.cmd3buff = device.createMappedBuffer(RenderRegion.REGION_SIZE*5*4*6, Set.of(MappedBufferFlags.READ));//FIXME: TUNE BUFFER SIZE
 
 
         set0Buffer(visBuffer);
@@ -86,18 +86,18 @@ public class RenderRegionInstancedRenderData {
     }
 
     public void delete() {
-        SodiumClientMod.DEVICE.deleteBuffer(visBuffer);
-        SodiumClientMod.DEVICE.deleteBuffer(cpuSectionVis);
-        SodiumClientMod.DEVICE.deleteBuffer(sceneBuffer);
-        SodiumClientMod.DEVICE.deleteBuffer(counterBuffer);
-        SodiumClientMod.DEVICE.deleteBuffer(cpuCommandCount);
-        SodiumClientMod.DEVICE.deleteBuffer(instanceBuffer);
-        SodiumClientMod.DEVICE.deleteBuffer(id2InstanceBuffer);
-        SodiumClientMod.DEVICE.deleteBuffer(cmd0buff);
-        SodiumClientMod.DEVICE.deleteBuffer(cmd1buff);
-        SodiumClientMod.DEVICE.deleteBuffer(cmd2buff);
-        SodiumClientMod.DEVICE.deleteBuffer(cmd3buff);
-        SodiumClientMod.DEVICE.deleteBuffer(trans3);
+        device.deleteBuffer(visBuffer);
+        device.deleteBuffer(cpuSectionVis);
+        device.deleteBuffer(sceneBuffer);
+        device.deleteBuffer(counterBuffer);
+        device.deleteBuffer(cpuCommandCount);
+        device.deleteBuffer(instanceBuffer);
+        device.deleteBuffer(id2InstanceBuffer);
+        device.deleteBuffer(cmd0buff);
+        device.deleteBuffer(cmd1buff);
+        device.deleteBuffer(cmd2buff);
+        device.deleteBuffer(cmd3buff);
+        device.deleteBuffer(trans3);
     }
 
     private static void set0Buffer(Buffer buffer) {
