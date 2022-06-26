@@ -212,10 +212,16 @@ public class RenderSection {
     //FIXME: ULTRA BAAD DONT DO HACK TO FIGURE OUT IF THIS IS THE ISSUE
     int measuredBase = 0;
     private void onGeoUpdate() {
-        if (data == ChunkRenderData.EMPTY || data == ChunkRenderData.ABSENT || data == null)
+        if (sectionMeta == null)
             return;
-        if (uploadedGeometry == null)
+        if (data == ChunkRenderData.EMPTY || data == ChunkRenderData.ABSENT || data == null) {
+            sectionMeta.setNoRender();
             return;
+        }
+        if (uploadedGeometry == null) {
+            sectionMeta.setNoRender();
+            return;
+        }
 
         Vector3f secPos = new Vector3f(getSectionPos()).mul(16);
         sectionMeta.setPos(secPos);

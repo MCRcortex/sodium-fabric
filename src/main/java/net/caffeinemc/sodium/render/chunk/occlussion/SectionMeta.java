@@ -56,6 +56,14 @@ public class SectionMeta {
         section.flushFull();
     }
 
+    public void setNoRender() {
+        StreamingBuffer.WritableSection section = streamingBuffer.getSection(id);
+        ByteBuffer buffer = section.getView().order(ByteOrder.nativeOrder());
+        buffer.putInt(0, -1);
+        buffer.rewind();
+        section.flushFull();
+    }
+
     public void setPos(Vector3f pos) {
         this.pos = pos;
     }
