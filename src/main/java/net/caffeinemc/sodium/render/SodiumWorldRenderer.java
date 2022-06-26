@@ -7,6 +7,8 @@ import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.interop.vanilla.mixin.WorldRendererHolder;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.RenderSectionManager;
+import net.caffeinemc.sodium.render.chunk.ViewportInterface;
+import net.caffeinemc.sodium.render.chunk.ViewportedData;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.caffeinemc.sodium.render.chunk.draw.ComputeTranslucencySort;
@@ -41,12 +43,10 @@ public class SodiumWorldRenderer {
     private ClientWorld world;
     private int renderDistance;
 
-    private double lastCameraX, lastCameraY, lastCameraZ;
-    public double cameraX, cameraY, cameraZ;
+    //FIXME: move to ViewportedData
     private double lastCameraPitch, lastCameraYaw;
-    private float lastFogDistance;
 
-    private Frustum frustum;
+    private float lastFogDistance;
 
     private boolean useEntityCulling;
 
@@ -168,34 +168,34 @@ public class SodiumWorldRenderer {
         if (player == null) {
             throw new IllegalStateException("Client instance has no active player entity");
         }
+        var data = ViewportedData.get();
 
         Vec3d pos = camera.getPos();
-        this.cameraX = pos.x;
-        this.cameraY = pos.y;
-        this.cameraZ = pos.z;
+        data.lastCameraX = data.cameraX;
+        data.lastCameraY = data.cameraY;
+        data.lastCameraZ = data.cameraZ;
+        data.cameraX = pos.x;
+        data.cameraY = pos.y;
+        data.cameraZ = pos.z;
         float pitch = camera.getPitch();
         float yaw = camera.getYaw();
         float fogDistance = RenderSystem.getShaderFogEnd();
 
-        boolean dirty = pos.x != this.lastCameraX || pos.y != this.lastCameraY || pos.z != this.lastCameraZ ||
+        boolean dirty = pos.x != data.lastCameraX || pos.y != data.lastCameraY || pos.z != data.lastCameraZ ||
                 pitch != this.lastCameraPitch || yaw != this.lastCameraYaw || fogDistance != this.lastFogDistance;
 
         if (dirty) {
             this.renderSectionManager.markGraphDirty();
         }
 
-        this.lastCameraX = pos.x;
-        this.lastCameraY = pos.y;
-        this.lastCameraZ = pos.z;
 
-        //FIXME: make less hacky
-        renderSectionManager.cameraRenderRegion =  RenderRegion.getRegionCoord((int)(pos.x)>>4, (int)(pos.y)>>4, (int)(pos.z)>>4);
-        renderSectionManager.cameraRenderRegionInner =  RenderRegion.getInnerRegionCoord((int)(pos.x)>>4, (int)(pos.y)>>4, (int)(pos.z)>>4);
+        data.cameraRenderRegion =  RenderRegion.getRegionCoord((int)Math.floor(pos.x)>>4, (int)Math.floor(pos.y)>>4, (int)Math.floor(pos.z)>>4);
+        data.cameraRenderRegionInner =  RenderRegion.getInnerRegionCoord((int)Math.floor(pos.x)>>4, (int)Math.floor(pos.y)>>4, (int)Math.floor(pos.z)>>4);
+        data.frustum = frustum;
 
         this.lastCameraPitch = pitch;
         this.lastCameraYaw = yaw;
         this.lastFogDistance = fogDistance;
-        this.frustum = frustum;
 
         profiler.swap("chunk_update");
 
@@ -225,19 +225,20 @@ public class SodiumWorldRenderer {
     /**
      * Performs a render pass for the given {@link RenderLayer} and draws all visible chunks for it.
      */
-    public void drawChunkLayer(RenderLayer renderLayer, MatrixStack matrixStack) {
+    public void drawChunkLayer(RenderLayer renderLayer, MatrixStack matrixStack, ChunkCameraContext cameraContext) {
 
         ChunkRenderPass renderPass = this.renderPassManager.getRenderPassForLayer(renderLayer);
-        this.renderSectionManager.renderLayer(ChunkRenderMatrices.from(matrixStack), renderPass);
+        this.renderSectionManager.renderLayer(ChunkRenderMatrices.from(matrixStack), renderPass, cameraContext);
         if (renderLayer == RenderLayer.getTranslucent()) {
-            doOcclusion(matrixStack, cameraX, cameraY, cameraZ, frustum);
+            var dat = ViewportedData.get();
+            doOcclusion(matrixStack, cameraContext, dat.frustum);
         }
     }
 
 
-    public void doOcclusion(MatrixStack stack, double cameraX, double cameraY, double cameraZ, Frustum frustum) {
+    public void doOcclusion(MatrixStack stack, ChunkCameraContext cameraContext, Frustum frustum) {
         MinecraftClient.getInstance().getProfiler().push("gpu occluder");
-        this.occlusion.computeOcclusionVis(renderSectionManager.regions.regions.values(), ChunkRenderMatrices.from(stack), new ChunkCameraContext(cameraX, cameraY, cameraZ), frustum);
+        this.occlusion.computeOcclusionVis(renderSectionManager.regions.regions.values(), ChunkRenderMatrices.from(stack), cameraContext, frustum);
         MinecraftClient.getInstance().getProfiler().pop();
     }
 

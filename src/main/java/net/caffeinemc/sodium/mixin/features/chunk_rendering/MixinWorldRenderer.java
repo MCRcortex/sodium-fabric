@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.FrustumAdapter;
 import net.caffeinemc.sodium.interop.vanilla.mixin.WorldRendererHolder;
+import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.world.ChunkStatus;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.GameOptions;
@@ -88,7 +89,7 @@ public abstract class MixinWorldRenderer implements WorldRendererHolder {
      */
     @Overwrite
     private void renderLayer(RenderLayer renderLayer, MatrixStack matrices, double x, double y, double z, Matrix4f matrix) {
-        this.renderer.drawChunkLayer(renderLayer, matrices);
+        this.renderer.drawChunkLayer(renderLayer, matrices, new ChunkCameraContext(x,y,z));
 
         // VANILLA BUG: Binding a RenderLayer for chunk rendering will result in setShaderColor being called,
         // which is accidentally depended on by tile entity rendering. Since we don't bind a render layer, we need

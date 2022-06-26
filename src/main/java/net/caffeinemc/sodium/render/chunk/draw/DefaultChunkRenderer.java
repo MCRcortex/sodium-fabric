@@ -28,6 +28,7 @@ import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
 import net.caffeinemc.sodium.render.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
+import net.caffeinemc.sodium.render.chunk.ViewportedData;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.DefaultRenderPasses;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
@@ -164,7 +165,7 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
 
 
     @Override
-    public void render(Collection<RenderRegion> regions, ChunkRenderPass renderPass, ChunkRenderMatrices matrices, int frameIndex) {
+    public void render(Collection<RenderRegion> regions, ChunkRenderPass renderPass, ChunkRenderMatrices matrices_, int frameIndex, ChunkCameraContext cameraContext) {
         if (renderPass == DefaultRenderPasses.TRIPWIRE)
             return;
         this.indexBuffer.ensureCapacity(1000000);//FIXME: not hardcoded
@@ -179,6 +180,18 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
             idi = 3;
         }
         int rid = idi;
+        ChunkRenderMatrices matrices = matrices_.copy();
+        var dat = ViewportedData.get();
+        ChunkCameraContext c = new ChunkCameraContext((dat.lastCameraX-dat.cameraX),
+        (dat.lastCameraY-dat.cameraY),
+        (dat.lastCameraZ-dat.cameraZ));
+        float dx = (float) (c.deltaX+c.blockX);
+        float dy = (float) (c.deltaY+c.blockY);
+        float dz = (float) (c.deltaZ+c.blockZ);
+        matrices.modelView().translate(dx,
+                dy,
+                dz
+                );
 
 
         this.device.usePipeline(this.pipeline, (cmd, programInterface, pipelineState) -> {
@@ -250,22 +263,19 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
 
             //Hack render the chunk section the player is currently standing in
             RenderSection sectionIn = SodiumWorldRenderer.instance().getSectionInOrNull();
-            if (sectionIn != null && !sectionIn.isDisposed() ) {
+            if (sectionIn != null && !sectionIn.isDisposed() && sectionIn.getRegion() != null) {
 
                 //FIXME: need to check if camera is within the bounding box, else it gets drawn twice
 
                 //FIXME: need to bind a custom storage with the block offset for instanced data
                 FloatBuffer instance = cameraInstancedBufferData.view().order(ByteOrder.nativeOrder()).asFloatBuffer();
                 BlockPos corner = sectionIn.getChunkPos().getMinPos();
-                ChunkCameraContext ccc = new ChunkCameraContext(SodiumWorldRenderer.instance().cameraX,
-                        SodiumWorldRenderer.instance().cameraY,
-                        SodiumWorldRenderer.instance().cameraZ);
-
-                if (!sectionIn.data().bounds.contains(ccc.blockX, ccc.blockY, ccc.blockZ))
+                var data = ViewportedData.get();
+                if (!sectionIn.data().bounds.contains(cameraContext.blockX, cameraContext.blockY, cameraContext.blockZ))
                     return;
-                instance.put(((corner.getX() - ccc.blockX) - ccc.deltaX));
-                instance.put(((corner.getY() - ccc.blockY) - ccc.deltaY));
-                instance.put(((corner.getZ() - ccc.blockZ) - ccc.deltaZ));
+                instance.put(((corner.getX() - cameraContext.blockX) - cameraContext.deltaX)-dx);
+                instance.put(((corner.getY() - cameraContext.blockY) - cameraContext.deltaY)-dy);
+                instance.put(((corner.getZ() - cameraContext.blockZ) - cameraContext.deltaZ)-dz);
                 instance.rewind();
                 cameraInstancedBufferData.flush();
                 pipelineState.bindBufferBlock(
@@ -287,8 +297,8 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
                 for (UploadedChunkGeometry.PackedModel model : sectionIn.getGeometry().models) {
                     if (model.pass != renderPass)
                         continue;
-                    for (long dat : model.ranges) {
-                        GL42.glDrawElementsInstancedBaseVertexBaseInstance(GL11.GL_TRIANGLES, UploadedChunkGeometry.ModelPart.unpackVertexCount(dat), GL11.GL_UNSIGNED_INT, 0, 1, sectionIn.getGeometry().segment.getOffset() + UploadedChunkGeometry.ModelPart.unpackFirstVertex(dat), 0);
+                    for (long pdat : model.ranges) {
+                        GL42.glDrawElementsInstancedBaseVertexBaseInstance(GL11.GL_TRIANGLES, UploadedChunkGeometry.ModelPart.unpackVertexCount(pdat), GL11.GL_UNSIGNED_INT, 0, 1, sectionIn.getGeometry().segment.getOffset() + UploadedChunkGeometry.ModelPart.unpackFirstVertex(pdat), 0);
                     }
                 }
             }

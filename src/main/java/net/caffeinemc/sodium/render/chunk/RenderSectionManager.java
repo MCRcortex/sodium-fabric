@@ -76,10 +76,6 @@ public class RenderSectionManager {
     private boolean needsUpdate;
     private int frameIndex = 0;
 
-    //FIXME: move to proper location
-    public long cameraRenderRegion;
-    public int cameraRenderRegionInner;
-
     private final ChunkTracker tracker;
     private final RenderDevice device;
 
@@ -266,7 +262,7 @@ public class RenderSectionManager {
         return true;
     }
 
-    public void renderLayer(ChunkRenderMatrices matrices, ChunkRenderPass renderPass) {
+    public void renderLayer(ChunkRenderMatrices matrices, ChunkRenderPass renderPass, ChunkCameraContext cameraContext) {
 
         var chunkRenderer = this.chunkRenderers.get(renderPass);
 
@@ -277,8 +273,7 @@ public class RenderSectionManager {
                 }
                 chunkRenderer.render(this.renderLists.get(renderPass), renderPass, matrices, this.frameIndex);
             } else{
-                //FIXME: pass in a frustum culled collection of regions
-                chunkRenderer.render(SodiumWorldRenderer.instance().getOccluder().getVisRegion(), renderPass, matrices, this.frameIndex);
+                chunkRenderer.render(SodiumWorldRenderer.instance().getOccluder().getVisRegion(), renderPass, matrices, this.frameIndex, cameraContext);
             }
         }
     }
@@ -488,11 +483,12 @@ public class RenderSectionManager {
     }
 
     public RenderSection getSectionInOrNull() {
-        RenderRegion region = regions.getRegionOrNull(cameraRenderRegion);
+        var dat = ViewportedData.get();
+        RenderRegion region = regions.getRegionOrNull(dat.cameraRenderRegion);
         if (region == null) {
             return null;
         }
-        return region.getSectionOrNull(cameraRenderRegionInner);
+        return region.getSectionOrNull(dat.cameraRenderRegionInner);
     }
 
 }

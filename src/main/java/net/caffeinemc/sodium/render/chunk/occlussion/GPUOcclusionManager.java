@@ -15,6 +15,7 @@ import net.caffeinemc.gfx.api.types.PrimitiveType;
 import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.chunk.ViewportInterface;
+import net.caffeinemc.sodium.render.chunk.ViewportedData;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
@@ -56,10 +57,8 @@ public class GPUOcclusionManager {
     private Pipeline<TranslucentCommandGeneratorInterface, EmptyTarget> translucentCommandGeneratorPipeline;
     private final ImmutableBuffer indexBuffer;
 
-    public Int2ObjectOpenHashMap<TreeSet<RenderRegion>> visRegions = new Int2ObjectOpenHashMap<>(2);
-
     public TreeSet<RenderRegion> getVisRegion() {
-        return visRegions.computeIfAbsent(ViewportInterface.CURRENT_VIEWPORT, k->new TreeSet<>(Comparator.comparingDouble(a->a.weight)));
+        return ViewportedData.get().visible_regions;
     }
 
     public GPUOcclusionManager(RenderDevice device) {
@@ -164,6 +163,9 @@ public class GPUOcclusionManager {
     //FIXME cull regions that are not in frustum or are empty or have no geometry ready/after prelim region face cull
 
     //Fixme: need to use ChunkCameraContext
+
+    //TODO: can actually make a delta list that needs to be rendered, e.g. for sections that are visible this frame but not last frame
+    // and emit those, thus keeping up the presence of all the frames
     public void computeOcclusionVis(Collection<RenderRegion> regions, ChunkRenderMatrices matrices, ChunkCameraContext cam, Frustum frustum) {
         MinecraftClient.getInstance().getProfiler().push("Compute regions");
         var visRegion = getVisRegion();

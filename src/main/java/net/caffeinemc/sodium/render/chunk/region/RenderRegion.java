@@ -7,10 +7,7 @@ import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.SmartConstAsyncBufferArena;
 import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
 import net.caffeinemc.sodium.render.buffer.streaming.StreamingBuffer;
-import net.caffeinemc.sodium.render.chunk.ChunkUpdateType;
-import net.caffeinemc.sodium.render.chunk.RenderSection;
-import net.caffeinemc.sodium.render.chunk.RenderSectionManager;
-import net.caffeinemc.sodium.render.chunk.ViewportInterface;
+import net.caffeinemc.sodium.render.chunk.*;
 import net.caffeinemc.sodium.render.chunk.occlussion.SectionMeta;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.util.MathUtil;
@@ -178,7 +175,9 @@ public class RenderRegion {
     }
 
     public boolean isSectionVisible(int key) {
-        return getRenderData().cpuSectionVis.view().getInt(pos2id.get(key)*4) == 1 || (sectionManager.cameraRenderRegion == this.key && key == sectionManager.cameraRenderRegionInner);
+        var dat = ViewportedData.get();
+        return getRenderData().cpuSectionVis.view().getInt(pos2id.get(key)*4) == 1 ||
+                (dat.cameraRenderRegion == this.key && key == dat.cameraRenderRegionInner);
     }
 
     public RenderSection getSectionOrNull(int key) {
@@ -252,7 +251,7 @@ public class RenderRegion {
         }
     }
 
-    private final Int2ObjectOpenHashMap<RenderRegionInstancedRenderData> renderData = new Int2ObjectOpenHashMap<>(1);
+    private final Int2ObjectOpenHashMap<RenderRegionInstancedRenderData> renderData = new Int2ObjectOpenHashMap<>(2);
     private RenderRegionInstancedRenderData renderDataCurrent;
     private int currentViewport = -1;
     public RenderRegionInstancedRenderData getRenderData() {

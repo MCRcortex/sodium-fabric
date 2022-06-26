@@ -4,7 +4,6 @@ import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 
 import java.util.Collection;
-import java.util.List;
 
 /**
  * The chunk render backend takes care of managing the graphics resource state of chunk render containers. This includes
@@ -20,7 +19,7 @@ public interface ChunkRenderer {
      */
     void render(RenderListBuilder.RenderList renderLists, ChunkRenderPass renderPass, ChunkRenderMatrices matrices, int frameIndex);
 
-    void render(Collection<RenderRegion> regions, ChunkRenderPass renderPass, ChunkRenderMatrices matrices, int frameIndex);
+    void render(Collection<RenderRegion> regions, ChunkRenderPass renderPass, ChunkRenderMatrices matrices, int frameIndex, ChunkCameraContext cameraContext);
 
     /**
      * Deletes this render backend and any resources attached to it.
