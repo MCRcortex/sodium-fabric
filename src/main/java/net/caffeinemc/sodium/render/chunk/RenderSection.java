@@ -4,8 +4,7 @@ import it.unimi.dsi.fastutil.PriorityQueue;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.buffer.VertexRange;
 import net.caffeinemc.sodium.render.chunk.occlussion.SectionMeta;
-import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
-import net.caffeinemc.sodium.render.chunk.passes.DefaultRenderPasses;
+import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.chunk.state.*;
 import net.minecraft.util.math.ChunkSectionPos;
@@ -140,7 +139,7 @@ public class RenderSection {
         return this.pendingUpdate;
     }
 
-    public void markForUpdate(RenderSectionManager sectionManager, ChunkUpdateType type) {
+    public void markForUpdate(TerrainRenderManager sectionManager, ChunkUpdateType type) {
         if (this.pendingUpdate == null || type.ordinal() > this.pendingUpdate.ordinal()) {
 
             if (getRegion() != null) {
@@ -183,7 +182,7 @@ public class RenderSection {
 
     public void deleteGeometry() {
         if (region != null) {
-            if (Arrays.stream(uploadedGeometry.models).anyMatch(a->a.pass==DefaultRenderPasses.TRANSLUCENT)) {
+            if (Arrays.stream(uploadedGeometry.models).anyMatch(a->a.pass==ChunkRenderPassManager.TRANSLUCENT)) {
                 region.translucentSections.decrementAndGet();
             }
         }
@@ -203,7 +202,7 @@ public class RenderSection {
         } else {
             this.sectionMeta = region.requestNewMetaSection(this);
         }
-        if (Arrays.stream(uploadedGeometry.models).anyMatch(a->a.pass==DefaultRenderPasses.TRANSLUCENT)) {
+        if (Arrays.stream(uploadedGeometry.models).anyMatch(a->a.pass==ChunkRenderPassManager.TRANSLUCENT)) {
             region.translucentSections.incrementAndGet();
         }
         onGeoUpdate();
@@ -238,7 +237,7 @@ public class RenderSection {
         measuredBase = uploadedGeometry.segment.getOffset();
         sectionMeta.reset();
         for (UploadedChunkGeometry.PackedModel model : uploadedGeometry.models) {
-            if (model.pass == DefaultRenderPasses.SOLID) {
+            if (model.pass == ChunkRenderPassManager.SOLID) {
                 for (long p : model.ranges) {
                     int face = Integer.numberOfTrailingZeros(UploadedChunkGeometry.ModelPart.unpackFace(p));
                     sectionMeta.SOLID[face] = new VertexRange(
@@ -246,7 +245,7 @@ public class RenderSection {
                             UploadedChunkGeometry.ModelPart.unpackVertexCount(p));
                 }
             }
-            if (model.pass == DefaultRenderPasses.CUTOUT) {
+            if (model.pass == ChunkRenderPassManager.CUTOUT) {
                 for (long p : model.ranges) {
                     int face = Integer.numberOfTrailingZeros(UploadedChunkGeometry.ModelPart.unpackFace(p));
                     sectionMeta.CUTOUT[face] = new VertexRange(
@@ -254,7 +253,7 @@ public class RenderSection {
                             UploadedChunkGeometry.ModelPart.unpackVertexCount(p));
                 }
             }
-            if (model.pass == DefaultRenderPasses.CUTOUT_MIPPED) {
+            if (model.pass == ChunkRenderPassManager.CUTOUT_MIPPED) {
                 for (long p : model.ranges) {
                     int face = Integer.numberOfTrailingZeros(UploadedChunkGeometry.ModelPart.unpackFace(p));
                     sectionMeta.CUTOUT_MIPPED[face] = new VertexRange(
@@ -262,7 +261,7 @@ public class RenderSection {
                             UploadedChunkGeometry.ModelPart.unpackVertexCount(p));
                 }
             }
-            if (model.pass == DefaultRenderPasses.TRANSLUCENT) {
+            if (model.pass == ChunkRenderPassManager.TRANSLUCENT) {
                 for (long p : model.ranges) {
                     int face = Integer.numberOfTrailingZeros(UploadedChunkGeometry.ModelPart.unpackFace(p));
                     sectionMeta.TRANSLUCENT[face] = new VertexRange(

@@ -13,7 +13,7 @@ layout(std140, binding = 0) uniform SceneData {
     Vec3F negativeCameraPosRegionRelative;
 };
 
-layout(std430, binding = 1) readonly buffer MetaData {
+layout(std430, binding = 1) restrict readonly buffer MetaData {
     SectionMeta sections[];
 };
 #define SECTION sections[gl_InstanceID]

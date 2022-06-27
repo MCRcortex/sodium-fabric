@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
 import java.util.Collection;
 import net.caffeinemc.gfx.api.pipeline.PipelineDescription;
 import net.caffeinemc.gfx.api.pipeline.state.BlendFunc;
+import net.caffeinemc.gfx.api.pipeline.state.WriteMask;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.util.Identifier;
@@ -14,25 +15,25 @@ import net.minecraft.util.Identifier;
  * already used by the base game.
  */
 public class ChunkRenderPassManager {
-    private static final ChunkRenderPass SOLID = new ChunkRenderPass(
+    public static final ChunkRenderPass SOLID = new ChunkRenderPass(
             PipelineDescription.defaults(),
             true,
             0.0f,
             new Identifier("sodium", "solid")
     );
-    private static final ChunkRenderPass CUTOUT_MIPPED = new ChunkRenderPass(
+    public static final ChunkRenderPass CUTOUT_MIPPED = new ChunkRenderPass(
             PipelineDescription.defaults(),
             true,
             0.5f,
             new Identifier("sodium", "cutout_mipped")
     );
-    private static final ChunkRenderPass CUTOUT = new ChunkRenderPass(
+    public static final ChunkRenderPass CUTOUT = new ChunkRenderPass(
             PipelineDescription.defaults(),
             false,
             0.1f,
             new Identifier("sodium", "cutout")
     );
-    private static final ChunkRenderPass TRANSLUCENT = new ChunkRenderPass(
+    public static final ChunkRenderPass TRANSLUCENT = new ChunkRenderPass(
             PipelineDescription.builder()
                                .setBlendFunction(BlendFunc.separate(
                                        BlendFunc.SrcFactor.SRC_ALPHA,
@@ -40,12 +41,13 @@ public class ChunkRenderPassManager {
                                        BlendFunc.SrcFactor.ONE,
                                        BlendFunc.DstFactor.ONE_MINUS_SRC_ALPHA
                                ))
+                    .setWriteMask(new WriteMask(true, false))
                                .build(),
             true,
             0.0f,
             new Identifier("sodium", "translucent")
     );
-    private static final ChunkRenderPass TRIPWIRE = new ChunkRenderPass(
+    public static final ChunkRenderPass TRIPWIRE = new ChunkRenderPass(
             PipelineDescription.builder()
                                .setBlendFunction(BlendFunc.separate(
                                        BlendFunc.SrcFactor.SRC_ALPHA,

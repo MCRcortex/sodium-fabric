@@ -8,15 +8,24 @@ import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
 import net.caffeinemc.sodium.render.buffer.arena.PendingUpload;
-import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
-import net.caffeinemc.sodium.render.chunk.RenderSectionManager;
+import net.caffeinemc.sodium.render.chunk.TerrainRenderManager;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
 import net.caffeinemc.sodium.render.chunk.draw.IntPool;
 import net.caffeinemc.sodium.render.chunk.state.BuiltChunkGeometry;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.caffeinemc.sodium.render.chunk.state.UploadedChunkGeometry;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
+import net.caffeinemc.gfx.api.device.RenderDevice;
+import net.caffeinemc.gfx.util.buffer.SectionedStreamingBuffer;
+import net.caffeinemc.gfx.util.buffer.StreamingBuffer;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,9 +37,9 @@ public class RenderRegionManager {
     private final RenderDevice device;
     private final TerrainVertexType vertexType;
     private final StreamingBuffer stagingBuffer;
-    private final RenderSectionManager sectionManager;
+    private final TerrainRenderManager sectionManager;
 
-    public RenderRegionManager(RenderDevice device, TerrainVertexType vertexType, RenderSectionManager sectionManager) {
+    public RenderRegionManager(RenderDevice device, TerrainVertexType vertexType, TerrainRenderManager sectionManager) {
         this.device = device;
         this.vertexType = vertexType;
         this.sectionManager = sectionManager;

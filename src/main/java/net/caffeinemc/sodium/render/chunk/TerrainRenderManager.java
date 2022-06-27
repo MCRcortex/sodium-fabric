@@ -16,12 +16,7 @@ import net.caffeinemc.sodium.render.chunk.compile.tasks.AbstractBuilderTask;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.EmptyTerrainBuildTask;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildTask;
-import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
-import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
-import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderer;
-import net.caffeinemc.sodium.render.chunk.draw.MdiChunkRenderer;
-import net.caffeinemc.sodium.render.chunk.draw.MdiCountChunkRenderer;
-import net.caffeinemc.sodium.render.chunk.draw.SortedChunkLists;
+import net.caffeinemc.sodium.render.chunk.draw.*;
 import net.caffeinemc.sodium.render.chunk.occlusion.ChunkOcclusion;
 import net.caffeinemc.sodium.render.chunk.occlusion.ChunkTree;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
@@ -57,13 +52,15 @@ public class TerrainRenderManager {
 
     private final ChunkBuilder builder;
 
-    private final RenderRegionManager regions;
+    //FIXME: make via method or other
+    public final RenderRegionManager regions;
     private final ClonedChunkSectionCache sectionCache;
 
     private final ChunkTree tree;
     private final int chunkViewDistance;
 
-    private final Map<ChunkUpdateType, PriorityQueue<RenderSection>> rebuildQueues = new EnumMap<>(ChunkUpdateType.class);
+    //FIXME: make via method
+    public final Map<ChunkUpdateType, PriorityQueue<RenderSection>> rebuildQueues = new EnumMap<>(ChunkUpdateType.class);
 
     private final ChunkRenderer chunkRenderer;
 
@@ -103,7 +100,7 @@ public class TerrainRenderManager {
         this.needsUpdate = true;
         this.chunkViewDistance = chunkViewDistance;
 
-        this.regions = new RenderRegionManager(device, vertexType);
+        this.regions = new RenderRegionManager(device, vertexType, this);
         this.sectionCache = new ClonedChunkSectionCache(this.world);
 
         for (ChunkUpdateType type : ChunkUpdateType.values()) {
@@ -223,7 +220,7 @@ public class TerrainRenderManager {
         if (section.isEmpty()) {
             render.setData(ChunkRenderData.EMPTY);
         } else {
-            render.markForUpdate(ChunkUpdateType.INITIAL_BUILD);
+            render.markForUpdate(this, ChunkUpdateType.INITIAL_BUILD);
         }
 
         this.onChunkDataChanged(render, ChunkRenderData.ABSENT, render.data());
@@ -385,9 +382,9 @@ public class TerrainRenderManager {
 
         if (section != null && section.isBuilt()) {
             if (!this.alwaysDeferChunkUpdates && (important || this.isBlockUpdatePrioritized(section))) {
-                section.markForUpdate(ChunkUpdateType.IMPORTANT_REBUILD);
+                section.markForUpdate(this, ChunkUpdateType.IMPORTANT_REBUILD);
             } else {
-                section.markForUpdate(ChunkUpdateType.REBUILD);
+                section.markForUpdate(this, ChunkUpdateType.REBUILD);
             }
         }
 
@@ -429,6 +426,9 @@ public class TerrainRenderManager {
     }
 
     private static ChunkRenderer createChunkRenderer(RenderDevice device, ChunkRenderPassManager renderPassManager, TerrainVertexType vertexType) {
+        if (true) {
+            return new MdicGPUOcclusionRenderer(device, renderPassManager, vertexType);
+        }
         if (device.properties().driverWorkarounds.forceIndirectCount) {
             return new MdiCountChunkRenderer(device, renderPassManager, vertexType);
         } else {

@@ -1,7 +1,7 @@
 package net.caffeinemc.sodium.render.chunk.occlussion;
 
+import net.caffeinemc.gfx.util.buffer.StreamingBuffer;
 import net.caffeinemc.sodium.render.buffer.VertexRange;
-import net.caffeinemc.sodium.render.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;

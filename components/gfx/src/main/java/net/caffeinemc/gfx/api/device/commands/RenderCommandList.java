@@ -20,4 +20,12 @@ public interface RenderCommandList<T extends Enum<T>> {
     void bindParameterBuffer(Buffer buffer);
 
     void multiDrawElementsIndirectCount(PrimitiveType primitiveType, ElementFormat elementType, long indirectOffset, long countOffset, int maxCount, int stride);
+
+    void drawElementsInstanced(PrimitiveType primitiveType, int count, ElementFormat elementType, long indices, int primcount);
+
+    void dispatchCompute(int group_x, int group_y, int group_z);
+
+    void dispatchComputeIndirect(long offset);
+
+
 }

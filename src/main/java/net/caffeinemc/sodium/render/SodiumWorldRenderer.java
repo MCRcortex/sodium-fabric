@@ -5,10 +5,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.interop.vanilla.mixin.WorldRendererHolder;
-import net.caffeinemc.sodium.render.chunk.RenderSection;
-import net.caffeinemc.sodium.render.chunk.RenderSectionManager;
-import net.caffeinemc.sodium.render.chunk.ViewportInterface;
-import net.caffeinemc.sodium.render.chunk.ViewportedData;
+import net.caffeinemc.sodium.render.chunk.*;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.caffeinemc.sodium.render.chunk.draw.ComputeTranslucencySort;
@@ -16,6 +13,7 @@ import net.caffeinemc.sodium.render.chunk.occlussion.GPUOcclusionManager;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
+import net.caffeinemc.sodium.render.chunk.TerrainRenderManager;
 import net.caffeinemc.sodium.render.terrain.context.ImmediateTerrainRenderCache;
 import net.caffeinemc.sodium.util.NativeBuffer;
 import net.caffeinemc.sodium.world.ChunkTracker;
@@ -55,10 +53,8 @@ public class SodiumWorldRenderer {
     private boolean useEntityCulling;
 
     private GPUOcclusionManager occlusion;
-    private ComputeTranslucencySort translucencySort;
-    private RenderSectionManager renderSectionManager;
-    private ChunkRenderPassManager renderPassManager;
     private TerrainRenderManager terrainRenderManager;
+    private ComputeTranslucencySort translucencySort;
     private ChunkRenderPassManager renderPassManager;
     private ChunkTracker chunkTracker;
 
@@ -213,11 +209,10 @@ public class SodiumWorldRenderer {
         if (this.terrainRenderManager.isGraphDirty()) {
             profiler.swap("chunk_graph_rebuild");
             if (!MinecraftClient.getInstance().player.isSneaking()) {
-                //this.renderSectionManager.update(new ChunkCameraContext(camera), frustum, spectator);
-            }
+                //this.terrainRenderManager.update(new ChunkCameraContext(camera), frustum, spectator);
             } else {
 
-            this.terrainRenderManager.update(new ChunkCameraContext(camera), frustum, spectator);
+            }
         }
 
         profiler.swap("visible_chunk_tick");
@@ -235,8 +230,9 @@ public class SodiumWorldRenderer {
     public void drawChunkLayer(RenderLayer renderLayer, MatrixStack matrixStack, ChunkCameraContext cameraContext) {
 
         ChunkRenderPass renderPass = this.renderPassManager.getRenderPassForLayer(renderLayer);
-        this.terrainRenderManager.renderLayer(ChunkRenderMatrices.from(matrixStack), renderPass, cameraContext);
-        if (renderLayer == RenderLayer.getTranslucent()) {
+        this.terrainRenderManager.renderLayer(ChunkRenderMatrices.from(matrixStack), renderPass/*, cameraContext*/);
+        //NOTE: works fine if its done before solid, so could reporject depth buffer and use that
+        if (renderLayer == RenderLayer.getTranslucent() && !MinecraftClient.getInstance().player.isSneaking()) {
             var dat = ViewportedData.get();
             doOcclusion(matrixStack, cameraContext, dat.frustum);
         }
@@ -245,7 +241,7 @@ public class SodiumWorldRenderer {
 
     public void doOcclusion(MatrixStack stack, ChunkCameraContext cameraContext, Frustum frustum) {
         MinecraftClient.getInstance().getProfiler().push("gpu occluder");
-        this.occlusion.computeOcclusionVis(renderSectionManager.regions.regions.values(), ChunkRenderMatrices.from(stack), cameraContext, frustum);
+        this.occlusion.computeOcclusionVis(terrainRenderManager.regions.regions.values(), ChunkRenderMatrices.from(stack), cameraContext, frustum);
         MinecraftClient.getInstance().getProfiler().pop();
     }
 
@@ -430,16 +426,13 @@ public class SodiumWorldRenderer {
         return this.chunkTracker;
     }
 
-    public void prepRenderCommands(MatrixStack matrices, Camera camera, GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f positionMatrix) {
-        //this.occlusion.computeOcclusionVis(renderSectionManager.regions.regions.values(), ChunkRenderMatrices.from(matrices), new Vector3f((float) camera.getPos().x, (float) camera.getPos().y, (float) camera.getPos().z));
-    }
-
 
     public GPUOcclusionManager getOccluder() {
         return occlusion;
     }
 
     public RenderSection getSectionInOrNull() {
-        return renderSectionManager.getSectionInOrNull();
+        //return renderSectionManager.getSectionInOrNull();
+        return null;
     }
 }

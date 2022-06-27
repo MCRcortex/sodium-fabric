@@ -3,10 +3,10 @@ package net.caffeinemc.sodium.render.chunk.region;
 import it.unimi.dsi.fastutil.ints.*;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
+import net.caffeinemc.gfx.util.buffer.SectionedStreamingBuffer;
+import net.caffeinemc.gfx.util.buffer.StreamingBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.SmartConstAsyncBufferArena;
-import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
-import net.caffeinemc.sodium.render.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.*;
 import net.caffeinemc.sodium.render.chunk.occlussion.SectionMeta;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
@@ -55,8 +55,8 @@ public class RenderRegion {
     public final int id;
     public final long key;
 
-    private final RenderSectionManager sectionManager;
-    public RenderRegion(RenderDevice device, RenderSectionManager sectionManager, SectionedStreamingBuffer stagingBuffer, TerrainVertexType vertexType, int id, long regionKey) {
+    private final TerrainRenderManager sectionManager;
+    public RenderRegion(RenderDevice device, TerrainRenderManager sectionManager, StreamingBuffer stagingBuffer, TerrainVertexType vertexType, int id, long regionKey) {
         this.vertexBuffers = new SmartConstAsyncBufferArena(device, stagingBuffer,
                 REGION_SIZE * 756,
                 vertexType.getBufferVertexFormat().stride());

@@ -38,12 +38,7 @@ import net.caffeinemc.gfx.opengl.sync.GlFence;
 import net.caffeinemc.gfx.opengl.texture.GlSampler;
 import org.apache.commons.lang3.Validate;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.opengl.ARBIndirectParameters;
-import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.GL20C;
-import org.lwjgl.opengl.GL30C;
-import org.lwjgl.opengl.GL43C;
-import org.lwjgl.opengl.GL45C;
+import org.lwjgl.opengl.*;
 import org.lwjgl.system.MathUtil;
 
 public class GlRenderDevice implements RenderDevice {
@@ -222,7 +217,7 @@ public class GlRenderDevice implements RenderDevice {
         var storage = GL45C.GL_MAP_PERSISTENT_BIT | getMappedBufferStorageBits(flags);
         GL45C.glNamedBufferStorage(handle, capacity, storage);
 
-        var access = GL45C.GL_MAP_PERSISTENT_BIT | GL45C.GL_MAP_UNSYNCHRONIZED_BIT | GL45C.GL_MAP_INVALIDATE_BUFFER_BIT | getMappedBufferAccessBits(flags);
+        var access = GL45C.GL_MAP_PERSISTENT_BIT | (flags.contains(MappedBufferFlags.EXPLICIT_FLUSH)?GL45C.GL_MAP_UNSYNCHRONIZED_BIT| GL45C.GL_MAP_INVALIDATE_BUFFER_BIT:0)  | getMappedBufferAccessBits(flags);
         // for some reason, this works but glMapNamedBuffer doesn't
         ByteBuffer mapping = GL45C.glMapNamedBufferRange(handle, 0, capacity, access);
 
@@ -433,6 +428,26 @@ public class GlRenderDevice implements RenderDevice {
                     stride
             );
         }
+
+
+        @Override
+        public void drawElementsInstanced(PrimitiveType primitiveType, int count, ElementFormat elementType, long indices, int primcount) {
+            //FIXME: add api checks
+
+            GL31C.glDrawElementsInstanced(GlEnum.from(primitiveType), count, GlEnum.from(elementType), indices, primcount);
+        }
+
+        @Override
+        public void dispatchCompute(int group_x, int group_y, int group_z) {
+            GL43C.glDispatchCompute(group_x, group_y, group_z);
+        }
+
+        @Override
+        public void dispatchComputeIndirect(long offset) {
+            GL43C.glDispatchComputeIndirect(offset);
+        }
+
+
     }
 
     private static int getBufferStorageBits(Set<ImmutableBufferFlags> flags) {

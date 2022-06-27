@@ -9,10 +9,6 @@ import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.EnumSet;
 
-import net.caffeinemc.gfx.api.array.VertexArrayDescription;
-import net.caffeinemc.gfx.api.array.VertexArrayResourceBinding;
-import net.caffeinemc.gfx.api.array.attribute.VertexAttributeBinding;
-import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.buffer.MappedBuffer;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
@@ -25,12 +21,9 @@ import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
-import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
-import net.caffeinemc.sodium.render.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.ViewportedData;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
-import net.caffeinemc.sodium.render.chunk.passes.DefaultRenderPasses;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.chunk.shader.ChunkShaderBindingPoints;
 import net.caffeinemc.sodium.render.chunk.shader.ChunkShaderInterface;
@@ -53,7 +46,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-public class DefaultChunkRenderer extends AbstractChunkRenderer {
+public class DefaultChunkRenderer  {
+    /*
     // TODO: should these be moved?
     public static final int CAMERA_MATRICES_SIZE = 192;
     public static final int FOG_PARAMETERS_SIZE = 32;
@@ -374,4 +368,6 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
     public enum BufferTarget {
         VERTICES
     }
+
+     */
 }

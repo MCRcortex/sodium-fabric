@@ -3,7 +3,7 @@ package net.caffeinemc.sodium.render.buffer.arena;
 import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.buffer.ImmutableBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
-import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
+import net.caffeinemc.gfx.util.buffer.StreamingBuffer;
 import org.lwjgl.system.MemoryUtil;
 
 import java.util.*;
@@ -20,7 +20,7 @@ public class SmartConstAsyncBufferArena implements ArenaBuffer {
     private final int resizeIncrement;
 
     private final RenderDevice device;
-    private final SectionedStreamingBuffer stagingBuffer;
+    private final StreamingBuffer stagingBuffer;
     private Buffer arenaBuffer;
 
     private BufferSegment head;
@@ -30,7 +30,7 @@ public class SmartConstAsyncBufferArena implements ArenaBuffer {
 
     private final int stride;
 
-    public SmartConstAsyncBufferArena(RenderDevice device, SectionedStreamingBuffer stagingBuffer, int capacity, int stride) {
+    public SmartConstAsyncBufferArena(RenderDevice device, StreamingBuffer stagingBuffer, int capacity, int stride) {
         this.device = device;
         this.stagingBuffer = stagingBuffer;
         this.resizeIncrement = capacity / 16;
@@ -220,7 +220,7 @@ public class SmartConstAsyncBufferArena implements ArenaBuffer {
 
         // Write the PendingUploads to the mapped streaming buffer
         // Also create the pending transfers to go from streaming buffer -> arena buffer
-        long sectionOffset = section.getOffset() + section.getView().position();
+        long sectionOffset = section.getDeviceOffset() + section.getView().position();
         // this is basically the address of what sectionOffset points to
         long sectionAddress = MemoryUtil.memAddress(section.getView());
         int transferOffset = 0;

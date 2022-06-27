@@ -233,6 +233,7 @@ public class GPUOcclusionManager {
             glCopyNamedBufferSubData(GlBuffer.getHandle(region.getRenderData().counterBuffer), GlBuffer.getHandle(region.getRenderData().cpuCommandCount),4,0,4*4);
             //glFlush();
             //FIXME: put into gfx
+            glClearNamedBufferData(GlBuffer.getHandle(region.getRenderData().cpuSectionVis),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
             glClearNamedBufferData(GlBuffer.getHandle(region.getRenderData().counterBuffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
         }
 

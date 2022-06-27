@@ -49,7 +49,7 @@ import org.lwjgl.system.MemoryUtil;
 
 public class MdiChunkRenderer extends AbstractChunkRenderer {
     public static final int COMMAND_STRUCT_STRIDE = 5 * Integer.BYTES;
-    public static final int INSTANCE_STRUCT_STRIDE = 4 * Float.BYTES;
+    public static final int INSTANCE_STRUCT_STRIDE = 3 * Float.BYTES;
     public static final int CAMERA_MATRICES_SIZE = 192;
     public static final int FOG_PARAMETERS_SIZE = 32;
     public static final int INSTANCE_DATA_SIZE = RenderRegion.REGION_SIZE * INSTANCE_STRUCT_STRIDE;

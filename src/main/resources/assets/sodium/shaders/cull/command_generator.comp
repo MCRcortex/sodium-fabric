@@ -114,7 +114,7 @@ void main() {
     //Ordered this way to heavily reduce memory loads
     if (visiblity[gl_GlobalInvocationID.x] == 0) {
         //FIXME: THIS MAKES IT SLOW DOWN BY QUITE A BIT, probably cause of all the access's to cpu memory
-        CPUvisiblity[gl_GlobalInvocationID.x] = 0;
+        //CPUvisiblity[gl_GlobalInvocationID.x] = 0;
         return;
     }
     visiblity[gl_GlobalInvocationID.x] = 0;
@@ -125,7 +125,7 @@ void main() {
     vec3 center = Vec3FtoVec3(SECTION.bboxOffset) + hsize + Vec3FtoVec3(negativeCameraPosRegionRelative);
     //TODO: move this to the raster_depth_test.vert shader, maybe using the depth buffer
     if ((center.x*center.x + center.z*center.z)>(32*32*16*16)) {
-        CPUvisiblity[gl_GlobalInvocationID.x] = 0;
+        //CPUvisiblity[gl_GlobalInvocationID.x] = 0;
         return;
     }
     //TODO: also try do exact face culling like in jellys pr
@@ -153,7 +153,7 @@ void main() {
         //msk is the visibility mask of all the layers, 1 byte per layer
         //If there is no visible face visible, just return, no need to continue
         if (msk == 0) {
-            CPUvisiblity[gl_GlobalInvocationID.x] = 0;
+            //CPUvisiblity[gl_GlobalInvocationID.x] = 0;
             return;
         }
         CPUvisiblity[gl_GlobalInvocationID.x] = 1;
