@@ -27,7 +27,7 @@ public class RenderRegionManager {
 
     private final RenderDevice device;
     private final TerrainVertexType vertexType;
-    private final SectionedStreamingBuffer stagingBuffer;
+    private final StreamingBuffer stagingBuffer;
     private final RenderSectionManager sectionManager;
 
     public RenderRegionManager(RenderDevice device, TerrainVertexType vertexType, RenderSectionManager sectionManager) {

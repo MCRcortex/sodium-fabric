@@ -1,23 +1,34 @@
 package net.caffeinemc.sodium;
 
-import net.fabricmc.loader.api.SemanticVersion;
+import java.util.Objects;
+import net.fabricmc.loader.api.Version;
 import net.fabricmc.loader.api.VersionParsingException;
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
+import net.fabricmc.loader.impl.util.version.VersionParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.system.Configuration;
 import org.lwjgl.system.Platform;
 import org.lwjgl.system.jemalloc.JEmalloc;
 
-import java.util.Objects;
-
 public class SodiumPreLaunch implements PreLaunchEntrypoint {
     private static final Logger LOGGER = LogManager.getLogger("Sodium");
 
     @Override
     public void onPreLaunch() {
-        //System.loadLibrary("renderdoc");
+        tryLoadRenderdoc();
         checkJemalloc();
+    }
+
+    private static void tryLoadRenderdoc() {
+        if (System.getProperty("sodium.load_renderdoc") != null) {
+            LOGGER.info("Loading renderdoc...");
+            try {
+                System.loadLibrary("renderdoc");
+            } catch (Throwable t) {
+                LOGGER.warn("Unable to load renderdoc (is it in your path?)", t);
+            }
+        }
     }
 
     private static void checkJemalloc() {
@@ -25,7 +36,7 @@ public class SodiumPreLaunch implements PreLaunchEntrypoint {
         // Using the system allocator prevents memory leaks and other problems
         // See changelog here: https://github.com/jemalloc/jemalloc/releases/tag/5.2.1
         if (Platform.get() == Platform.WINDOWS && isVersionWithinRange(JEmalloc.JEMALLOC_VERSION, "5.0.0", "5.2.0")) {
-            LOGGER.info("Trying to switch memory allocators to work around memory leaks present with Jemalloc 5.0.0 through 5.2.0 on Windows");
+            LOGGER.info("Switching memory allocators to work around memory leaks present with Jemalloc 5.0.0 through 5.2.0 on Windows...");
 
             if (!Objects.equals(Configuration.MEMORY_ALLOCATOR.get(), "system")) {
                 Configuration.MEMORY_ALLOCATOR.set("system");
@@ -34,12 +45,12 @@ public class SodiumPreLaunch implements PreLaunchEntrypoint {
     }
 
     private static boolean isVersionWithinRange(String curStr, String minStr, String maxStr) {
-        SemanticVersion cur, min, max;
+        Version cur, min, max;
 
         try {
-            cur = SemanticVersion.parse(curStr);
-            min = SemanticVersion.parse(minStr);
-            max = SemanticVersion.parse(maxStr);
+            cur = VersionParser.parseSemantic(curStr);
+            min = VersionParser.parseSemantic(minStr);
+            max = VersionParser.parseSemantic(maxStr);
         } catch (VersionParsingException e) {
             LOGGER.warn("Unable to parse version string", e);
             return false;
