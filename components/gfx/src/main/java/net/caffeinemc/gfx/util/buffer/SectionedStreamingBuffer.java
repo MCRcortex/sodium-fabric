@@ -35,27 +35,23 @@ public class SectionedStreamingBuffer implements StreamingBuffer {
         this.alignedStride = MathUtil.align(sectionCapacity, alignment);
         this.buffer = this.device.createMappedBuffer((long) this.alignedStride * sectionCount, this.bufferFlags);
         this.sections = new WritableSection[sectionCount];
-        this.updateSections();
+        this.updateSections(false);
     }
 
     /**
-     * WARNING: RESIZING PERSISTENT BUFFERS IS *SUPER SLOW*!!!!
-     * ONLY USE THIS METHOD IF *ABSOLUTELY NECESSARY*!!!!
+     * WARNING: RESIZING PERSISTENT BUFFERS IS *SUPER SLOW*!!!! ONLY USE THIS METHOD IF *ABSOLUTELY NECESSARY*!!!!
      *
-     * This method will also invalidate any existing WritableSections,
-     * so make sure none are in use before this is called.
+     * This method will also invalidate any existing WritableSections, so make sure none are in use before this is
+     * called. All needed data associated with any sections should be flushed prior to calling this.
      *
      * @return true if the buffer was resized
      */
-    public boolean resizeIfNeeded(WritableSection currentSection, int sectionCapacity, boolean copyContents) {
+    public boolean resizeIfNeeded(int sectionCapacity, boolean copyContents) {
         // TODO: add path for if sectioncapacity is still smaller than alignedstride
         if (sectionCapacity > this.sectionCapacity) {
             int newSectionCapacity = Math.max(sectionCapacity, this.sectionCapacity * 2);
             int newAlignedStride = MathUtil.align(newSectionCapacity, this.alignment);
             long newBufferCapacity = (long) newAlignedStride * this.sectionCount;
-
-            // flush pending data for current section, previous sections should already be flushed
-            currentSection.flushPartial();
 
             MappedBuffer newBuffer;
             // create new buffer
@@ -89,19 +85,39 @@ public class SectionedStreamingBuffer implements StreamingBuffer {
             this.alignedStride = newAlignedStride;
             this.buffer = newBuffer;
 
-            this.updateSections();
+            this.updateSections(copyContents);
             return true;
         }
         return false;
     }
 
-    private void updateSections() {
+    private void updateSections(boolean copyPositions) {
         for (int idx = 0; idx < this.sectionCount; idx++) {
             int start = this.alignedStride * idx;
-            var view = MemoryUtil.memSlice(this.buffer.view(), start, this.sectionCapacity);
+            ByteBuffer view = MemoryUtil.memSlice(this.buffer.view(), start, this.sectionCapacity);
+            
+            // warning: only works when updates are larger than prior
+            if (copyPositions) {
+                WritableSection prevSection = this.sections[idx];
+                if (prevSection != null) {
+                    view.position(prevSection.getView().position());
+                }
+            }
 
             this.sections[idx] = this.createSection(view, start);
         }
+    }
+    
+    private WritableSection getSectionUnaligned(int frameIndex) {
+        int sectionIdx = frameIndex % this.sectionCount;
+    
+        // not good, but whatever
+        if (frameIndex != this.lastFrameIdx) {
+            this.sections[sectionIdx].reset();
+            this.lastFrameIdx = frameIndex;
+        }
+    
+       return this.sections[sectionIdx];
     }
 
     /**
@@ -109,15 +125,7 @@ public class SectionedStreamingBuffer implements StreamingBuffer {
      */
     @Override
     public WritableSection getSection(int frameIndex) {
-        int sectionIdx = frameIndex % this.sectionCount;
-
-        // not good, but whatever
-        if (frameIndex != this.lastFrameIdx) {
-            this.sections[sectionIdx].reset();
-            this.lastFrameIdx = frameIndex;
-        }
-
-        WritableSection section = this.sections[sectionIdx];
+        WritableSection section = this.getSectionUnaligned(frameIndex);
 
         ByteBuffer view = section.getView();
         int alignedPosition = MathUtil.align(view.position(), this.alignment);
@@ -131,18 +139,22 @@ public class SectionedStreamingBuffer implements StreamingBuffer {
      */
     @Override
     public WritableSection getSection(int frameIndex, int extraSize, boolean copyContents) {
-        WritableSection section = this.getSection(frameIndex);
+        WritableSection currentSection = this.getSectionUnaligned(frameIndex);
 
         // resize if needed
-        int requiredSize = section.getView().position() + extraSize;
-        boolean resized = this.resizeIfNeeded(section, requiredSize, copyContents);
+        ByteBuffer currentView = currentSection.getView();
+        int alignedPosition = MathUtil.align(currentView.position(), this.alignment);
+        int requiredSize = alignedPosition + extraSize;
+        boolean resized = this.resizeIfNeeded(requiredSize, copyContents);
 
         // need to account for if sections were updated
         if (resized) {
-            section = this.getSection(frameIndex);
+            currentSection = this.getSection(frameIndex);
+        } else {
+            currentView.position(alignedPosition);
         }
 
-        return section;
+        return currentSection;
     }
 
     @Override
@@ -204,13 +216,17 @@ public class SectionedStreamingBuffer implements StreamingBuffer {
         public void flushPartial() {
             long length = this.view.position() - this.lastFlushEndPos;
             if (length > 0) {
-                this.buffer.flush(this.offset + this.lastFlushEndPos, length);
+                if (this.buffer.flags().contains(MappedBufferFlags.EXPLICIT_FLUSH)) {
+                    this.buffer.flush(this.offset + this.lastFlushEndPos, length);
+                }
                 this.lastFlushEndPos += length;
             }
         }
 
         public void flushFull() {
-            this.buffer.flush(this.offset, this.view.capacity());
+            if (this.buffer.flags().contains(MappedBufferFlags.EXPLICIT_FLUSH)) {
+                this.buffer.flush(this.offset, this.view.capacity());
+            }
         }
 
         public ByteBuffer getView() {

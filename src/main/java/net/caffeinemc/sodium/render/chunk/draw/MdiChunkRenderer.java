@@ -39,7 +39,6 @@ import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.render.terrain.quad.properties.ChunkMeshFace;
 import net.caffeinemc.sodium.util.MathUtil;
 import net.caffeinemc.sodium.util.TextureUtil;
-import net.caffeinemc.sodium.util.UnsafeUtil;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.MathHelper;
@@ -76,10 +75,7 @@ public class MdiChunkRenderer extends AbstractChunkRenderer {
         super(device);
         
         this.renderPassManager = renderPassManager;
-        
-        int maxInFlightFrames = SodiumClientMod.options().advanced.cpuRenderAheadLimit + 1;
-        int uboAlignment = device.properties().values.uniformBufferOffsetAlignment;
-        
+    
         this.pipelines = new Object2ObjectOpenHashMap<>();
     
         var vertexFormat = vertexType.getCustomVertexFormat();
@@ -111,10 +107,10 @@ public class MdiChunkRenderer extends AbstractChunkRenderer {
                         }
                ))
         );
-        
+    
         for (ChunkRenderPass renderPass : renderPassManager.getAllRenderPasses()) {
             var constants = getShaderConstants(renderPass, vertexType);
-            
+    
             var vertShader = ShaderParser.parseSodiumShader(
                     ShaderLoader.MINECRAFT_ASSETS,
                     new Identifier("sodium", "terrain/terrain_opaque.vert"),
@@ -125,26 +121,30 @@ public class MdiChunkRenderer extends AbstractChunkRenderer {
                     new Identifier("sodium", "terrain/terrain_opaque.frag"),
                     constants
             );
-            
+    
             var desc = ShaderDescription.builder()
                                         .addShaderSource(ShaderType.VERTEX, vertShader)
                                         .addShaderSource(ShaderType.FRAGMENT, fragShader)
                                         .build();
-            
+    
             Program<ChunkShaderInterface> program = this.device.createProgram(desc, ChunkShaderInterface::new);
             Pipeline<ChunkShaderInterface, BufferTarget> pipeline = this.device.createPipeline(
                     renderPass.pipelineDescription(),
                     program,
                     vertexArray
             );
-            
+    
             this.pipelines.put(renderPass, pipeline);
         }
-        
+    
+        int maxInFlightFrames = SodiumClientMod.options().advanced.cpuRenderAheadLimit + 1;
+        int uboAlignment = device.properties().values.uniformBufferOffsetAlignment;
+        int totalPasses = renderPassManager.getRenderPassCount();
+    
         this.uniformBufferCameraMatrices = new DualStreamingBuffer(
                 device,
                 uboAlignment,
-                CAMERA_MATRICES_SIZE,
+                MathUtil.align(CAMERA_MATRICES_SIZE, uboAlignment) * totalPasses,
                 maxInFlightFrames,
                 EnumSet.of(MappedBufferFlags.EXPLICIT_FLUSH)
         );
@@ -158,7 +158,7 @@ public class MdiChunkRenderer extends AbstractChunkRenderer {
         this.uniformBufferFogParameters = new DualStreamingBuffer(
                 device,
                 uboAlignment,
-                FOG_PARAMETERS_SIZE,
+                MathUtil.align(FOG_PARAMETERS_SIZE, uboAlignment) * totalPasses,
                 maxInFlightFrames,
                 EnumSet.of(MappedBufferFlags.EXPLICIT_FLUSH)
         );
@@ -198,6 +198,7 @@ public class MdiChunkRenderer extends AbstractChunkRenderer {
     @Override
     public void createRenderLists(SortedChunkLists chunks, ChunkCameraContext camera, int frameIndex) {
         if (chunks.isEmpty()) {
+            this.renderLists = null;
             return;
         }
         
@@ -600,28 +601,20 @@ public class MdiChunkRenderer extends AbstractChunkRenderer {
             PipelineState state,
             int frameIndex
     ) {
-        StreamingBuffer.WritableSection matricesSection = this.uniformBufferCameraMatrices.getSection(frameIndex);
-        long matricesPtr = MemoryUtil.memAddress(matricesSection.getView());
+        StreamingBuffer.WritableSection matricesSection = this.uniformBufferCameraMatrices.getSection(frameIndex, CAMERA_MATRICES_SIZE, true);
+        ByteBuffer matricesView = matricesSection.getView();
+        long matricesPtr = MemoryUtil.memAddress(matricesView);
+    
+        renderMatrices.projection().getToAddress(matricesPtr);
+        renderMatrices.modelView().getToAddress(matricesPtr + 64);
         
-        // We write everything into a temporary buffer and check equality with the existing buffer to avoid unnecessary
-        // flushes, which require api calls.
-        try (MemoryStack memoryStack = MemoryStack.stackPush()) {
-            long tempPtr = memoryStack.nmalloc(128);
-            renderMatrices.projection().getToAddress(tempPtr);
-            renderMatrices.modelView().getToAddress(tempPtr + 64);
-            boolean equalContents = UnsafeUtil.nmemEquals(tempPtr, matricesPtr, 128);
-            
-            if (!equalContents) {
-                MemoryUtil.memCopy(tempPtr, matricesPtr, 128);
-                
-                Matrix4f mvpMatrix = new Matrix4f();
-                mvpMatrix.set(renderMatrices.projection());
-                mvpMatrix.mul(renderMatrices.modelView());
-                mvpMatrix.getToAddress(matricesPtr + 128);
-                
-                matricesSection.flushFull();
-            }
-        }
+        Matrix4f mvpMatrix = new Matrix4f();
+        mvpMatrix.set(renderMatrices.projection());
+        mvpMatrix.mul(renderMatrices.modelView());
+        mvpMatrix.getToAddress(matricesPtr + 128);
+        matricesView.position(matricesView.position() + CAMERA_MATRICES_SIZE);
+    
+        matricesSection.flushPartial();
         
         state.bindBufferBlock(
                 programInterface.uniformCameraMatrices,
@@ -630,26 +623,21 @@ public class MdiChunkRenderer extends AbstractChunkRenderer {
                 matricesSection.getView().capacity()
         );
         
-        StreamingBuffer.WritableSection fogParamsSection = this.uniformBufferFogParameters.getSection(frameIndex);
-        long fogParamsPtr = MemoryUtil.memAddress(fogParamsSection.getView());
-        
-        try (MemoryStack memoryStack = MemoryStack.stackPush()) {
-            long tempPtr = memoryStack.nmalloc(28);
-            float[] paramFogColor = RenderSystem.getShaderFogColor();
-            MemoryUtil.memPutFloat(tempPtr + 0, paramFogColor[0]);
-            MemoryUtil.memPutFloat(tempPtr + 4, paramFogColor[1]);
-            MemoryUtil.memPutFloat(tempPtr + 8, paramFogColor[2]);
-            MemoryUtil.memPutFloat(tempPtr + 12, paramFogColor[3]);
-            MemoryUtil.memPutFloat(tempPtr + 16, RenderSystem.getShaderFogStart());
-            MemoryUtil.memPutFloat(tempPtr + 20, RenderSystem.getShaderFogEnd());
-            MemoryUtil.memPutInt(tempPtr + 24, RenderSystem.getShaderFogShape().getId());
-            boolean equalContents = UnsafeUtil.nmemEquals(tempPtr, fogParamsPtr, 28);
-            
-            if (!equalContents) {
-                MemoryUtil.memCopy(tempPtr, fogParamsPtr, 28);
-                fogParamsSection.flushFull();
-            }
-        }
+        StreamingBuffer.WritableSection fogParamsSection = this.uniformBufferFogParameters.getSection(frameIndex, FOG_PARAMETERS_SIZE, true);
+        ByteBuffer fogParamsView = fogParamsSection.getView();
+        long fogParamsPtr = MemoryUtil.memAddress(fogParamsView);
+    
+        float[] paramFogColor = RenderSystem.getShaderFogColor();
+        MemoryUtil.memPutFloat(fogParamsPtr + 0, paramFogColor[0]);
+        MemoryUtil.memPutFloat(fogParamsPtr + 4, paramFogColor[1]);
+        MemoryUtil.memPutFloat(fogParamsPtr + 8, paramFogColor[2]);
+        MemoryUtil.memPutFloat(fogParamsPtr + 12, paramFogColor[3]);
+        MemoryUtil.memPutFloat(fogParamsPtr + 16, RenderSystem.getShaderFogStart());
+        MemoryUtil.memPutFloat(fogParamsPtr + 20, RenderSystem.getShaderFogEnd());
+        MemoryUtil.memPutInt(  fogParamsPtr + 24, RenderSystem.getShaderFogShape().getId());
+        fogParamsView.position(fogParamsView.position() + FOG_PARAMETERS_SIZE);
+    
+        fogParamsSection.flushPartial();
         
         state.bindBufferBlock(
                 programInterface.uniformFogParameters,

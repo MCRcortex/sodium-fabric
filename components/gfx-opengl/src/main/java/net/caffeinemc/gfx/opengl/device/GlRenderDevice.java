@@ -44,11 +44,17 @@ import org.lwjgl.system.MathUtil;
 public class GlRenderDevice implements RenderDevice {
     private final GlPipelineManager pipelineManager;
     private final RenderDeviceProperties properties;
+    private final RenderConfiguration renderConfiguration;
 
-    public GlRenderDevice(Function<RenderDeviceProperties, GlPipelineManager> pipelineManagerFactory) {
+    public GlRenderDevice(Function<RenderDeviceProperties, GlPipelineManager> pipelineManagerFactory, RenderConfiguration renderConfiguration) {
         // TODO: move this into platform code
         this.properties = getDeviceProperties();
+        this.renderConfiguration = renderConfiguration;
         this.pipelineManager = pipelineManagerFactory.apply(this.properties);
+
+        if (renderConfiguration.apiDebug) {
+            GlDebug.enableDebugMessages();
+        }
     }
 
     private static RenderDeviceProperties getDeviceProperties() {
@@ -149,6 +155,11 @@ public class GlRenderDevice implements RenderDevice {
     }
 
     @Override
+    public RenderConfiguration configuration() {
+        return this.renderConfiguration;
+    }
+
+    @Override
     public <PROGRAM, ARRAY extends Enum<ARRAY>> Pipeline<PROGRAM, ARRAY> createPipeline(PipelineDescription state, Program<PROGRAM> program, VertexArrayDescription<ARRAY> vertexArrayDescription) {
         var vertexArray = new GlVertexArray<>(vertexArrayDescription);
 
@@ -243,8 +254,10 @@ public class GlRenderDevice implements RenderDevice {
         // just make a temporary generic buffer
         preMapConsumer.accept(new GlBuffer(handle, capacity));
 
-        var access = GL45C.GL_MAP_PERSISTENT_BIT | GL45C.GL_MAP_UNSYNCHRONIZED_BIT | GL45C.GL_MAP_INVALIDATE_BUFFER_BIT | getMappedBufferAccessBits(flags);
-        // for some reason, this works but glMapNamedBuffer doesn't
+        // If we were to use GL_MAP_INVALIDATE_BIT on this, it would invalidate all the stuff we just wrote to it.
+        // We also need to omit GL_MAP_UNSYNCHRONIZED_BIT because we want to need for the data to finish copying before
+        // we map it.
+        var access = GL45C.GL_MAP_PERSISTENT_BIT | getMappedBufferAccessBits(flags);
         ByteBuffer mapping = GL45C.glMapNamedBufferRange(handle, 0, capacity, access);
 
         if (mapping == null) {
