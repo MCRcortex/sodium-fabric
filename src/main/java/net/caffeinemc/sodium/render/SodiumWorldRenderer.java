@@ -262,7 +262,7 @@ public class SodiumWorldRenderer {
         this.renderDistance = this.client.options.getClampedViewDistance();
 
         this.renderPassManager = ChunkRenderPassManager.createDefaultMappings();
-
+dddd
         this.terrainRenderManager = new TerrainRenderManager(SodiumClientMod.DEVICE, this, this.renderPassManager, this.world, this.renderDistance);
         this.terrainRenderManager.reloadChunks(this.chunkTracker);
 

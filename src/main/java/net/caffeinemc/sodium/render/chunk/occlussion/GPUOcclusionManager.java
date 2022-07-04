@@ -235,6 +235,7 @@ public class GPUOcclusionManager {
             //FIXME: put into gfx
             glClearNamedBufferData(GlBuffer.getHandle(region.getRenderData().cpuSectionVis),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
             glClearNamedBufferData(GlBuffer.getHandle(region.getRenderData().counterBuffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
+            glClearNamedBufferData(GlBuffer.getHandle(region.getRenderData().visBuffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
         }
 
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);

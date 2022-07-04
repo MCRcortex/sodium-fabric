@@ -117,7 +117,7 @@ void main() {
         //CPUvisiblity[gl_GlobalInvocationID.x] = 0;
         return;
     }
-    visiblity[gl_GlobalInvocationID.x] = 0;
+    //visiblity[gl_GlobalInvocationID.x] = 0;
     if (SECTION.id != gl_GlobalInvocationID.x) return;
     //const SectionMeta LOCAL_SECTION = sections[gl_GlobalInvocationID.x];
     //TODO: cant i technically just remove hsize and it would have the same effect kinda? would be comparing 0 and bboxSize instead
@@ -173,9 +173,11 @@ void main() {
         //uint cmd3Idx = (msk&(255<<24))==0?0:atomicAdd(cmdBuff3Count, bitCount(msk&(255<<24)));
         //barrier();
         */
-        cmd0Idx = atomicAdd(cmdBuff0Count, bitCount(msk & 255));
-        cmd1Idx = atomicAdd(cmdBuff1Count, bitCount(msk & (255<<8)));
-        cmd2Idx = atomicAdd(cmdBuff2Count, bitCount(msk & (255<<16)));
+
+
+        //cmd0Idx = atomicAdd(cmdBuff0Count, bitCount(msk & 255));
+        //cmd1Idx = atomicAdd(cmdBuff1Count, bitCount(msk & (255<<8)));
+        //cmd2Idx = atomicAdd(cmdBuff2Count, bitCount(msk & (255<<16)));
 
 
         //Skip msk is each layers mask ored together, this is used to acclerate checks in the main command gen loop
@@ -190,24 +192,27 @@ void main() {
             // if no layer has a face for this side, skip
             if ((skipmsk&1) == 0) continue;
             if ((msk&((1)<<i)) != 0) {//Layer 0
+                cmd0Idx = atomicAdd(cmdBuff0Count, 1);
                 cmdBuff0[cmd0Idx].count = SECTION.SOLID[i].count;
                 cmdBuff0[cmd0Idx].baseVertex = SECTION.SOLID[i].offset;
                 cmdBuff0[cmd0Idx].baseInstance = instanceId;
-                cmd0Idx++;
+                //cmd0Idx++;
             }
 
             if ((msk&((1<<8)<<i)) != 0) {//Layer 1
+                cmd1Idx = atomicAdd(cmdBuff1Count, 1);
                 cmdBuff1[cmd1Idx].count = SECTION.CUTOUT_MIPPED[i].count;
                 cmdBuff1[cmd1Idx].baseVertex = SECTION.CUTOUT_MIPPED[i].offset;
                 cmdBuff1[cmd1Idx].baseInstance = instanceId;
-                cmd1Idx++;
+                //cmd1Idx++;
             }
 
             if ((msk&((1<<16)<<i)) != 0) {//Layer 2
+                cmd2Idx = atomicAdd(cmdBuff2Count, 1);
                 cmdBuff2[cmd2Idx].count = SECTION.CUTOUT[i].count;
                 cmdBuff2[cmd2Idx].baseVertex = SECTION.CUTOUT[i].offset;
                 cmdBuff2[cmd2Idx].baseInstance = instanceId;
-                cmd2Idx++;
+                //cmd2Idx++;
             }
         }
 
