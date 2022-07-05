@@ -241,7 +241,7 @@ public class SodiumWorldRenderer {
 
     public void doOcclusion(MatrixStack stack, ChunkCameraContext cameraContext, Frustum frustum) {
         MinecraftClient.getInstance().getProfiler().push("gpu occluder");
-        this.occlusion.computeOcclusionVis(terrainRenderManager.regions.regions.values(), ChunkRenderMatrices.from(stack), cameraContext, frustum);
+        this.occlusion.computeOcclusionVis(terrainRenderManager, ChunkRenderMatrices.from(stack), cameraContext, frustum);
         MinecraftClient.getInstance().getProfiler().pop();
     }
 

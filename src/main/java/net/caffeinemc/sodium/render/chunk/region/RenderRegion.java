@@ -8,6 +8,7 @@ import net.caffeinemc.gfx.util.buffer.StreamingBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.SmartConstAsyncBufferArena;
 import net.caffeinemc.sodium.render.chunk.*;
+import net.caffeinemc.sodium.render.chunk.occlussion.GlobalMetaManager;
 import net.caffeinemc.sodium.render.chunk.occlussion.SectionMeta;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.util.MathUtil;
@@ -46,7 +47,7 @@ public class RenderRegion {
     private final int regionX, regionY, regionZ;
 
     public final ArenaBuffer vertexBuffers;
-    public final StreamingBuffer metaBuffer;
+    public final GlobalMetaManager metaMan;
     public final AtomicInteger translucentSections = new AtomicInteger();
     private RenderDevice device;
 
@@ -56,12 +57,11 @@ public class RenderRegion {
     public final long key;
 
     private final TerrainRenderManager sectionManager;
-    public RenderRegion(RenderDevice device, TerrainRenderManager sectionManager, StreamingBuffer stagingBuffer, TerrainVertexType vertexType, int id, long regionKey) {
+    public RenderRegion(RenderDevice device, TerrainRenderManager sectionManager, StreamingBuffer stagingBuffer, TerrainVertexType vertexType, GlobalMetaManager metaManager, int id, long regionKey) {
         this.vertexBuffers = new SmartConstAsyncBufferArena(device, stagingBuffer,
                 REGION_SIZE * 756,
                 vertexType.getBufferVertexFormat().stride());
-        this.metaBuffer = new SectionedStreamingBuffer(device, 1, SectionMeta.SIZE, REGION_SIZE,
-                Set.of(MappedBufferFlags.EXPLICIT_FLUSH));
+        metaMan = metaManager;
         this.id = id;
         ChunkSectionPos csp = ChunkSectionPos.from(regionKey);
         regionX = csp.getSectionX();
@@ -142,7 +142,7 @@ public class RenderRegion {
 
         int id = newSectionId();
         pos2id.put(section.innerRegionKey, id);
-        SectionMeta newMeta = new SectionMeta(id, metaBuffer, section);
+        SectionMeta newMeta = new SectionMeta(id, metaMan.getSection(this.id, id), section);
         sectionMetaMap.put(id, newMeta);
         return newMeta;
     }

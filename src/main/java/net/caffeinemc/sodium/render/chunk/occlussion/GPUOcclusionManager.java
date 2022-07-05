@@ -14,6 +14,7 @@ import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
 import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
+import net.caffeinemc.sodium.render.chunk.TerrainRenderManager;
 import net.caffeinemc.sodium.render.chunk.ViewportInterface;
 import net.caffeinemc.sodium.render.chunk.ViewportedData;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
@@ -166,11 +167,11 @@ public class GPUOcclusionManager {
 
     //TODO: can actually make a delta list that needs to be rendered, e.g. for sections that are visible this frame but not last frame
     // and emit those, thus keeping up the presence of all the frames
-    public void computeOcclusionVis(Collection<RenderRegion> regions, ChunkRenderMatrices matrices, ChunkCameraContext cam, Frustum frustum) {
+    public void computeOcclusionVis(TerrainRenderManager manager, ChunkRenderMatrices matrices, ChunkCameraContext cam, Frustum frustum) {
         MinecraftClient.getInstance().getProfiler().push("Compute regions");
         var visRegion = getVisRegion();
         visRegion.clear();
-        for (RenderRegion region : regions) {
+        for (RenderRegion region : manager.regions.regions.values()) {
             if (region.sectionCount == 0) {
                 continue;
             }
@@ -245,7 +246,9 @@ public class GPUOcclusionManager {
             cmd.bindElementBuffer(this.indexBuffer);
             for (RenderRegion region : visRegion) {
                 pipelineState.bindBufferBlock(programInterface.scene, region.getRenderData().sceneBuffer);
-                pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBufferObject());
+                pipelineState.bindBufferBlock(programInterface.meta, manager.regions.regionMetas.getBufferObject(),
+                        manager.regions.regionMetas.getBaseOffset(region.id),
+                        manager.regions.regionMetas.getSize(region.id));
                 pipelineState.bindBufferBlock(programInterface.visbuff, region.getRenderData().visBuffer);
                 //pipelineState.bindBufferBlock(programInterface.indirectbuff, region.computeDispatchIndirectBuffer);
 
@@ -262,7 +265,9 @@ public class GPUOcclusionManager {
         this.device.usePipeline(this.commandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
             for (RenderRegion region : visRegion) {
                 pipelineState.bindBufferBlock(programInterface.scene, region.getRenderData().sceneBuffer);
-                pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBufferObject());
+                pipelineState.bindBufferBlock(programInterface.meta, manager.regions.regionMetas.getBufferObject(),
+                        manager.regions.regionMetas.getBaseOffset(region.id),
+                        manager.regions.regionMetas.getSize(region.id));
                 pipelineState.bindBufferBlock(programInterface.visbuff, region.getRenderData().visBuffer);
 
                 pipelineState.bindBufferBlock(programInterface.cpuvisbuff, region.getRenderData().cpuSectionVis);
@@ -291,7 +296,9 @@ public class GPUOcclusionManager {
                         continue;
                     }
                     pipelineState.bindBufferBlock(programInterface.transSort, region.getRenderData().trans3);
-                    pipelineState.bindBufferBlock(programInterface.meta, region.metaBuffer.getBufferObject());
+                    pipelineState.bindBufferBlock(programInterface.meta, manager.regions.regionMetas.getBufferObject(),
+                            manager.regions.regionMetas.getBaseOffset(region.id),
+                            manager.regions.regionMetas.getSize(region.id));
                     pipelineState.bindBufferBlock(programInterface.command, region.getRenderData().cmd3buff);
                     pipelineState.bindBufferBlock(programInterface.counter, region.getRenderData().counterBuffer);
                     pipelineState.bindBufferBlock(programInterface.id2inst, region.getRenderData().id2InstanceBuffer);

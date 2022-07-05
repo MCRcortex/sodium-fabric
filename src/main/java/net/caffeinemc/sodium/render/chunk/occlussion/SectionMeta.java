@@ -22,18 +22,17 @@ public class SectionMeta {
     public VertexRange[] CUTOUT = new VertexRange[7];
     public VertexRange[] TRANSLUCENT = new VertexRange[7];
 
-    private final StreamingBuffer streamingBuffer;
+    private final StreamingBuffer.WritableSection section;
     public final RenderSection theSection;
 
-    public SectionMeta(int id, StreamingBuffer streamingBuffer, RenderSection section) {
+    public SectionMeta(int id, StreamingBuffer.WritableSection section, RenderSection renderSection) {
         this.id = id;
-        this.streamingBuffer = streamingBuffer;
-        theSection = section;
+        this.section = section;
+        theSection = renderSection;
     }
 
     public void flush() {
         //FIXME: if already written to a section, need to clear that id if its different from this id
-        StreamingBuffer.WritableSection section = streamingBuffer.getSection(id);
         ByteBuffer buffer = section.getView().order(ByteOrder.nativeOrder());
         long buffAddr = MemoryUtil.memAddress(buffer);
         buffer.putInt(0, id);
@@ -49,7 +48,6 @@ public class SectionMeta {
     }
 
     public void delete() {
-        StreamingBuffer.WritableSection section = streamingBuffer.getSection(id);
         ByteBuffer buffer = section.getView().order(ByteOrder.nativeOrder());
         buffer.putInt(0, -1);
         buffer.rewind();
@@ -57,7 +55,6 @@ public class SectionMeta {
     }
 
     public void setNoRender() {
-        StreamingBuffer.WritableSection section = streamingBuffer.getSection(id);
         ByteBuffer buffer = section.getView().order(ByteOrder.nativeOrder());
         buffer.putInt(0, -1);
         buffer.rewind();

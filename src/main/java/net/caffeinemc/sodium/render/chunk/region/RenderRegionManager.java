@@ -12,6 +12,7 @@ import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.TerrainRenderManager;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
 import net.caffeinemc.sodium.render.chunk.draw.IntPool;
+import net.caffeinemc.sodium.render.chunk.occlussion.GlobalMetaManager;
 import net.caffeinemc.sodium.render.chunk.state.BuiltChunkGeometry;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.caffeinemc.sodium.render.chunk.state.UploadedChunkGeometry;
@@ -38,11 +39,13 @@ public class RenderRegionManager {
     private final TerrainVertexType vertexType;
     private final StreamingBuffer stagingBuffer;
     private final TerrainRenderManager sectionManager;
+    public final GlobalMetaManager regionMetas;
 
     public RenderRegionManager(RenderDevice device, TerrainVertexType vertexType, TerrainRenderManager sectionManager) {
         this.device = device;
         this.vertexType = vertexType;
         this.sectionManager = sectionManager;
+        this.regionMetas = new GlobalMetaManager(device, 32);//FIXME:dont hardcode
 
         var maxInFlightFrames = SodiumClientMod.options().advanced.cpuRenderAheadLimit + 1;
         this.stagingBuffer = new SectionedStreamingBuffer(
@@ -106,7 +109,7 @@ public class RenderRegionManager {
         RenderRegion region = this.regions.get(regionKey);
 
         if (region == null) {
-            this.regions.put(regionKey, region = new RenderRegion(this.device, this.sectionManager, this.stagingBuffer, this.vertexType, this.idPool.create(), regionKey));
+            this.regions.put(regionKey, region = new RenderRegion(this.device, this.sectionManager, this.stagingBuffer, this.vertexType, regionMetas, this.idPool.create(), regionKey));
         }
 
         return region;
@@ -180,6 +183,7 @@ public class RenderRegionManager {
         this.regions.clear();
 
         this.stagingBuffer.delete();
+        this.regionMetas.delete();
     }
 
     private void deleteRegion(RenderRegion region) {
