@@ -81,7 +81,7 @@ public class RegionManager {
 
         MinecraftClient.getInstance().getProfiler().swap("mesh update");
         int budget = 50;
-        while (!workResultsLocal.isEmpty() && budget!=0) {
+        while (!workResultsLocal.isEmpty() && budget!=0 && !MinecraftClient.getInstance().player.isSneaking()) {
             MinecraftClient.getInstance().getProfiler().push("dequeu");
             TerrainBuildResult result = workResultsLocal.dequeue();
             //TODO: FIX, THIS IS A HACK

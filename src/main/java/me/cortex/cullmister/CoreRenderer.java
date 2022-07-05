@@ -125,14 +125,16 @@ public class CoreRenderer {
             renderer.begin();
             MinecraftClient.getInstance().getProfiler().swap("render solid");
             for (Region r : regions) {
-                renderer.render(r);
+                if (!r.disposed())
+                    renderer.render(r);
             }
             if (true) {
                 MinecraftClient.getInstance().getProfiler().swap("swap");
                 renderer.swapTransparent();
                 MinecraftClient.getInstance().getProfiler().swap("render trans");
                 for (Region r : regions) {
-                    renderer.drawTransparent(r);
+                    if (!r.disposed())
+                        renderer.drawTransparent(r);
                 }
                 MinecraftClient.getInstance().getProfiler().swap("end trans");
                 renderer.endTransparent();
@@ -143,11 +145,12 @@ public class CoreRenderer {
         }
 
         //glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
-        if (true) {
+        if (!MinecraftClient.getInstance().player.isSneaking()) {
             if (true) {
                 MinecraftClient.getInstance().getProfiler().swap("Cull Prep");
                 for (Region r : regions) {
-                    culler.prep(r, renderMatrices, pos);
+                    if (!r.disposed())
+                        culler.prep(r, renderMatrices, pos);
                 }
             }
             if (true) {

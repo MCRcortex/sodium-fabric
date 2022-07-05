@@ -138,12 +138,17 @@ public class Region {
         //Rewrite updated meta info to chunk meta
     }
 
-
+    private boolean isDisposed = false;
     public void delete() {
+        isDisposed = true;
         //Cleanup all opengl objects
         for (Section s : sections.values()) {
             s.delete();
         }
         draw.delete();
+    }
+
+    public boolean disposed() {
+        return isDisposed;
     }
 }

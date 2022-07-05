@@ -39,7 +39,7 @@ public class RegionRenderData {
     public int drawCommandsOffset;
     public RegionRenderData() {
         for (int i = 0; i < 4; i++) {
-            drawCommandsList[i] = new BindlessBuffer(1000000,GL_MAP_READ_BIT|GL_DYNAMIC_STORAGE_BIT|GL_MAP_WRITE_BIT);
+            drawCommandsList[i] = new BindlessBuffer(10000000,GL_MAP_READ_BIT|GL_DYNAMIC_STORAGE_BIT|GL_MAP_WRITE_BIT);
             glClearNamedBufferSubData(drawCommandsList[i].id,  GL_R8UI, drawCommandsOffset,drawCommandsList[i].size-drawCommandsOffset , GL_RED, GL_UNSIGNED_BYTE, new int[]{0});
         }
 

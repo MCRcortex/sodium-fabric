@@ -127,6 +127,8 @@ public class CullSystem {
     }
 
     void prep(Region region, ChunkRenderMatrices renderMatrices, Vector3f cam) {
+        if (region.disposed())
+            return;
         //Sets region UBO buffer
         long ptr = nglMapNamedBufferRange(region.draw.UBO.id, 0, region.draw.UBO.size, GL_MAP_WRITE_BIT|GL_MAP_UNSYNCHRONIZED_BIT);
         new Matrix4f(renderMatrices.projection()).mul(renderMatrices.modelView())
@@ -183,6 +185,8 @@ public class CullSystem {
     }
     //TODO: potentially render this at a much lower "resolution" cause of speed
     void process1(Region region) {
+        if (region.disposed())
+            return;
         //glClearNamedBufferSubData(region.draw.visBuffer.id, GL_R8UI, 0, region.draw.visBuffer.size, GL_RED, GL_UNSIGNED_BYTE, new int[]{-1});
         /*
         if (false){
@@ -212,6 +216,8 @@ public class CullSystem {
     }
 
     void process2(Region region) {
+        if (region.disposed())
+            return;
         glUniformui64NV(0, region.draw.UBO.addr);
         //TODO: see if moving visBuffer and chunkMeta addresses into UBO would have any performance changes
         glUniformui64NV(1, region.draw.chunkMeta.addr);
@@ -224,6 +230,8 @@ public class CullSystem {
 
     //TODO: need to find a way to put this into the main compute shader
     public void capCommandLists(Region region) {
+        if (region.disposed())
+            return;
         glUniformui64NV(0, region.draw.UBO.addr);
         commandTerminator.dispatch(1,1,1);
     }
