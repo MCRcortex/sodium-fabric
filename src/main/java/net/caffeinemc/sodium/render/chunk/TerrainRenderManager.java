@@ -413,6 +413,8 @@ public class TerrainRenderManager {
 
             count++;
         }
+        deviceUsed += regions.vertexBuffers.getDeviceUsedMemory();
+        deviceAllocated += regions.vertexBuffers.getDeviceAllocatedMemory();
 
         deviceUsed += this.chunkRenderer.getDeviceUsedMemory();
         deviceAllocated += this.chunkRenderer.getDeviceAllocatedMemory();

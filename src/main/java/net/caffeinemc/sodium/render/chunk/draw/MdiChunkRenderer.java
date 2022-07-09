@@ -23,6 +23,8 @@ import net.caffeinemc.gfx.util.buffer.SequenceBuilder;
 import net.caffeinemc.gfx.util.buffer.SequenceIndexBuffer;
 import net.caffeinemc.gfx.util.buffer.StreamingBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
+import net.caffeinemc.sodium.render.SodiumWorldRenderer;
+import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
@@ -346,10 +348,11 @@ public class MdiChunkRenderer extends AbstractChunkRenderer {
                     );
                     
                     RenderRegion region = bucket.region();
-                    
+
+                    ArenaBuffer ab = SodiumWorldRenderer.instance().terrainRenderManager.regions.vertexBuffers;
                     renderList.batches.add(new MdiChunkRenderBatch(
-                            region.vertexBuffers.getBufferObject(),
-                            region.vertexBuffers.getStride(),
+                            ab.getBufferObject(),
+                            ab.getStride(),
                             instanceCount,
                             commandCount,
                             instanceSubsectionStart,

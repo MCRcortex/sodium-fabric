@@ -53,7 +53,7 @@ public class SodiumWorldRenderer {
     private boolean useEntityCulling;
 
     private GPUOcclusionManager occlusion;
-    private TerrainRenderManager terrainRenderManager;
+    public TerrainRenderManager terrainRenderManager;
     private ComputeTranslucencySort translucencySort;
     private ChunkRenderPassManager renderPassManager;
     private ChunkTracker chunkTracker;

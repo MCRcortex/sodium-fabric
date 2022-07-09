@@ -154,10 +154,7 @@ public class GPUOcclusionManager {
 
     }
 
-    //Either use glClearBuffer or something faster to clear the atomic counters of all the regions render data
-    public void clearRenderCommandCounters(List<RenderRegion> regions) {
-        //Could technically be a compute shader
-    }
+    public int fid;
 
     //FIXME: do backplane culling on these cubes that are being rendered should provide and okish speed boost
 
@@ -171,6 +168,9 @@ public class GPUOcclusionManager {
         MinecraftClient.getInstance().getProfiler().push("Compute regions");
         var visRegion = getVisRegion();
         visRegion.clear();
+        fid++;
+        var vdata = ViewportedData.get();
+        ByteBuffer vrid = vdata.visibleRegionIds.view().order(ByteOrder.nativeOrder());
         for (RenderRegion region : manager.regions.regions.values()) {
             if (region.sectionCount == 0) {
                 continue;
@@ -191,6 +191,8 @@ public class GPUOcclusionManager {
             //When using RegionPreTester, need to check if its a new region thats visible in the frustum,
             // if it is, add it reguardless of visibility
 
+            vrid.putInt(region.id);
+
             region.weight = new Vector3f(corner.x + RenderRegion.REGION_WIDTH * 8,
                     corner.y + RenderRegion.REGION_HEIGHT * 8,
                     corner.z + RenderRegion.REGION_LENGTH * 8)
@@ -198,6 +200,12 @@ public class GPUOcclusionManager {
                     .sub(cam.deltaX, cam.deltaY, cam.deltaZ).lengthSquared();
             visRegion.add(region);
             region.onVisibleTick();
+        }
+
+        {
+            int len = vrid.position();
+            vrid.rewind();
+            vdata.visibleRegionIds.flush(0, len);
         }
 
         /*
@@ -227,6 +235,7 @@ public class GPUOcclusionManager {
             bb.putInt(4*4*4+4*3, //0
                             region.getRenderData().cpuCommandCount.view().getInt(0)!=0?region.translucentSections.intValue():0
                             );
+            bb.putInt(4*4*4+4*3+4, fid);
             bb.rewind();
             region.getRenderData().sceneBuffer.flush();
 
@@ -234,11 +243,10 @@ public class GPUOcclusionManager {
             glCopyNamedBufferSubData(GlBuffer.getHandle(region.getRenderData().counterBuffer), GlBuffer.getHandle(region.getRenderData().cpuCommandCount),4,0,4*4);
             //glFlush();
             //FIXME: put into gfx
-            glClearNamedBufferData(GlBuffer.getHandle(region.getRenderData().cpuSectionVis),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
             glClearNamedBufferData(GlBuffer.getHandle(region.getRenderData().counterBuffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
-            glClearNamedBufferData(GlBuffer.getHandle(region.getRenderData().visBuffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
         }
 
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);
         MinecraftClient.getInstance().getProfiler().swap("Raster vis");
         //glEnable(0x937F);
@@ -258,9 +266,8 @@ public class GPUOcclusionManager {
         });
 
         //glDisable(0x937F);
-        //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         //glFinish();
-        //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         MinecraftClient.getInstance().getProfiler().swap("Command gen");
         this.device.usePipeline(this.commandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
             for (RenderRegion region : visRegion) {
@@ -302,7 +309,7 @@ public class GPUOcclusionManager {
                     pipelineState.bindBufferBlock(programInterface.command, region.getRenderData().cmd3buff);
                     pipelineState.bindBufferBlock(programInterface.counter, region.getRenderData().counterBuffer);
                     pipelineState.bindBufferBlock(programInterface.id2inst, region.getRenderData().id2InstanceBuffer);
-                    cmd.dispatchCompute((int)Math.ceil((double) region.translucentSections.intValue()/32),1,1);
+                    cmd.dispatchCompute((int)Math.ceil(region.translucentSections.intValue()/32.0),1,1);
                 }
             });
         }

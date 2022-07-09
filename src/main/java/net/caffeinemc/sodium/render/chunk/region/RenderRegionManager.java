@@ -6,8 +6,10 @@ import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.sodium.SodiumClientMod;
+import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
 import net.caffeinemc.sodium.render.buffer.arena.PendingUpload;
+import net.caffeinemc.sodium.render.buffer.arena.SmartConstAsyncBufferArena;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.TerrainRenderManager;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
@@ -40,6 +42,8 @@ public class RenderRegionManager {
     private final StreamingBuffer stagingBuffer;
     private final TerrainRenderManager sectionManager;
     public final GlobalMetaManager regionMetas;
+    public final ArenaBuffer vertexBuffers;
+
 
     public RenderRegionManager(RenderDevice device, TerrainVertexType vertexType, TerrainRenderManager sectionManager) {
         this.device = device;
@@ -58,6 +62,10 @@ public class RenderRegionManager {
                         MappedBufferFlags.CLIENT_STORAGE
                 )
         );
+
+        this.vertexBuffers = new SmartConstAsyncBufferArena(device, stagingBuffer,
+                RenderRegion.REGION_SIZE * 756 * 32,
+                vertexType.getBufferVertexFormat().stride());
     }
 
     public RenderRegion getRegion(long regionId) {
@@ -148,7 +156,7 @@ public class RenderRegionManager {
         }
 
         RenderRegion region = this.getOrCreateRegion(regionKey);
-        region.vertexBuffers.upload(uploads, frameIndex);
+        vertexBuffers.upload(uploads, frameIndex);
 
         // Collect the upload results
         for (ChunkGeometryUpload upload : jobs) {
@@ -184,6 +192,7 @@ public class RenderRegionManager {
 
         this.stagingBuffer.delete();
         this.regionMetas.delete();
+        this.vertexBuffers.delete();
     }
 
     private void deleteRegion(RenderRegion region) {

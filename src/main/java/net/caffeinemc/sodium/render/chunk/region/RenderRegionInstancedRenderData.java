@@ -52,7 +52,7 @@ public class RenderRegionInstancedRenderData {
         this.device = device;
         this.visBuffer = device.createBuffer(RenderRegion.REGION_SIZE*4, Set.of());
         this.cpuSectionVis = device.createMappedBuffer(RenderRegion.REGION_SIZE*4, Set.of(MappedBufferFlags.READ));//MappedBufferFlags.CLIENT_STORAGE
-        this.sceneBuffer = device.createMappedBuffer(4*4*4+3*4+4, Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));
+        this.sceneBuffer = device.createMappedBuffer(4*4*4+3*4+4+4, Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));
         this.counterBuffer = device.createBuffer(5*4, Set.of());
         this.cpuCommandCount = device.createMappedBuffer(5*4, Set.of(MappedBufferFlags.READ));//, MappedBufferFlags.CLIENT_STORAGE
         this.instanceBuffer = device.createBuffer(RenderRegion.REGION_SIZE*4*3, Set.of());
@@ -100,7 +100,7 @@ public class RenderRegionInstancedRenderData {
         device.deleteBuffer(trans3);
     }
 
-    private static void set0Buffer(Buffer buffer) {
+    public static void set0Buffer(Buffer buffer) {
         glClearNamedBufferData(GlBuffer.getHandle(buffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
     }
 
@@ -116,7 +116,7 @@ public class RenderRegionInstancedRenderData {
         ib.rewind();
         SETUP_BUFF = SodiumClientMod.DEVICE.createBuffer(buffer, Set.of());
     }
-    private static void preSetupCommandBuffer(Buffer buffer, int times) {
+    public static void preSetupCommandBuffer(Buffer buffer, int times) {
         for (int i = 0; i < times; i++) {
             glCopyNamedBufferSubData(GlBuffer.getHandle(SETUP_BUFF), GlBuffer.getHandle(buffer),
                     0, (long) i *5*4, 5*4);

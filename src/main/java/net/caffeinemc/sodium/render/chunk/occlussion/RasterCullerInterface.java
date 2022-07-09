@@ -11,7 +11,7 @@ public class RasterCullerInterface {
     //public final BufferBlock indirectbuff;
 
     public RasterCullerInterface(ShaderBindingContext context) {
-        scene = context.bindBufferBlock(BufferBlockType.UNIFORM, 0);
+        scene = context.bindBufferBlock(BufferBlockType.STORAGE, 0);
         meta = context.bindBufferBlock(BufferBlockType.STORAGE, 1);
         visbuff = context.bindBufferBlock(BufferBlockType.STORAGE, 2);
         //indirectbuff = context.bindBufferBlock(BufferBlockType.STORAGE, 3);

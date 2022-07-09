@@ -36,8 +36,6 @@ void main() {
     translucencySorted[gl_GlobalInvocationID.x] = 0xFFFFFFFF;
 
     cmd3buff[gl_GlobalInvocationID.x].count = SECTION.TRANSLUCENT[6].count;
-    cmd3buff[gl_GlobalInvocationID.x].instanceCount = 1;
-    cmd3buff[gl_GlobalInvocationID.x].firstIndex = 0;
     cmd3buff[gl_GlobalInvocationID.x].baseVertex = SECTION.TRANSLUCENT[6].offset;
     cmd3buff[gl_GlobalInvocationID.x].baseInstance = id2Inst[index];
 

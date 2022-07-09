@@ -8,9 +8,11 @@ vec4 getBoxCorner(int corner) {
     return vec4(base + vec3((corner&1), ((corner>>2)&1), ((corner>>1)&1))*size, 1);
 }
 
-layout(std140, binding = 0) uniform SceneData {
+layout(std430, binding = 0) restrict readonly buffer SceneData {
     mat4 mat_modelviewproj;
     Vec3F negativeCameraPosRegionRelative;
+    uint maxtrans;
+    uint frameid;
 };
 
 layout(std430, binding = 1) restrict readonly buffer MetaData {

@@ -7,17 +7,14 @@ layout(std430, binding = 2) restrict writeonly buffer VisibilityBuffer {
     uint visiblity[];
 };
 
-/*
-layout(std430, binding = 3) restrict writeonly buffer ComputeDispatchBuffer {
-    uint num_groups_x;
-    uint num_groups_y;
-    uint num_groups_z;
-};*/
+layout(std430, binding = 0) restrict readonly buffer SceneData {
+    mat4 mat_modelviewproj;
+    Vec3F negativeCameraPosRegionRelative;
+    uint maxtrans;
+    uint frameid;
+};
 
 flat in uint ID;
-//out vec4 colour;
 void main() {
-    visiblity[ID] = 1;
-    //num_groups_y = 1;
-    //colour.xyz = vec3(1,1,0);
+    visiblity[ID] = frameid;
 }

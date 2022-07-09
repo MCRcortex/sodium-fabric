@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.caffeinemc.gfx.api.array.VertexArrayDescription;
 import net.caffeinemc.gfx.api.array.VertexArrayResourceBinding;
 import net.caffeinemc.gfx.api.array.attribute.VertexAttributeBinding;
+import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.api.pipeline.Pipeline;
@@ -20,6 +21,7 @@ import net.caffeinemc.gfx.util.buffer.SequenceIndexBuffer;
 import net.caffeinemc.gfx.util.buffer.StreamingBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
+import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.ViewportInterface;
 import net.caffeinemc.sodium.render.chunk.ViewportedData;
@@ -204,6 +206,17 @@ public class MdicGPUOcclusionRenderer extends AbstractChunkRenderer {
             cmd.bindElementBuffer(this.indexBuffer.getBuffer());
             //FIXME: reverse region rendering when rendering translucent objects
 
+
+
+            //FIXME: find way to properly pass
+            ArenaBuffer ab = SodiumWorldRenderer.instance().terrainRenderManager.regions.vertexBuffers;
+            cmd.bindVertexBuffer(
+                    BufferTarget.VERTICES,
+                    ab.getBufferObject(),
+                    0,
+                    ab.getStride()
+            );
+
             for (RenderRegion region : regions) {
                 if (region.isDisposed())
                     continue;
@@ -232,12 +245,6 @@ public class MdicGPUOcclusionRenderer extends AbstractChunkRenderer {
                         RenderRegion.REGION_SIZE*4*3
                 );
 
-                cmd.bindVertexBuffer(
-                        BufferTarget.VERTICES,
-                        region.vertexBuffers.getBufferObject(),
-                        0,
-                        region.vertexBuffers.getStride()
-                );
 
                 cmd.bindParameterBuffer(region.getRenderData().counterBuffer);
 

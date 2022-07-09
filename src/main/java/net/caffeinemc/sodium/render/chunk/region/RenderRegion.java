@@ -5,6 +5,7 @@ import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.util.buffer.SectionedStreamingBuffer;
 import net.caffeinemc.gfx.util.buffer.StreamingBuffer;
+import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.SmartConstAsyncBufferArena;
 import net.caffeinemc.sodium.render.chunk.*;
@@ -46,7 +47,6 @@ public class RenderRegion {
 
     private final int regionX, regionY, regionZ;
 
-    public final ArenaBuffer vertexBuffers;
     public final GlobalMetaManager metaMan;
     public final AtomicInteger translucentSections = new AtomicInteger();
     private RenderDevice device;
@@ -58,9 +58,7 @@ public class RenderRegion {
 
     private final TerrainRenderManager sectionManager;
     public RenderRegion(RenderDevice device, TerrainRenderManager sectionManager, StreamingBuffer stagingBuffer, TerrainVertexType vertexType, GlobalMetaManager metaManager, int id, long regionKey) {
-        this.vertexBuffers = new SmartConstAsyncBufferArena(device, stagingBuffer,
-                REGION_SIZE * 756,
-                vertexType.getBufferVertexFormat().stride());
+
         metaMan = metaManager;
         this.id = id;
         ChunkSectionPos csp = ChunkSectionPos.from(regionKey);
@@ -75,7 +73,6 @@ public class RenderRegion {
 
     private boolean disposed = false;
     public void delete() {
-        this.vertexBuffers.delete();
         for (RenderRegionInstancedRenderData data : renderData.values()) {
             data.delete();
         }
@@ -87,16 +84,17 @@ public class RenderRegion {
         return disposed;
     }
 
+    //FIXME
     public boolean isEmpty() {
-        return this.vertexBuffers.isEmpty() && sectionCount != 0;
+        return sectionCount == 0;//&& this.vertexBuffers.isEmpty()
     }
 
     public long getDeviceUsedMemory() {
-        return this.vertexBuffers.getDeviceUsedMemory();
+        return 0;//this.vertexBuffers.getDeviceUsedMemory();
     }
 
     public long getDeviceAllocatedMemory() {
-        return this.vertexBuffers.getDeviceAllocatedMemory();
+        return 0;//this.vertexBuffers.getDeviceAllocatedMemory();
     }
 
     public static long getRegionCoord(int chunkX, int chunkY, int chunkZ) {
@@ -176,7 +174,8 @@ public class RenderRegion {
 
     public boolean isSectionVisible(int key) {
         var dat = ViewportedData.get();
-        return getRenderData().cpuSectionVis.view().getInt(pos2id.get(key)*4) == 1 ||
+        int lastSeen = getRenderData().cpuSectionVis.view().getInt(pos2id.get(key)*4);
+        return (Math.abs(lastSeen-SodiumWorldRenderer.instance().getOccluder().fid)<10) ||
                 (dat.cameraRenderRegion == this.key && key == dat.cameraRenderRegionInner);
     }
 
