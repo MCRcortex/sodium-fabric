@@ -3,7 +3,7 @@
 #import <sodium:cull/datatypes.h>
 
 //FIXME: optimize local_size and add restrict to all bindings that can use it
-layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 struct SceneData {
     mat4 mat_modelviewproj;
@@ -119,7 +119,7 @@ void innerdo(uint i) {
 
 
 void main() {
-    if (SCENEDATA.frameid == 0 || (SCENEDATA.max_translucency <= gl_GlobalInvocationID.x)) {
+    if ((SCENEDATA.max_translucency <= gl_GlobalInvocationID.x) || SCENEDATA.frameid == 0) {
         return;
     }
     //Ordered this way to heavily reduce memory loads

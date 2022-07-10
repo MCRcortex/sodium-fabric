@@ -304,7 +304,7 @@ public class GPUOcclusionManager {
 
                 maxCount = Math.max(region.sectionCount, maxCount);
             }
-            cmd.dispatchCompute((int)Math.ceil((double) maxCount/32), visRegion.size(),1);
+            cmd.dispatchCompute((int)Math.ceil((double) maxCount/64), visRegion.size(),1);
         });
 
         MinecraftClient.getInstance().getProfiler().swap("Translucency command gen");
