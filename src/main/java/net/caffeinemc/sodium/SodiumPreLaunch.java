@@ -20,7 +20,7 @@ public class SodiumPreLaunch implements PreLaunchEntrypoint {
     }
 
     private static void tryLoadRenderdoc() {
-        if (System.getProperty("sodium.load_renderdoc") != null) {
+        if (System.getProperty("sodium.load_renderdoc") != null ) {
             LOGGER.info("Loading renderdoc...");
             try {
                 System.loadLibrary("renderdoc");

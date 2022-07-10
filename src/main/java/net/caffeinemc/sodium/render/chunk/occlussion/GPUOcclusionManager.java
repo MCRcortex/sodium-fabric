@@ -173,7 +173,7 @@ public class GPUOcclusionManager {
         var vdata = ViewportedData.get();
         ByteBuffer vrid = vdata.visibleRegionIds.view().order(ByteOrder.nativeOrder());
 
-        for (RenderRegion region : manager.regions.regions.values().stream().skip(0).collect(Collectors.toList())) {
+        for (RenderRegion region : manager.regions.regions.values()) {
             if (region.sectionCount == 0) {
                 continue;
             }
@@ -188,7 +188,7 @@ public class GPUOcclusionManager {
                     corner.x + RenderRegion.REGION_WIDTH * 16,
                     corner.y + RenderRegion.REGION_HEIGHT * 16,
                     corner.z + RenderRegion.REGION_LENGTH * 16)) {
-                //continue;
+                continue;
             }
             //When using RegionPreTester, need to check if its a new region thats visible in the frustum,
             // if it is, add it reguardless of visibility
@@ -209,12 +209,12 @@ public class GPUOcclusionManager {
             bb.rewind();
             region.getRenderData().sceneBuffer.flush();
 
-            int base = (visRegion.size()) * (88);
+            int base = ((visRegion.size())) * (96);
             vrid.position(base);
             mvp.get(vrid.asFloatBuffer());
             vrid.position(base+4*4*4);
             campos.get(vrid.asFloatBuffer());
-            //vrid.putInt(base+4*4*4+4*3, region.sectionCount);
+            vrid.putInt(base+4*4*4+4*3, region.sectionCount);
             vrid.putInt(base+4*4*4+4*3+4, fid);
             vrid.putInt(base+4*4*4+4*3+4+4, region.id*RenderRegion.REGION_SIZE);
 
@@ -234,7 +234,7 @@ public class GPUOcclusionManager {
 
         {
             vrid.rewind();
-            vdata.visibleRegionIds.flush(0, vdata.visibleRegionIds.capacity());
+            vdata.visibleRegionIds.flush(0, visRegion.size()*96);
         }
 
         /*
@@ -304,7 +304,7 @@ public class GPUOcclusionManager {
 
                 maxCount = Math.max(region.sectionCount, maxCount);
             }
-            cmd.dispatchCompute((int)Math.ceil((double) maxCount/16), visRegion.size(),1);
+            cmd.dispatchCompute((int)Math.ceil((double) maxCount/32), visRegion.size(),1);
         });
 
         MinecraftClient.getInstance().getProfiler().swap("Translucency command gen");

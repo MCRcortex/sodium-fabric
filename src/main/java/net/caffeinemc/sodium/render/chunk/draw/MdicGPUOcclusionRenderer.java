@@ -230,6 +230,9 @@ public class MdicGPUOcclusionRenderer extends AbstractChunkRenderer {
             if (rid == 2) {
                 cmd.bindCommandBuffer(vdata.cmd2buff);
             }
+            if (rid == 3) {
+                return;
+            }
 
             pipelineState.bindBufferBlock(
                     programInterface.uniformInstanceData,
