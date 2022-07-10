@@ -216,102 +216,40 @@ public class MdicGPUOcclusionRenderer extends AbstractChunkRenderer {
                     0,
                     ab.getStride()
             );
-
-            for (RenderRegion region : regions) {
-                if (region.isDisposed())
-                    continue;
-                int count = region.getRenderData().cpuCommandCount.view().getInt(rid*4);
-                if (count == 0) {
-                    continue;
-                }
-                if (rid == 0) {
-                    cmd.bindCommandBuffer(region.getRenderData().cmd0buff);
-                }
-                if (rid == 1) {
-                    cmd.bindCommandBuffer(region.getRenderData().cmd1buff);
-                }
-                if (rid == 2) {
-                    cmd.bindCommandBuffer(region.getRenderData().cmd2buff);
-                }
-                if (rid == 3) {
-                    cmd.bindCommandBuffer(region.getRenderData().cmd3buff);
-                }
-
-
-                pipelineState.bindBufferBlock(
-                        programInterface.uniformInstanceData,
-                        region.getRenderData().instanceBuffer,
-                        0,
-                        RenderRegion.REGION_SIZE*4*3
-                );
-
-
-                cmd.bindParameterBuffer(region.getRenderData().counterBuffer);
-
-
-                cmd.multiDrawElementsIndirectCount(
-                        PrimitiveType.TRIANGLES,
-                        ElementFormat.UNSIGNED_INT,
-                        0,
-                        4+4*rid,//FIXME: need to select the index (0) from the current render layer
-                        Math.min(Math.max((int)(count*1.5+Math.log(count)), 0), RenderRegion.REGION_SIZE * 5 * 4 * 6 - 5),
-                        //(int)(Math.ceil(region.sectionCount*3.5)),//FIXME: optimize this to be as close bound as possible, maybe even make it dynamic based on previous counts
-                        5*4
-                );
-
-
-                //cmd.multiDrawElementsIndirect(
-                //        PrimitiveType.TRIANGLES,
-                //        ElementFormat.UNSIGNED_INT,
-                //        0,
-                //        count
-                //);
+            var vdata = ViewportedData.get();
+            int count = vdata.cpuCommandCount.view().getInt(rid*4);
+            if (count == 0) {
+                return;
+            }
+            if (rid == 0) {
+                cmd.bindCommandBuffer(vdata.cmd0buff);
+            }
+            if (rid == 1) {
+                cmd.bindCommandBuffer(vdata.cmd1buff);
+            }
+            if (rid == 2) {
+                cmd.bindCommandBuffer(vdata.cmd2buff);
             }
 
-            /*
-            //Hack render the chunk section the player is currently standing in
-            RenderSection sectionIn = SodiumWorldRenderer.instance().getSectionInOrNull();
-            if (sectionIn != null && !sectionIn.isDisposed() && sectionIn.getRegion() != null) {
+            pipelineState.bindBufferBlock(
+                    programInterface.uniformInstanceData,
+                    vdata.instanceBuffer,
+                    0,
+                    RenderRegion.REGION_SIZE*4*3
+            );
 
-                //FIXME: need to check if camera is within the bounding box, else it gets drawn twice
+            cmd.bindParameterBuffer(vdata.counterBuffer);
 
-                //FIXME: need to bind a custom storage with the block offset for instanced data
-                FloatBuffer instance = cameraInstancedBufferData.view().order(ByteOrder.nativeOrder()).asFloatBuffer();
-                BlockPos corner = sectionIn.getChunkPos().getMinPos();
-                var data = ViewportedData.get();
-                if (!sectionIn.data().bounds.contains(cameraContext.blockX, cameraContext.blockY, cameraContext.blockZ))
-                    return;
-                instance.put(((corner.getX() - cameraContext.blockX) - cameraContext.deltaX)-dx);
-                instance.put(((corner.getY() - cameraContext.blockY) - cameraContext.deltaY)-dy);
-                instance.put(((corner.getZ() - cameraContext.blockZ) - cameraContext.deltaZ)-dz);
-                instance.rewind();
-                cameraInstancedBufferData.flush();
-                pipelineState.bindBufferBlock(
-                        programInterface.uniformInstanceData,
-                        cameraInstancedBufferData,
-                        0,
-                        4 * 3
-                );
 
-                cmd.bindVertexBuffer(
-                        BufferTarget.VERTICES,
-                        sectionIn.getRegion().vertexBuffers.getBufferObject(),
-                        0,
-                        sectionIn.getRegion().vertexBuffers.getStride()
-                );
-
-                //FIXME: draw probably all faces
-                //Do drawElements here
-                for (UploadedChunkGeometry.PackedModel model : sectionIn.getGeometry().models) {
-                    if (model.pass != renderPass)
-                        continue;
-                    for (long pdat : model.ranges) {
-                        GL42.glDrawElementsInstancedBaseVertexBaseInstance(GL11.GL_TRIANGLES, UploadedChunkGeometry.ModelPart.unpackVertexCount(pdat), GL11.GL_UNSIGNED_INT, 0, 1, sectionIn.getGeometry().segment.getOffset() + UploadedChunkGeometry.ModelPart.unpackFirstVertex(pdat), 0);
-                    }
-                }
-            }
-
-             */
+            cmd.multiDrawElementsIndirectCount(
+                    PrimitiveType.TRIANGLES,
+                    ElementFormat.UNSIGNED_INT,
+                    0,
+                    4+4*rid,//FIXME: need to select the index (0) from the current render layer
+                    Math.min(Math.max((int)(count*1.5+Math.log(count)), 0), RenderRegion.REGION_SIZE * 5 * 4 * 6 - 5),
+                    //(int)(Math.ceil(region.sectionCount*3.5)),//FIXME: optimize this to be as close bound as possible, maybe even make it dynamic based on previous counts
+                    5*4
+            );
         });
     }
 

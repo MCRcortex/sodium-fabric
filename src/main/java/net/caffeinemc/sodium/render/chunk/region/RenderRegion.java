@@ -174,6 +174,8 @@ public class RenderRegion {
     }
 
     public boolean isSectionVisible(int key) {
+        if (true)
+            return true;
         var dat = ViewportedData.get();
         int lastSeen = getRenderData().cpuSectionVis.view().getInt(pos2id.get(key)*4);
         return (Math.abs(lastSeen-SodiumWorldRenderer.instance().getOccluder().fid)<10) ||

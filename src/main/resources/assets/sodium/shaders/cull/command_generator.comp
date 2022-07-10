@@ -3,14 +3,14 @@
 #import <sodium:cull/datatypes.h>
 
 //FIXME: optimize local_size and add restrict to all bindings that can use it
-layout(local_size_x = 16, local_size_y = 1) in;
+layout(local_size_x = 16, local_size_y = 1, local_size_z = 1) in;
 
-layout(std430, binding = 0) restrict readonly buffer SceneData {
+struct SceneData {
     mat4 mat_modelviewproj;
     Vec3F negativeCameraPosRegionRelative;
     uint max_translucency;
     int frameid;
-    int renderdataid;
+    uint offsetregion;
 };
 
 layout(std430, binding = 1) restrict readonly buffer MetaData {
@@ -18,10 +18,11 @@ layout(std430, binding = 1) restrict readonly buffer MetaData {
 };
 
 layout(std430, binding = 2) restrict readonly buffer RegionMapData {
-    uint regionmap[];
+    SceneData regionmap[];
 };
-
-#define SECTION sections[gl_GlobalInvocationID.x + regionmap[renderdataid]]
+#define SCENEDATA regionmap[gl_GlobalInvocationID.y]
+#define REGION_OFFSET (SCENEDATA.offsetregion)
+#define SECTION sections[gl_GlobalInvocationID.x + REGION_OFFSET]
 
 
 layout(std430, binding = 3) restrict buffer VisibilityBuffer {
@@ -73,7 +74,7 @@ void bubbleInsertTranslucency(uint zcur, uint index) {
         i = test;
     }
     //TODO: as much presorting/locating as possible
-    for (; i < max_translucency; i++) {
+    for (; i < SCENEDATA.max_translucency; i++) {
         uint ztest = atomicMin(translucency[i], zcur);
         if(ztest == 0xFFFFFFFF)
         {
@@ -118,19 +119,21 @@ void innerdo(uint i) {
 
 
 void main() {
-    //Ordered this way to heavily reduce memory loads
-    if (abs(visiblity[gl_GlobalInvocationID.x] - frameid) > 1) {
+    if (SCENEDATA.frameid == 0 || (SCENEDATA.max_translucency <= gl_GlobalInvocationID.y)) {
         return;
+    }
+    //Ordered this way to heavily reduce memory loads
+    if (abs(visiblity[gl_GlobalInvocationID.x+REGION_OFFSET] - SCENEDATA.frameid) > 1) {
+        //return;
     }
 
     if (SECTION.id != gl_GlobalInvocationID.x) return;
 
     //TODO: cant i technically just remove hsize and it would have the same effect kinda? would be comparing 0 and bboxSize instead
     vec3 hsize = Vec3FtoVec3(SECTION.bboxSize)/2;
-    vec3 center = Vec3FtoVec3(SECTION.bboxOffset) + hsize + Vec3FtoVec3(negativeCameraPosRegionRelative);
+    vec3 center = Vec3FtoVec3(SECTION.bboxOffset) + hsize + Vec3FtoVec3(SCENEDATA.negativeCameraPosRegionRelative);
     //TODO: move this to the raster_depth_test.vert shader, maybe using the depth buffer
     if ((center.x*center.x + center.z*center.z)>(32*32*16*16)) {
-
         return;
     }
     //TODO: also try do exact face culling like in jellys pr
@@ -160,11 +163,11 @@ void main() {
         if (msk == 0) {
             return;
         }
-        CPUvisiblity[gl_GlobalInvocationID.x] = frameid;
+        //CPUvisiblity[gl_GlobalInvocationID.x] = SCENEDATA.frameid;
 
         instanceId = atomicAdd(instanceCounter, 1);
         //FIXME: MAKE FASTER or move to camera transform matrix inside terrain render
-        vec3 cm = Vec3FtoVec3(negativeCameraPosRegionRelative);
+        vec3 cm = Vec3FtoVec3(SCENEDATA.negativeCameraPosRegionRelative);
         vec3 ps = Vec3FtoVec3(SECTION.pos);
         instances[instanceId].pos = Vec3toVec3F(ps+cm);//FIXME: Need to compute relative to camera
 
@@ -220,9 +223,10 @@ void main() {
             }
         }
 
-        {
+
+        if (false) {
             //Insert translucency if it is visible
-            if ((max_translucency != 0) && ((msk&(255<<24))!=0)) {
+            if ((SCENEDATA.max_translucency != 0) && ((msk&(255<<24))!=0)) {
                 uint index = atomicAdd(count3, 1);
                 id2Inst[SECTION.id] = instanceId;
                 uint distance = 1-uint(sqrt(dot(center, center)));//the 1- is to invert it to reverse sort

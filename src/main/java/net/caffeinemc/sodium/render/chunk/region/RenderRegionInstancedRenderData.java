@@ -26,8 +26,8 @@ public class RenderRegionInstancedRenderData {
     //public final MappedBuffer computeDispatchIndirectBuffer;//Nice way to not actually call 90% of compute
     public final MappedBuffer sceneBuffer;
 
-    public final MappedBuffer cpuCommandCount;
-    public final ImmutableBuffer counterBuffer;
+    //public final MappedBuffer cpuCommandCount;
+    //public final ImmutableBuffer counterBuffer;
     //public final MappedBuffer counterBuffer;
 
     //FIXME: can probably move this to be a bigger buffer for all lists, note will need to be 1 PER render layer
@@ -36,14 +36,14 @@ public class RenderRegionInstancedRenderData {
     public final ImmutableBuffer countBuffer;
     public final ImmutableBuffer commandBuffer;
      */
-    public final ImmutableBuffer instanceBuffer;
+    //public final ImmutableBuffer instanceBuffer;
     public final ImmutableBuffer id2InstanceBuffer;
     //public final MappedBuffer instanceBuffer;
 
     //public final MappedBuffer cmd0buff;//just for testing will be moved
-    public final ImmutableBuffer cmd0buff;//just for testing will be moved
-    public final ImmutableBuffer cmd1buff;//just for testing will be moved
-    public final ImmutableBuffer cmd2buff;//just for testing will be moved
+    //public final ImmutableBuffer cmd0buff;//just for testing will be moved
+    //public final ImmutableBuffer cmd1buff;//just for testing will be moved
+    //public final ImmutableBuffer cmd2buff;//just for testing will be moved
     public final ImmutableBuffer trans3;//just for testing will be moved
     public final ImmutableBuffer cmd3buff;//just for testing will be moved
 
@@ -53,15 +53,18 @@ public class RenderRegionInstancedRenderData {
         this.visBuffer = device.createBuffer(RenderRegion.REGION_SIZE*4, Set.of());
         this.cpuSectionVis = device.createMappedBuffer(RenderRegion.REGION_SIZE*4, Set.of(MappedBufferFlags.READ));//MappedBufferFlags.CLIENT_STORAGE
         this.sceneBuffer = device.createMappedBuffer(4*4*4+3*4+4+4+4, Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));
-        this.counterBuffer = device.createBuffer(5*4, Set.of());
-        this.cpuCommandCount = device.createMappedBuffer(5*4, Set.of(MappedBufferFlags.READ));//, MappedBufferFlags.CLIENT_STORAGE
-        this.instanceBuffer = device.createBuffer(RenderRegion.REGION_SIZE*4*3, Set.of());
+        //this.counterBuffer = device.createBuffer(5*4, Set.of());
+        //this.cpuCommandCount = device.createMappedBuffer(5*4, Set.of(MappedBufferFlags.READ));//, MappedBufferFlags.CLIENT_STORAGE
+        //this.instanceBuffer = device.createBuffer(RenderRegion.REGION_SIZE*4*3, Set.of());
         this.id2InstanceBuffer = device.createBuffer(RenderRegion.REGION_SIZE*4, Set.of());
         //If empty memory buffer is specified, this fixes it
+        /*
         this.cmd0buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6), Set.of());//FIXME: TUNE BUFFER SIZE
         this.cmd1buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6), Set.of());//FIXME: TUNE BUFFER SIZE
         this.cmd2buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6), Set.of());//FIXME: TUNE BUFFER SIZE
+        */
         this.trans3 = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*4), Set.of());
+
         this.cmd3buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6), Set.of());//FIXME: TUNE BUFFER SIZE
         //this.cmd3buff = device.createMappedBuffer(RenderRegion.REGION_SIZE*5*4*6, Set.of(MappedBufferFlags.READ));//FIXME: TUNE BUFFER SIZE
 
@@ -69,18 +72,19 @@ public class RenderRegionInstancedRenderData {
         set0Buffer(visBuffer);
         set0Buffer(cpuSectionVis);
         set0Buffer(sceneBuffer);
-        set0Buffer(counterBuffer);
-        set0Buffer(cpuCommandCount);
-        set0Buffer(instanceBuffer);
+        //set0Buffer(counterBuffer);
+        //set0Buffer(cpuCommandCount);
+        //set0Buffer(instanceBuffer);
         set0Buffer(id2InstanceBuffer);
-        set0Buffer(cmd0buff);
-        set0Buffer(cmd1buff);
-        set0Buffer(cmd2buff);
+
+        ///set0Buffer(cmd0buff);
+        ///set0Buffer(cmd1buff);
+        ///set0Buffer(cmd2buff);
         set0Buffer(cmd3buff);
         set0Buffer(trans3);
-        preSetupCommandBuffer(cmd0buff, RenderRegion.REGION_SIZE);
-        preSetupCommandBuffer(cmd1buff, RenderRegion.REGION_SIZE);
-        preSetupCommandBuffer(cmd2buff, RenderRegion.REGION_SIZE);
+        //preSetupCommandBuffer(cmd0buff, RenderRegion.REGION_SIZE);
+        //preSetupCommandBuffer(cmd1buff, RenderRegion.REGION_SIZE);
+        //preSetupCommandBuffer(cmd2buff, RenderRegion.REGION_SIZE);
         preSetupCommandBuffer(cmd3buff, RenderRegion.REGION_SIZE);
 
     }
@@ -89,13 +93,13 @@ public class RenderRegionInstancedRenderData {
         device.deleteBuffer(visBuffer);
         device.deleteBuffer(cpuSectionVis);
         device.deleteBuffer(sceneBuffer);
-        device.deleteBuffer(counterBuffer);
-        device.deleteBuffer(cpuCommandCount);
-        device.deleteBuffer(instanceBuffer);
+        //device.deleteBuffer(counterBuffer);
+        //device.deleteBuffer(cpuCommandCount);
+        //device.deleteBuffer(instanceBuffer);
         device.deleteBuffer(id2InstanceBuffer);
-        device.deleteBuffer(cmd0buff);
-        device.deleteBuffer(cmd1buff);
-        device.deleteBuffer(cmd2buff);
+        //device.deleteBuffer(cmd0buff);
+        //device.deleteBuffer(cmd1buff);
+        //device.deleteBuffer(cmd2buff);
         device.deleteBuffer(cmd3buff);
         device.deleteBuffer(trans3);
     }
