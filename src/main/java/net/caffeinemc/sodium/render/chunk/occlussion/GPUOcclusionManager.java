@@ -191,7 +191,8 @@ public class GPUOcclusionManager {
             //When using RegionPreTester, need to check if its a new region thats visible in the frustum,
             // if it is, add it reguardless of visibility
 
-            vrid.putInt(region.id);
+            region.renderIndex = vrid.position()/4;
+            vrid.putInt(region.id*RenderRegion.REGION_SIZE);
 
             region.weight = new Vector3f(corner.x + RenderRegion.REGION_WIDTH * 8,
                     corner.y + RenderRegion.REGION_HEIGHT * 8,
@@ -236,6 +237,7 @@ public class GPUOcclusionManager {
                             region.getRenderData().cpuCommandCount.view().getInt(0)!=0?region.translucentSections.intValue():0
                             );
             bb.putInt(4*4*4+4*3+4, fid);
+            bb.putInt(4*4*4+4*3+4+4, region.renderIndex);//FOR TESTING
             bb.rewind();
             region.getRenderData().sceneBuffer.flush();
 
@@ -257,9 +259,7 @@ public class GPUOcclusionManager {
                 pipelineState.bindBufferBlock(programInterface.meta, manager.regions.regionMetas.getBufferObject(),
                         manager.regions.regionMetas.getBaseOffset(region.id),
                         manager.regions.regionMetas.getSize(region.id));
-                pipelineState.bindBufferBlock(programInterface.visbuff, region.getRenderData().visBuffer);
-                //pipelineState.bindBufferBlock(programInterface.indirectbuff, region.computeDispatchIndirectBuffer);
-
+                pipelineState.bindBufferBlock(programInterface.visbuff, manager.regions.regionMetas.visBuff, (long) region.id*RenderRegion.REGION_SIZE*4, RenderRegion.REGION_SIZE*4);
                 //FIXME: optimize by only drawing sides facing the camera
                 cmd.drawElementsInstanced(PrimitiveType.TRIANGLES, 6*6, ElementFormat.UNSIGNED_BYTE, 0, region.sectionCount);
             }
@@ -272,10 +272,9 @@ public class GPUOcclusionManager {
         this.device.usePipeline(this.commandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
             for (RenderRegion region : visRegion) {
                 pipelineState.bindBufferBlock(programInterface.scene, region.getRenderData().sceneBuffer);
-                pipelineState.bindBufferBlock(programInterface.meta, manager.regions.regionMetas.getBufferObject(),
-                        manager.regions.regionMetas.getBaseOffset(region.id),
-                        manager.regions.regionMetas.getSize(region.id));
-                pipelineState.bindBufferBlock(programInterface.visbuff, region.getRenderData().visBuffer);
+                pipelineState.bindBufferBlock(programInterface.meta, manager.regions.regionMetas.getBufferObject());
+                pipelineState.bindBufferBlock(programInterface.regionmap, vdata.visibleRegionIds);
+                pipelineState.bindBufferBlock(programInterface.visbuff, manager.regions.regionMetas.visBuff, (long) region.id*RenderRegion.REGION_SIZE*4, RenderRegion.REGION_SIZE*4);
 
                 pipelineState.bindBufferBlock(programInterface.cpuvisbuff, region.getRenderData().cpuSectionVis);
 

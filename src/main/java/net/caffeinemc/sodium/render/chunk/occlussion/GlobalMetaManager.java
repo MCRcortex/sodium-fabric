@@ -1,6 +1,7 @@
 package net.caffeinemc.sodium.render.chunk.occlussion;
 
 import net.caffeinemc.gfx.api.buffer.Buffer;
+import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
 import net.caffeinemc.gfx.api.buffer.MappedBuffer;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
@@ -13,15 +14,20 @@ import java.util.Set;
 public class GlobalMetaManager {
     private final RenderDevice device;
     private final SectionedStreamingBuffer globalMetaBuffer;
+    public final ImmutableBuffer visBuff;
+
+    public final int regions;
     public GlobalMetaManager(RenderDevice device, int renderDistance) {
         this.device = device;
-        int regions = (int)(Math.pow((Math.ceil(renderDistance/16.0))*2 + 1,2)* Math.ceil(24.0/RenderRegion.REGION_HEIGHT));
+        regions = (int)(Math.pow((Math.ceil(renderDistance/16.0))*2 + 1,2)* Math.ceil(24.0/RenderRegion.REGION_HEIGHT));
         globalMetaBuffer = new SectionedStreamingBuffer(device, 1, SectionMeta.SIZE, RenderRegion.REGION_SIZE*regions, Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));
+        this.visBuff = device.createBuffer((long) regions *RenderRegion.REGION_SIZE*4, Set.of());
     }
 
 
     public void delete() {
         globalMetaBuffer.delete();
+        device.deleteBuffer(visBuff);
     }
 
 

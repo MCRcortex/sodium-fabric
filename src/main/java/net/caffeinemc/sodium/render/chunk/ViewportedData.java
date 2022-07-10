@@ -16,13 +16,17 @@ import java.util.TreeSet;
 import static net.caffeinemc.sodium.render.chunk.region.RenderRegionInstancedRenderData.set0Buffer;
 
 public class ViewportedData {
+    private static final int MAX_VISIBLE_REGIONS = 100;
     public final MappedBuffer visibleRegionIds;
+
     public final MappedBuffer cpuCommandCount;
     public final ImmutableBuffer counterBuffer;
     private ViewportedData(RenderDevice device) {
         this.counterBuffer = device.createBuffer(5*4, Set.of());
         this.cpuCommandCount = device.createMappedBuffer(5*4, Set.of(MappedBufferFlags.READ));//, MappedBufferFlags.CLIENT_STORAGE
-        this.visibleRegionIds = device.createMappedBuffer(100*4, Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));//, MappedBufferFlags.CLIENT_STORAGE
+
+        this.visibleRegionIds = device.createMappedBuffer(MAX_VISIBLE_REGIONS*4, Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));//, MappedBufferFlags.CLIENT_STORAGE
+
         set0Buffer(counterBuffer);
         set0Buffer(cpuCommandCount);
         set0Buffer(visibleRegionIds);

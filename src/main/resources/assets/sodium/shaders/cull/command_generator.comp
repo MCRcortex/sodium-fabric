@@ -3,30 +3,36 @@
 #import <sodium:cull/datatypes.h>
 
 //FIXME: optimize local_size and add restrict to all bindings that can use it
-layout(local_size_x = 16) in;
+layout(local_size_x = 16, local_size_y = 1) in;
 
 layout(std430, binding = 0) restrict readonly buffer SceneData {
     mat4 mat_modelviewproj;
     Vec3F negativeCameraPosRegionRelative;
     uint max_translucency;
     int frameid;
+    int renderdataid;
 };
 
-//readonly
 layout(std430, binding = 1) restrict readonly buffer MetaData {
     SectionMeta sections[];
 };
-#define SECTION sections[gl_GlobalInvocationID.x]
 
-layout(std430, binding = 2) restrict buffer VisibilityBuffer {
+layout(std430, binding = 2) restrict readonly buffer RegionMapData {
+    uint regionmap[];
+};
+
+#define SECTION sections[gl_GlobalInvocationID.x + regionmap[renderdataid]]
+
+
+layout(std430, binding = 3) restrict buffer VisibilityBuffer {
     int visiblity[];
 };
 
-layout(std430, binding = 3) restrict writeonly buffer SectionCPUVisibilityBuffer {
+layout(std430, binding = 4) restrict writeonly buffer SectionCPUVisibilityBuffer {
     uint CPUvisiblity[];
 };
 
-layout(std430, binding = 4) restrict buffer CounterBuffer {
+layout(std430, binding = 5) restrict buffer CounterBuffer {
     uint instanceCounter;
     uint cmdBuff0Count;
     uint cmdBuff1Count;
@@ -34,28 +40,28 @@ layout(std430, binding = 4) restrict buffer CounterBuffer {
     uint count3;
 };
 
-layout(std430, binding = 5) restrict writeonly buffer InstanceDataBuffer {
+layout(std430, binding = 6) restrict writeonly buffer InstanceDataBuffer {
     InstanceData instances[];
 };
 
-layout(std430, binding = 6) restrict writeonly buffer Id2InstanceDataBuffer {
+layout(std430, binding = 7) restrict writeonly buffer Id2InstanceDataBuffer {
     uint id2Inst[];
 };
 
-layout(std430, binding = 7) restrict writeonly buffer CommandBuffer0 {
+layout(std430, binding = 8) restrict writeonly buffer CommandBuffer0 {
     DrawElementsInstancedCommand cmdBuff0[];
 };
 
-layout(std430, binding = 8) restrict writeonly buffer CommandBuffer1 {
+layout(std430, binding = 9) restrict writeonly buffer CommandBuffer1 {
     DrawElementsInstancedCommand cmdBuff1[];
 };
 
-layout(std430, binding = 9) restrict writeonly buffer CommandBuffer2 {
+layout(std430, binding = 10) restrict writeonly buffer CommandBuffer2 {
     DrawElementsInstancedCommand cmdBuff2[];
 };
 
 
-layout(std430, binding = 10) restrict buffer TransSorted {
+layout(std430, binding = 11) restrict buffer TransSorted {
     uint translucency[];
 };
 

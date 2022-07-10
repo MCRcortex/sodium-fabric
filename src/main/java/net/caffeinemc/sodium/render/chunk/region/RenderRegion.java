@@ -52,6 +52,7 @@ public class RenderRegion {
     private RenderDevice device;
 
     public float weight;//Util thing
+    public int renderIndex;//Util thing
 
     public final int id;
     public final long key;

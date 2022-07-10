@@ -7,6 +7,7 @@ import net.caffeinemc.gfx.api.shader.ShaderBindingContext;
 public class CommandGeneratorInterface {
     public final BufferBlock scene;
     public final BufferBlock meta;
+    public final BufferBlock regionmap;
     public final BufferBlock visbuff;
 
     public final BufferBlock cpuvisbuff;
@@ -22,18 +23,21 @@ public class CommandGeneratorInterface {
         scene = context.bindBufferBlock(BufferBlockType.STORAGE, 0);
 
         meta = context.bindBufferBlock(BufferBlockType.STORAGE, 1);
-        visbuff = context.bindBufferBlock(BufferBlockType.STORAGE, 2);
 
-        cpuvisbuff = context.bindBufferBlock(BufferBlockType.STORAGE, 3);
+        regionmap = context.bindBufferBlock(BufferBlockType.STORAGE, 2);
 
-        counter = context.bindBufferBlock(BufferBlockType.STORAGE, 4);
+        visbuff = context.bindBufferBlock(BufferBlockType.STORAGE, 3);
 
-        instancedata = context.bindBufferBlock(BufferBlockType.STORAGE, 5);
-        id2inst = context.bindBufferBlock(BufferBlockType.STORAGE, 6);
+        cpuvisbuff = context.bindBufferBlock(BufferBlockType.STORAGE, 4);
+
+        counter = context.bindBufferBlock(BufferBlockType.STORAGE, 5);
+
+        instancedata = context.bindBufferBlock(BufferBlockType.STORAGE, 6);
+        id2inst = context.bindBufferBlock(BufferBlockType.STORAGE, 7);
         for (int i = 0; i < 3; i++) {
-            cmdbuffs[i] = context.bindBufferBlock(BufferBlockType.STORAGE, 7+i);
+            cmdbuffs[i] = context.bindBufferBlock(BufferBlockType.STORAGE, 8+i);
         }
 
-        transSort = context.bindBufferBlock(BufferBlockType.STORAGE, 10);
+        transSort = context.bindBufferBlock(BufferBlockType.STORAGE, 11);
     }
 }
