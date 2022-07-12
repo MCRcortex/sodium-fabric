@@ -63,6 +63,7 @@ dependencies {
 
     includeImplementation 'io.github.douira:glsl-transformer:0.27.0'
     includeImplementation "org.joml:joml:1.10.4"
+    includeImplementation "org.joml:joml:1.10.4"
 
     // Because we need the subprojects to be build as jars prior to their inclusion, we need to separate them to
     // order them correctly.
@@ -75,6 +76,37 @@ dependencies {
         // lithium seems to have some issues in a dev env at the moment, disable for now
         modRuntimeOnly "maven.modrinth:lithium:mc1.19-0.8.0"
     }
+}
+import org.gradle.internal.os.OperatingSystem
+
+project.ext.lwjglVersion = "3.3.1"
+
+switch (OperatingSystem.current()) {
+    case OperatingSystem.LINUX:
+        project.ext.lwjglNatives = "natives-linux"
+        break
+    case OperatingSystem.MAC_OS:
+        project.ext.lwjglNatives = "natives-macos"
+        break
+    case OperatingSystem.WINDOWS:
+        def osArch = System.getProperty("os.arch")
+        project.ext.lwjglNatives = osArch.contains("64")
+                ? "natives-windows${osArch.startsWith("aarch64") ? "-arm64" : ""}"
+                : "natives-windows-x86"
+        break
+}
+
+
+dependencies {
+    implementation platform("org.lwjgl:lwjgl-bom:$lwjglVersion")
+
+    implementation "org.lwjgl:lwjgl-tootle"
+    implementation "org.lwjgl:lwjgl-vma"
+    implementation "org.lwjgl:lwjgl-vulkan"
+    runtimeOnly "org.lwjgl:lwjgl::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-tootle::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-vma::$lwjglNatives"
+    if (lwjglNatives == "natives-macos") runtimeOnly "org.lwjgl:lwjgl-vulkan::$lwjglNatives"
 }
 
 String getVersion() {
