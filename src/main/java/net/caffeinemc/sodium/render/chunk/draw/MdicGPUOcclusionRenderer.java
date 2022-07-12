@@ -218,7 +218,7 @@ public class MdicGPUOcclusionRenderer extends AbstractChunkRenderer {
             );
             var vdata = ViewportedData.get();
             int count = vdata.cpuCommandCount.view().getInt(rid*4);
-            if (count == 0) {
+            if (count < 1) {
                 return;
             }
             if (rid == 0) {
@@ -249,7 +249,7 @@ public class MdicGPUOcclusionRenderer extends AbstractChunkRenderer {
                     ElementFormat.UNSIGNED_INT,
                     0,
                     4+4*rid,//FIXME: need to select the index (0) from the current render layer
-                    Math.max((int)(count*1.5+Math.log(count)), 0),
+                    Math.max((int)(count*1.5+Math.log(count)), 1),
                     //(int)(Math.ceil(region.sectionCount*3.5)),//FIXME: optimize this to be as close bound as possible, maybe even make it dynamic based on previous counts
                     5*4
             );

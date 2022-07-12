@@ -262,7 +262,7 @@ public class GPUOcclusionManager {
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);
         MinecraftClient.getInstance().getProfiler().swap("Raster vis");
-        glEnable(0x937F);
+        //glEnable(0x937F);
         this.device.usePipeline(this.rasterCullPipeline,  (cmd, programInterface, pipelineState) -> {
             cmd.bindElementBuffer(this.indexBuffer);
             for (RenderRegion region : visRegion) {
@@ -277,7 +277,7 @@ public class GPUOcclusionManager {
             }
         });
 
-        glDisable(0x937F);
+        //glDisable(0x937F);
         //glFinish();
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         MinecraftClient.getInstance().getProfiler().swap("Command gen");
