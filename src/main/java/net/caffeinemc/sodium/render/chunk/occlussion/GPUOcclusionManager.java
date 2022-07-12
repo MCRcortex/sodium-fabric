@@ -262,7 +262,7 @@ public class GPUOcclusionManager {
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);
         MinecraftClient.getInstance().getProfiler().swap("Raster vis");
-        //glEnable(0x937F);
+        glEnable(0x937F);
         this.device.usePipeline(this.rasterCullPipeline,  (cmd, programInterface, pipelineState) -> {
             cmd.bindElementBuffer(this.indexBuffer);
             for (RenderRegion region : visRegion) {
@@ -272,40 +272,43 @@ public class GPUOcclusionManager {
                         manager.regions.regionMetas.getSize(region.id));
                 pipelineState.bindBufferBlock(programInterface.visbuff, manager.regions.regionMetas.visBuff, (long) region.id*RenderRegion.REGION_SIZE*4, RenderRegion.REGION_SIZE*4);
                 //FIXME: optimize by only drawing sides facing the camera
+                //FIXME: replace with single draw call using glMultiDrawElementsBaseVertex in the rewrite
                 cmd.drawElementsInstanced(PrimitiveType.TRIANGLES, 6*6, ElementFormat.UNSIGNED_BYTE, 0, region.sectionCount);
             }
         });
 
-        //glDisable(0x937F);
+        glDisable(0x937F);
         //glFinish();
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         MinecraftClient.getInstance().getProfiler().swap("Command gen");
-        this.device.usePipeline(this.commandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
-            pipelineState.bindBufferBlock(programInterface.cmdbuffs[0], vdata.cmd0buff);
-            pipelineState.bindBufferBlock(programInterface.cmdbuffs[1], vdata.cmd1buff);
-            pipelineState.bindBufferBlock(programInterface.cmdbuffs[2], vdata.cmd2buff);
-            pipelineState.bindBufferBlock(programInterface.counter, vdata.counterBuffer);
-            pipelineState.bindBufferBlock(programInterface.instancedata, vdata.instanceBuffer);
-            pipelineState.bindBufferBlock(programInterface.regionmap, vdata.visibleRegionIds);
-            pipelineState.bindBufferBlock(programInterface.meta, manager.regions.regionMetas.getBufferObject());
-            pipelineState.bindBufferBlock(programInterface.visbuff, manager.regions.regionMetas.visBuff);
+        if (true) {
+            this.device.usePipeline(this.commandGeneratorPipeline, (cmd, programInterface, pipelineState) -> {
+                pipelineState.bindBufferBlock(programInterface.cmdbuffs[0], vdata.cmd0buff);
+                pipelineState.bindBufferBlock(programInterface.cmdbuffs[1], vdata.cmd1buff);
+                pipelineState.bindBufferBlock(programInterface.cmdbuffs[2], vdata.cmd2buff);
+                pipelineState.bindBufferBlock(programInterface.counter, vdata.counterBuffer);
+                pipelineState.bindBufferBlock(programInterface.instancedata, vdata.instanceBuffer);
+                pipelineState.bindBufferBlock(programInterface.regionmap, vdata.visibleRegionIds);
+                pipelineState.bindBufferBlock(programInterface.meta, manager.regions.regionMetas.getBufferObject());
+                pipelineState.bindBufferBlock(programInterface.visbuff, manager.regions.regionMetas.visBuff);
 
-            int maxCount = 0;
-            for (RenderRegion region : visRegion) {
-                //pipelineState.bindBufferBlock(programInterface.scene, region.getRenderData().sceneBuffer);
+                int maxCount = 0;
+                for (RenderRegion region : visRegion) {
+                    //pipelineState.bindBufferBlock(programInterface.scene, region.getRenderData().sceneBuffer);
 
-                //pipelineState.bindBufferBlock(programInterface.cpuvisbuff, region.getRenderData().cpuSectionVis);
+                    //pipelineState.bindBufferBlock(programInterface.cpuvisbuff, region.getRenderData().cpuSectionVis);
 
-                //pipelineState.bindBufferBlock(programInterface.id2inst, region.getRenderData().id2InstanceBuffer);
-                //pipelineState.bindBufferBlock(programInterface.transSort, region.getRenderData().trans3);
+                    //pipelineState.bindBufferBlock(programInterface.id2inst, region.getRenderData().id2InstanceBuffer);
+                    //pipelineState.bindBufferBlock(programInterface.transSort, region.getRenderData().trans3);
 
-                //TODO: optimize the group size
-                //cmd.dispatchCompute((int)Math.ceil((double) region.sectionCount/16),1,1);
+                    //TODO: optimize the group size
+                    //cmd.dispatchCompute((int)Math.ceil((double) region.sectionCount/16),1,1);
 
-                maxCount = Math.max(region.sectionCount, maxCount);
-            }
-            cmd.dispatchCompute((int)Math.ceil((double) maxCount/64), visRegion.size(),1);
-        });
+                    maxCount = Math.max(region.sectionCount, maxCount);
+                }
+                cmd.dispatchCompute((int) Math.ceil((double) maxCount / 32), visRegion.size(), 1);
+            });
+        }
 
         MinecraftClient.getInstance().getProfiler().swap("Translucency command gen");
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);

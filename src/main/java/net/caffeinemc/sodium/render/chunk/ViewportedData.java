@@ -34,21 +34,21 @@ public class ViewportedData {
         this.counterBuffer = device.createBuffer(5*4, Set.of());
         this.cpuCommandCount = device.createMappedBuffer(5*4, Set.of(MappedBufferFlags.READ));//, MappedBufferFlags.CLIENT_STORAGE
 
-        this.visibleRegionIds = device.createMappedBuffer(MAX_VISIBLE_REGIONS*(88), Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));//, MappedBufferFlags.CLIENT_STORAGE
+        this.visibleRegionIds = device.createMappedBuffer(MAX_VISIBLE_REGIONS*(96), Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));//, MappedBufferFlags.CLIENT_STORAGE
 
-        this.cmd0buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6*10), Set.of());//FIXME: TUNE BUFFER SIZE
-        this.cmd1buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6*10), Set.of());//FIXME: TUNE BUFFER SIZE
-        this.cmd2buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6*10), Set.of());//FIXME: TUNE BUFFER SIZE
+        this.cmd0buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6*30), Set.of());//FIXME: TUNE BUFFER SIZE
+        this.cmd1buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6*30), Set.of());//FIXME: TUNE BUFFER SIZE
+        this.cmd2buff = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6*30), Set.of());//FIXME: TUNE BUFFER SIZE
 
-        this.instanceBuffer = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6*10), Set.of());//FIXME: TUNE BUFFER SIZE
+        this.instanceBuffer = device.createBuffer(ByteBuffer.allocateDirect(RenderRegion.REGION_SIZE*5*4*6*30), Set.of());//FIXME: TUNE BUFFER SIZE
 
         set0Buffer(counterBuffer);
         set0Buffer(cpuCommandCount);
         set0Buffer(visibleRegionIds);
         set0Buffer(instanceBuffer);
-        preSetupCommandBuffer(cmd0buff, RenderRegion.REGION_SIZE*10);
-        preSetupCommandBuffer(cmd1buff, RenderRegion.REGION_SIZE*10);
-        preSetupCommandBuffer(cmd2buff, RenderRegion.REGION_SIZE*10);
+        preSetupCommandBuffer(cmd0buff, RenderRegion.REGION_SIZE*30);
+        preSetupCommandBuffer(cmd1buff, RenderRegion.REGION_SIZE*30);
+        preSetupCommandBuffer(cmd2buff, RenderRegion.REGION_SIZE*30);
     }
 
     public Set<RenderRegion> visible_regions = new TreeSet<>(Comparator.comparingDouble(a->a.weight));

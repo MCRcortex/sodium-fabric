@@ -249,7 +249,7 @@ public class MdicGPUOcclusionRenderer extends AbstractChunkRenderer {
                     ElementFormat.UNSIGNED_INT,
                     0,
                     4+4*rid,//FIXME: need to select the index (0) from the current render layer
-                    Math.min(Math.max((int)(count*1.5+Math.log(count)), 0), RenderRegion.REGION_SIZE * 5 * 4 * 6 - 5),
+                    Math.max((int)(count*1.5+Math.log(count)), 0),
                     //(int)(Math.ceil(region.sectionCount*3.5)),//FIXME: optimize this to be as close bound as possible, maybe even make it dynamic based on previous counts
                     5*4
             );
