@@ -236,9 +236,7 @@ public class MdicGPUOcclusionRenderer extends AbstractChunkRenderer {
 
             pipelineState.bindBufferBlock(
                     programInterface.uniformInstanceData,
-                    vdata.instanceBuffer,
-                    0,
-                    RenderRegion.REGION_SIZE*4*3
+                    vdata.instanceBuffer
             );
 
             cmd.bindParameterBuffer(vdata.counterBuffer);

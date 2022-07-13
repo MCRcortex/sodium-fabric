@@ -332,6 +332,7 @@ public class GPUOcclusionManager {
         }*/
         MinecraftClient.getInstance().getProfiler().pop();
         //glFlush();
+
     }
 
     public void fillRenderCommands(List<RenderRegion> regions) {

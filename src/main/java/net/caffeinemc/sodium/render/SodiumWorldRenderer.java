@@ -228,7 +228,10 @@ public class SodiumWorldRenderer {
      * Performs a render pass for the given {@link RenderLayer} and draws all visible chunks for it.
      */
     public void drawChunkLayer(RenderLayer renderLayer, MatrixStack matrixStack, ChunkCameraContext cameraContext) {
-
+        if (renderLayer == RenderLayer.getSolid() && !MinecraftClient.getInstance().player.isSneaking()) {
+            var dat = ViewportedData.get();
+            //doOcclusion(matrixStack, cameraContext, dat.frustum);
+        }
         ChunkRenderPass renderPass = this.renderPassManager.getRenderPassForLayer(renderLayer);
         this.terrainRenderManager.renderLayer(ChunkRenderMatrices.from(matrixStack), renderPass/*, cameraContext*/);
         //NOTE: works fine if its done before solid, so could reporject depth buffer and use that
@@ -236,6 +239,7 @@ public class SodiumWorldRenderer {
             var dat = ViewportedData.get();
             doOcclusion(matrixStack, cameraContext, dat.frustum);
         }
+
     }
 
 
