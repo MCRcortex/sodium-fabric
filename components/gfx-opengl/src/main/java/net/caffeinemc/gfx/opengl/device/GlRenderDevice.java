@@ -30,10 +30,7 @@ import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
 import net.caffeinemc.gfx.opengl.GlEnum;
 import net.caffeinemc.gfx.opengl.array.GlVertexArray;
-import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
-import net.caffeinemc.gfx.opengl.buffer.GlDynamicBuffer;
-import net.caffeinemc.gfx.opengl.buffer.GlImmutableBuffer;
-import net.caffeinemc.gfx.opengl.buffer.GlMappedBuffer;
+import net.caffeinemc.gfx.opengl.buffer.*;
 import net.caffeinemc.gfx.opengl.pipeline.GlComputePipeline;
 import net.caffeinemc.gfx.opengl.pipeline.GlRenderPipeline;
 import net.caffeinemc.gfx.opengl.pipeline.GlPipelineManager;
@@ -42,9 +39,7 @@ import net.caffeinemc.gfx.opengl.sync.GlFence;
 import net.caffeinemc.gfx.opengl.texture.GlSampler;
 import org.apache.commons.lang3.Validate;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.opengl.ARBIndirectParameters;
-import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.GL45C;
+import org.lwjgl.opengl.*;
 import org.lwjgl.system.MathUtil;
 import org.lwjgl.system.MemoryUtil;
 
@@ -81,6 +76,7 @@ public class GlRenderDevice implements RenderDevice {
 
         int maxCombinedTextureImageUnits = GL45C.glGetInteger(GL45C.GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS);
 
+
         String vendorName = GL45C.glGetString(GL45C.GL_VENDOR);
         String deviceName = GL45C.glGetString(GL45C.GL_RENDERER);
         String apiVersion = GL45C.glGetString(GL45C.GL_VERSION);
@@ -95,6 +91,12 @@ public class GlRenderDevice implements RenderDevice {
         boolean preferDirectRendering = isVendorIntel || !hasIndirectCountSupport;
 
         boolean hasShaderDrawParametersSupport = glCaps.GL_ARB_shader_draw_parameters;
+        boolean hasSparseBuffers = glCaps.GL_ARB_sparse_buffer;
+
+        int sparseBufferPageSize = -1;
+        if (hasSparseBuffers) {
+            sparseBufferPageSize = GL45C.glGetInteger(ARBSparseBuffer.GL_SPARSE_BUFFER_PAGE_SIZE_ARB);
+        }
 
         return new RenderDeviceProperties(
                 vendorName,
@@ -104,12 +106,13 @@ public class GlRenderDevice implements RenderDevice {
                 new RenderDeviceProperties.Values(
                         uniformBufferAlignment,
                         storageBufferAlignment,
-                        maxCombinedTextureImageUnits
+                        maxCombinedTextureImageUnits,
+                        sparseBufferPageSize
                 ),
                 new RenderDeviceProperties.Capabilities(
                         hasIndirectCountSupport,
-                        hasShaderDrawParametersSupport
-
+                        hasShaderDrawParametersSupport,
+                        hasSparseBuffers
                 ),
                 new RenderDeviceProperties.DriverWorkarounds(
                         forceIndirectCount
@@ -135,6 +138,35 @@ public class GlRenderDevice implements RenderDevice {
         }
 
         GL45C.glCopyNamedBufferSubData(srcBuffer.getHandle(), dstBuffer.getHandle(), srcOffset, dstOffset, length);
+    }
+
+    @Override
+    public void commitPages(SparseBuffer buffer, long pageStart, long pageCount) {
+        commitPages0((GlBuffer) buffer, pageStart, pageCount);
+    }
+
+    private void commitPages0(GlBuffer buffer, long pageStart, long pageCount) {
+        //TODO:FIXME: API CHECKS, note, unsure why GL_EXT_direct_state_access and GL_ARB_direct_state_access are different things
+        long pageSize = sparsePageSize();
+        ARBSparseBuffer.glNamedBufferPageCommitmentEXT(buffer.getHandle(), pageSize * pageStart, pageSize * pageCount, true);
+    }
+
+    @Override
+    public void uncommitPages(SparseBuffer buffer, long pageStart, long pageCount) {
+        uncommitPages0((GlBuffer) buffer, pageStart, pageCount);
+    }
+
+    private void uncommitPages0(GlBuffer buffer, long pageStart, long pageCount) {
+        //TODO:FIXME: API CHECKS
+        long pageSize = sparsePageSize();
+        ARBSparseBuffer.glNamedBufferPageCommitmentEXT(buffer.getHandle(), pageSize * pageStart, pageSize * pageCount, false);
+    }
+
+    //FIXME: i dont think this should go here, should access it via render device properties
+    @Override
+    public int sparsePageSize() {
+        Validate.isTrue(getDeviceProperties().capabilities.sparseBuffers, "Sparse buffer ARB must be supported to obtain its page size");
+        return getDeviceProperties().values.sparseBufferPageSize;
     }
 
     @Override
@@ -209,6 +241,15 @@ public class GlRenderDevice implements RenderDevice {
     }
 
     @Override
+    public ImmutableSparseBuffer createSparseBuffer(long maxCapacity, Set<ImmutableBufferFlags> flags) {
+        Validate.isTrue(getDeviceProperties().capabilities.sparseBuffers, "Sparse buffer ARB must be supported to use sparse buffers");
+        var handle = GL45C.glCreateBuffers();
+        GL45C.glNamedBufferStorage(handle, maxCapacity, getBufferStorageBits(flags) | ARBSparseBuffer.GL_SPARSE_STORAGE_BIT_ARB);
+
+        return new GLImmutableSparseBuffer(handle, maxCapacity, flags);
+    }
+
+    @Override
     public ImmutableBuffer createBuffer(long capacity, Consumer<ByteBuffer> preUnmapConsumer, Set<ImmutableBufferFlags> flags) {
         var handle = GL45C.glCreateBuffers();
         GL45C.glNamedBufferStorage(handle, capacity, GL45C.GL_MAP_WRITE_BIT | getBufferStorageBits(flags));
@@ -236,6 +277,15 @@ public class GlRenderDevice implements RenderDevice {
         GL45C.glNamedBufferStorage(handle, capacity, getDynamicBufferStorageBits(flags));
 
         return new GlDynamicBuffer(handle, capacity, flags);
+    }
+
+    @Override
+    public DynamicSparseBuffer createDynamicSparseBuffer(long maxCapacity, Set<DynamicBufferFlags> flags) {
+        Validate.isTrue(getDeviceProperties().capabilities.sparseBuffers, "Sparse buffer ARB must be supported to use sparse buffers");
+        var handle = GL45C.glCreateBuffers();
+        GL45C.glNamedBufferStorage(handle, maxCapacity, getDynamicBufferStorageBits(flags) | ARBSparseBuffer.GL_SPARSE_STORAGE_BIT_ARB);
+
+        return new GLDynamicSparseBuffer(handle, maxCapacity, flags);
     }
 
     @Override

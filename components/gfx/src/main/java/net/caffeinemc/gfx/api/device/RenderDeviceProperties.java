@@ -81,14 +81,21 @@ public final class RenderDeviceProperties {
          */
         public final int maxCombinedTextureImageUnits;
 
+        /**
+         * The size of a single page for a sparse buffer object
+         */
+        public final int sparseBufferPageSize;
+
         public Values(
                 int uniformBufferOffsetAlignment,
                 int storageBufferOffsetAlignment,
-                int maxCombinedTextureImageUnits
+                int maxCombinedTextureImageUnits,
+                int sparseBufferPageSize
         ) {
             this.uniformBufferOffsetAlignment = uniformBufferOffsetAlignment;
             this.storageBufferOffsetAlignment = storageBufferOffsetAlignment;
             this.maxCombinedTextureImageUnits = maxCombinedTextureImageUnits;
+            this.sparseBufferPageSize = sparseBufferPageSize;
         }
     }
 
@@ -104,12 +111,19 @@ public final class RenderDeviceProperties {
          */
         public final boolean shaderDrawParameters;
 
+        /**
+         * Allows the use of sparse buffer objects
+         */
+        public final boolean sparseBuffers;
+
         public Capabilities(
                 boolean indirectCount,
-                boolean shaderDrawParameters
+                boolean shaderDrawParameters,
+                boolean sparseBuffers
         ) {
             this.indirectCount = indirectCount;
             this.shaderDrawParameters = shaderDrawParameters;
+            this.sparseBuffers = sparseBuffers;
         }
     }
 

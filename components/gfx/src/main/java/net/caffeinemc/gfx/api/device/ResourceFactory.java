@@ -27,9 +27,13 @@ public interface ResourceFactory {
 
     ImmutableBuffer createBuffer(long capacity, Set<ImmutableBufferFlags> flags);
 
+    ImmutableSparseBuffer createSparseBuffer(long maxCapacity, Set<ImmutableBufferFlags> flags);
+
     ImmutableBuffer createBuffer(long capacity, Consumer<ByteBuffer> preUnmapConsumer, Set<ImmutableBufferFlags> flags);
 
     DynamicBuffer createDynamicBuffer(long capacity, Set<DynamicBufferFlags> flags);
+
+    DynamicSparseBuffer createDynamicSparseBuffer(long maxCapacity, Set<DynamicBufferFlags> flags);
 
     MappedBuffer createMappedBuffer(long capacity, Set<MappedBufferFlags> flags);
 
