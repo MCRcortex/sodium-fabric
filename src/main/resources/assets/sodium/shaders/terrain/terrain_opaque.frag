@@ -15,14 +15,20 @@ in VertexOutput {
     float fog_depth;
 } vs_out;
 
+#ifdef ALPHA_CUTOFF
+layout (depth_greater) out float gl_FragDepth;
+#endif
+
 void main() {
     vec4 frag_diffuse = texture(tex_diffuse, vs_out.tex_diffuse_coord);
 
-#ifdef ALPHA_CUTOFF
+    #ifdef ALPHA_CUTOFF
     if (frag_diffuse.a < ALPHA_CUTOFF) {
-        discard;
+        gl_FragDepth = 1.0;
+        return;
     }
-#endif
+    gl_FragDepth = gl_FragCoord.z;
+    #endif
 
     vec4 frag_light = _sample_lightmap(tex_light, vs_out.tex_light_coord);
     vec4 frag_mixed = vec4((frag_diffuse.rgb * frag_light.rgb) * vs_out.color * vs_out.shade, frag_diffuse.a);

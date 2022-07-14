@@ -4,6 +4,7 @@ import it.unimi.dsi.fastutil.objects.Reference2ReferenceLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceSortedMap;
 import net.caffeinemc.gfx.api.pipeline.PipelineDescription;
 import net.caffeinemc.gfx.api.pipeline.state.BlendFunc;
+import net.caffeinemc.gfx.api.pipeline.state.DepthFunc;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.minecraft.client.render.RenderLayer;
 
@@ -23,7 +24,7 @@ public class ChunkRenderPassManager {
             0.5f
     );
     private static final ChunkRenderPass CUTOUT = new ChunkRenderPass(
-            PipelineDescription.defaults(),
+            PipelineDescription.builder().setDepthFunc(DepthFunc.LESS).build(),
             false,
             0.1f
     );
