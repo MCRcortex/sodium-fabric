@@ -8,4 +8,5 @@ public class OcclusionEngine {
     //Vertex data, section meta and region meta
     //region meta will also contain a visibility section
 
+
 }

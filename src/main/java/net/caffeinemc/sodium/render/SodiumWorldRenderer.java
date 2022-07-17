@@ -4,12 +4,16 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import java.util.Collection;
 import java.util.SortedSet;
+
+import net.caffeinemc.gfx.api.device.RenderDevice;
+import net.caffeinemc.gfx.opengl.device.GlRenderDevice;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.interop.vanilla.mixin.WorldRendererHolder;
 import net.caffeinemc.sodium.render.chunk.TerrainRenderManager;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.RasterSectionShader;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
 import net.caffeinemc.sodium.render.terrain.context.ImmediateTerrainRenderCache;
@@ -78,6 +82,7 @@ public class SodiumWorldRenderer {
 
     public SodiumWorldRenderer(MinecraftClient client) {
         this.client = client;
+        new RasterSectionShader(SodiumClientMod.DEVICE);
     }
 
     public void setWorld(ClientWorld world) {

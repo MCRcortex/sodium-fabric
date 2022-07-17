@@ -1,4 +1,4 @@
-package net.caffeinemc.sodium.render.chunk;
+package net.caffeinemc.sodium.render;
 
 public class ViewportInterface {
     public static int CURRENT_VIEWPORT;

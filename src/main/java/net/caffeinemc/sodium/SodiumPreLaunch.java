@@ -1,6 +1,8 @@
 package net.caffeinemc.sodium;
 
 import java.util.Objects;
+
+import it.unimi.dsi.fastutil.objects.ObjectAVLTreeSet;
 import net.fabricmc.loader.api.Version;
 import net.fabricmc.loader.api.VersionParsingException;
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;

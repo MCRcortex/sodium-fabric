@@ -2,6 +2,7 @@ package net.caffeinemc.sodium.render.chunk;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import net.caffeinemc.sodium.render.ViewportInterface;
 
 public class ViewportInstancedData <DATA> {
     public interface IViewportFactory <DATA> { DATA create(int viewport); }
