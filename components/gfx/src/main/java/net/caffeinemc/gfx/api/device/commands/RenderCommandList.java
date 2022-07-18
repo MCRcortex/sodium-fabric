@@ -16,6 +16,8 @@ public interface RenderCommandList<T extends Enum<T>> {
 
     void multiDrawElementsIndirect(PrimitiveType primitiveType, ElementFormat elementType, long indirectOffset, int indirectCount, int stride);
 
+    void drawElementsInstanced(PrimitiveType primitiveType, ElementFormat elementType, int count, long indicesOffset, int primcount);
+
     // REQUIRES 4.6 CORE OR ARB_indirect_parameters
     
     void bindParameterBuffer(Buffer buffer);

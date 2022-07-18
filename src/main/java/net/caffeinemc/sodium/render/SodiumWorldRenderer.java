@@ -13,6 +13,9 @@ import net.caffeinemc.sodium.interop.vanilla.mixin.WorldRendererHolder;
 import net.caffeinemc.sodium.render.chunk.TerrainRenderManager;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.CreateRasterSectionCommandsComputeShader;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.RasterRegionShader;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.RasterSectionShader;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
@@ -82,7 +85,7 @@ public class SodiumWorldRenderer {
 
     public SodiumWorldRenderer(MinecraftClient client) {
         this.client = client;
-        new RasterSectionShader(SodiumClientMod.DEVICE);
+        new OcclusionEngine(SodiumClientMod.DEVICE);
     }
 
     public void setWorld(ClientWorld world) {

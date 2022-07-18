@@ -1,12 +1,28 @@
 package net.caffeinemc.sodium.render.chunk.occlusion.gpu;
 
+import net.caffeinemc.gfx.api.device.RenderDevice;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.CreateRasterSectionCommandsComputeShader;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.CreateTerrainCommandsComputeShader;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.RasterRegionShader;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.RasterSectionShader;
+
 public class OcclusionEngine {
+    private final RenderDevice device;
+    private final RasterRegionShader rasterRegion;
+    private final CreateRasterSectionCommandsComputeShader createRasterSectionCommands;
+    private final RasterSectionShader rasterSection;
+    private final CreateTerrainCommandsComputeShader createTerrainCommands;
 
-    //How it will work
+    public OcclusionEngine(RenderDevice device) {
+        this.device = device;
+        this.rasterRegion = new RasterRegionShader(device);
+        this.createRasterSectionCommands = new CreateRasterSectionCommandsComputeShader(device);
+        this.rasterSection = new RasterSectionShader(device);
+        this.createTerrainCommands = new CreateTerrainCommandsComputeShader(device);
+    }
 
-    //There are 3 sparse buffers
-    //Vertex data, section meta and region meta
-    //region meta will also contain a visibility section
+    public void doOcclusion() {
 
+    }
 
 }

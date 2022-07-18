@@ -39,7 +39,7 @@ public class AsyncArenaBuffer implements ArenaBuffer {
         this.arenaBuffer = device.createBuffer((long) capacity * stride, EnumSet.noneOf(ImmutableBufferFlags.class));
         this.stride = stride;
     }
-    
+
     public void reset() {
         this.head = null;
         this.used = 0;
@@ -52,10 +52,10 @@ public class AsyncArenaBuffer implements ArenaBuffer {
         }
 
         this.checkAssertions();
-    
+
         var srcBufferObj = this.arenaBuffer;
         var dstBufferObj = this.device.createBuffer(this.toBytes(this.capacity), EnumSet.noneOf(ImmutableBufferFlags.class));
-        
+
         this.device.copyBuffer(
                 srcBufferObj,
                 dstBufferObj,
@@ -63,9 +63,9 @@ public class AsyncArenaBuffer implements ArenaBuffer {
                 0,
                 this.toBytes(this.position)
         );
-    
+
         this.device.deleteBuffer(srcBufferObj);
-    
+
         this.arenaBuffer = dstBufferObj;
         this.capacity = newCapacity;
 
@@ -84,13 +84,13 @@ public class AsyncArenaBuffer implements ArenaBuffer {
 
     private long alloc(int size) {
         FreedSegment a = this.findFree(size);
-        
+
         long result = BufferSegment.INVALID;
 
         if (a != null) {
             if (a.length == size) {
                 result = BufferSegment.createKey(size, a.offset);
-                
+
                 // get rid of element from linked list
                 if (a.next != null) {
                     a.next.prev = null;
@@ -100,18 +100,18 @@ public class AsyncArenaBuffer implements ArenaBuffer {
                 }
             } else {
                 result = BufferSegment.createKey(size, a.offset);
-        
+
                 a.offset += size;
             }
         } else if (this.capacity - this.position >= size) {
             result = BufferSegment.createKey(size, this.position);
-            
+
             this.position += size;
         }
 
         // will be 0 if invalid
         this.used += BufferSegment.getLength(result);
-        
+
         this.checkAssertions();
 
         return result;
@@ -139,6 +139,7 @@ public class AsyncArenaBuffer implements ArenaBuffer {
     @Override
     public void free(long key) {
         FreedSegment freedSegment = this.freedSegments.get(BufferSegment.getOffset(key));
+        /*
         if (entry.isFree()) {
             throw new IllegalStateException("Already freed");
         }
@@ -158,7 +159,7 @@ public class AsyncArenaBuffer implements ArenaBuffer {
         if (prev != null && prev.isFree()) {
             prev.mergeInto(entry);
         }
-
+*/
         this.checkAssertions();
     }
 
@@ -290,9 +291,9 @@ public class AsyncArenaBuffer implements ArenaBuffer {
             } else if (seg.getEnd() > this.capacity) {
                 throw new IllegalStateException("segment.end > arena.capacity: out of bounds");
             }
-    
+
             used += seg.length;
-    
+
             FreedSegment next = seg.next;
 
             if (next != null) {
@@ -302,7 +303,7 @@ public class AsyncArenaBuffer implements ArenaBuffer {
                     throw new IllegalStateException("segment.next.start > segment.end: not truly connected (sparsity error)");
                 }
             }
-    
+
             FreedSegment prev = seg.prev;
 
             if (prev != null) {
@@ -339,33 +340,33 @@ public class AsyncArenaBuffer implements ArenaBuffer {
     public int getStride() {
         return this.stride;
     }
-    
+
     private static class FreedSegment {
-    
+
         protected int offset;
         protected int length;
-    
+
         protected FreedSegment next;
         protected FreedSegment prev;
-        
+
         public FreedSegment(int offset, int length) {
             this.offset = offset;
             this.length = length;
         }
-        
+
         protected int getEnd() {
             return this.offset + this.length;
         }
-        
+
         protected void mergeInto(FreedSegment entry) {
             this.length = this.length + entry.length;
             this.next = entry.next;
-            
+
             if (this.next != null) {
                 this.next.prev = this;
             }
         }
     }
-    
-    
+
+
 }

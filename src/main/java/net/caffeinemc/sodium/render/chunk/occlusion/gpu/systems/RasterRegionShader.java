@@ -20,17 +20,18 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Set;
 
-public class RasterSectionShader {
+public class RasterRegionShader {
     private static final class RasterCullerInterface {
         public final BufferBlock scene;
-        public final BufferBlock sectionMeta;
-        public final BufferBlock visbuff;
-
+        public final BufferBlock regionArray;
+        public final BufferBlock regionMeta;
+        public final BufferBlock visArray;
         public RasterCullerInterface(ShaderBindingContext context) {
             //TODO: change scene to a uniform
             scene = context.bindBufferBlock(BufferBlockType.STORAGE, 0);
-            sectionMeta = context.bindBufferBlock(BufferBlockType.STORAGE, 1);
-            visbuff = context.bindBufferBlock(BufferBlockType.STORAGE, 2);
+            regionArray = context.bindBufferBlock(BufferBlockType.STORAGE, 1);
+            regionMeta = context.bindBufferBlock(BufferBlockType.STORAGE, 2);
+            visArray = context.bindBufferBlock(BufferBlockType.STORAGE, 3);
         }
     }
 
@@ -38,7 +39,7 @@ public class RasterSectionShader {
     private final Program<RasterCullerInterface> rasterCullProgram;
     private final RenderPipeline<RasterCullerInterface, EmptyTarget> rasterCullPipeline;
 
-    public RasterSectionShader(RenderDevice device) {
+    public RasterRegionShader(RenderDevice device) {
         this.device = device;
 
         var vertexArray = new VertexArrayDescription<>(EmptyTarget.values(), List.of());
@@ -47,32 +48,32 @@ public class RasterSectionShader {
         this.rasterCullProgram = this.device.createProgram(ShaderDescription.builder()
                 .addShaderSource(ShaderType.VERTEX,
                         ShaderParser.parseSodiumShader(ShaderLoader.MINECRAFT_ASSETS,
-                                new Identifier("sodium", "occlusion/raster/section.vert"), constants))
+                                new Identifier("sodium", "occlusion/raster/region.vert"), constants))
                 .addShaderSource(ShaderType.FRAGMENT,
                         ShaderParser.parseSodiumShader(ShaderLoader.MINECRAFT_ASSETS,
-                                new Identifier("sodium", "occlusion/raster/section.frag"), constants))
+                                new Identifier("sodium", "occlusion/raster/region.frag"), constants))
                 .build(), RasterCullerInterface::new);
 
         this.rasterCullPipeline = device.createRenderPipeline(RenderPipelineDescription.builder()
                         .setWriteMask(new WriteMask(false, false))
                         .build(),
                 this.rasterCullProgram, vertexArray);
-
     }
 
 
     //Note: an exact number of calls are used as parameter draw takes too long, this is ok as long as the region compute
     // emits exactly regionCount calls which it should always do as long as it emits a null draw call on non visibility
-    public void execute(Buffer renderCommands, int regionCount, Buffer scene, Buffer sectionMeta, Buffer visibilityBuffer) {
+    public void execute(int regionCount, Buffer scene, Buffer regionArray, Buffer regionMeta, Buffer regionVisibilityArray) {
         device.useRenderPipeline(rasterCullPipeline, (cmd, programInterface, pipelineState) -> {
-            cmd.bindCommandBuffer(renderCommands);
             cmd.bindElementBuffer(CubeIndexBuffer.INDEX_BUFFER);
             pipelineState.bindBufferBlock(programInterface.scene, scene);
-            pipelineState.bindBufferBlock(programInterface.sectionMeta, sectionMeta);
-            pipelineState.bindBufferBlock(programInterface.visbuff, visibilityBuffer);
+            pipelineState.bindBufferBlock(programInterface.regionArray, regionArray);
+            pipelineState.bindBufferBlock(programInterface.regionMeta, regionMeta);
+            pipelineState.bindBufferBlock(programInterface.visArray, regionVisibilityArray);
+
             //TODO: change from triangles to like triangle fan or something, then on nvidia enable representitive fragment
             // tests
-            cmd.multiDrawElementsIndirect(PrimitiveType.TRIANGLES, ElementFormat.UNSIGNED_BYTE, 0, regionCount, 5*4);
+            cmd.drawElementsInstanced(PrimitiveType.TRIANGLES, ElementFormat.UNSIGNED_BYTE, 3*2*6, 0, regionCount);
         });
     }
 }

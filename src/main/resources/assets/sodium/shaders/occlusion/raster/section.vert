@@ -10,7 +10,7 @@ layout(std430, binding = 1) restrict readonly buffer SectionMetaData {
 #define SECTION sections[gl_InstanceID]
 
 vec4 getBoxCorner(int corner) {
-    return vec4(SECTION.bb.offset + vec3((corner&1), ((corner>>2)&1), ((corner>>1)&1))*SECTION.bb.size, 1);
+    return vec4(SECTION.bb.offset.xyz + vec3((corner&1), ((corner>>2)&1), ((corner>>1)&1))*SECTION.bb.size.xyz, 1);
 }
 
 

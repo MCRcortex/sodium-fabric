@@ -578,6 +578,12 @@ public class GlRenderDevice implements RenderDevice {
         }
 
         @Override
+        public void drawElementsInstanced(PrimitiveType primitiveType, ElementFormat elementType, int count, long indicesOffset, int primcount) {
+            //TODO: api checks
+            GL32.glDrawElementsInstanced(GlEnum.from(primitiveType), count, GlEnum.from(elementType), indicesOffset, primcount);
+        }
+
+        @Override
         public void multiDrawElementsIndirectCount(PrimitiveType primitiveType, ElementFormat elementType, long indirectOffset, long countOffset, int maxCount, int stride) {
             if (RenderConfiguration.API_CHECKS) {
                 Validate.notNull(this.elementBuffer, "Element buffer target not bound");
