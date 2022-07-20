@@ -11,9 +11,9 @@ import net.minecraft.util.math.ChunkSectionPos;
 import org.apache.commons.lang3.Validate;
 
 public class RenderRegion {
-    public static final int REGION_WIDTH = 8;
-    public static final int REGION_HEIGHT = 4;
-    public static final int REGION_LENGTH = 8;
+    public static final int REGION_WIDTH = 16;
+    public static final int REGION_HEIGHT = 16;
+    public static final int REGION_LENGTH = 16;
 
     private static final int REGION_WIDTH_M = RenderRegion.REGION_WIDTH - 1;
     private static final int REGION_HEIGHT_M = RenderRegion.REGION_HEIGHT - 1;

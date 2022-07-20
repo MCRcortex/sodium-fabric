@@ -24,5 +24,4 @@ public class OcclusionEngine {
     public void doOcclusion() {
 
     }
-
 }
