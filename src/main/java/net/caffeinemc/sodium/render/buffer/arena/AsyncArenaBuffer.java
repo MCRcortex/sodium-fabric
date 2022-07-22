@@ -3,13 +3,14 @@ package net.caffeinemc.sodium.render.buffer.arena;
 import it.unimi.dsi.fastutil.longs.LongBidirectionalIterator;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongRBTreeSet;
-import java.util.EnumSet;
+import it.unimi.dsi.fastutil.longs.LongSortedSet;
 import java.util.LinkedList;
 import java.util.List;
 import net.caffeinemc.gfx.api.buffer.Buffer;
-import net.caffeinemc.gfx.api.buffer.ImmutableBufferFlags;
+import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.util.buffer.StreamingBuffer;
+import net.caffeinemc.sodium.render.buffer.BufferPool;
 import org.apache.commons.lang3.Validate;
 import org.lwjgl.system.MemoryUtil;
 
@@ -17,16 +18,18 @@ import org.lwjgl.system.MemoryUtil;
 // TODO: handle element vs pointers
 // TODO: convert to longs
 public class AsyncArenaBuffer implements ArenaBuffer {
-    private static final boolean CHECK_ASSERTIONS = false;
+    private static final boolean CHECK_ASSERTIONS = true;
 
     private final float resizeMultiplier;
 
     private final RenderDevice device;
     private final StreamingBuffer stagingBuffer;
-    private Buffer arenaBuffer;
+    private final BufferPool<ImmutableBuffer> bufferPool;
+    
+    private ImmutableBuffer arenaBuffer;
 
-    private final LongRBTreeSet freedSegmentsByOffset = new LongRBTreeSet(BufferSegment::compareOffset);
-    private final LongRBTreeSet freedSegmentsByLength = new LongRBTreeSet(BufferSegment::compareLengthOffset);
+    private final LongSortedSet freedSegmentsByOffset = new LongRBTreeSet(BufferSegment::compareOffset);
+    private final LongSortedSet freedSegmentsByLength = new LongRBTreeSet(BufferSegment::compareLengthOffset);
 
     private int capacity;
     private int position;
@@ -34,16 +37,20 @@ public class AsyncArenaBuffer implements ArenaBuffer {
 
     private final int stride;
 
-    public AsyncArenaBuffer(RenderDevice device, StreamingBuffer stagingBuffer, int capacity, int stride) {
+    public AsyncArenaBuffer(
+            RenderDevice device,
+            StreamingBuffer stagingBuffer,
+            BufferPool<ImmutableBuffer> bufferPool,
+            int initialCapacityTarget,
+            float resizeMultiplier,
+            int stride
+    ) {
         this.device = device;
         this.stagingBuffer = stagingBuffer;
-        this.resizeMultiplier = .5f; // add 50% each resize
-        this.capacity = capacity;
+        this.bufferPool = bufferPool;
+        this.resizeMultiplier = resizeMultiplier;
         this.stride = stride;
-        this.arenaBuffer = device.createBuffer(
-                this.toBytes(capacity),
-                EnumSet.noneOf(ImmutableBufferFlags.class)
-        );
+        this.setBuffer(bufferPool.getBufferLenient(this.toBytes(initialCapacityTarget)));
     }
     
     public void reset() {
@@ -53,18 +60,16 @@ public class AsyncArenaBuffer implements ArenaBuffer {
         this.position = 0;
     }
 
-    private void resize(int newCapacity) {
-        if (this.position > newCapacity) {
+    private void resize(int capacityTarget) {
+        if (this.position > capacityTarget) {
             throw new UnsupportedOperationException("New capacity must be larger than position");
         }
 
         this.checkAssertions();
     
         var srcBufferObj = this.arenaBuffer;
-        var dstBufferObj = this.device.createBuffer(
-                this.toBytes(newCapacity),
-                EnumSet.noneOf(ImmutableBufferFlags.class)
-        );
+        // TODO: maybe use existing buffer sometimes?
+        var dstBufferObj = this.bufferPool.getBufferLenient(this.toBytes(capacityTarget));
         
         this.device.copyBuffer(
                 srcBufferObj,
@@ -73,11 +78,10 @@ public class AsyncArenaBuffer implements ArenaBuffer {
                 0,
                 this.toBytes(this.position)
         );
+        
+        this.bufferPool.recycleBuffer(srcBufferObj);
     
-        this.device.deleteBuffer(srcBufferObj);
-    
-        this.arenaBuffer = dstBufferObj;
-        this.capacity = newCapacity;
+        this.setBuffer(dstBufferObj);
 
         this.checkAssertions();
     }
@@ -184,7 +188,7 @@ public class AsyncArenaBuffer implements ArenaBuffer {
 
     @Override
     public void delete() {
-        this.device.deleteBuffer(this.arenaBuffer);
+        this.bufferPool.recycleBuffer(this.arenaBuffer);
     }
 
     @Override
@@ -264,7 +268,7 @@ public class AsyncArenaBuffer implements ArenaBuffer {
     }
 
     private boolean tryUpload(Buffer streamingBuffer, PendingTransfer transfer) {
-        long segment = this.alloc((int) this.toElements(transfer.length()));
+        long segment = this.alloc(this.toElements(transfer.length()));
 
         if (segment == BufferSegment.INVALID) {
             return false;
@@ -292,6 +296,11 @@ public class AsyncArenaBuffer implements ArenaBuffer {
 
         // Try to allocate some extra buffer space unless this is an unusually large allocation
         this.resize(Math.max(this.capacity + (int) (this.capacity * this.resizeMultiplier), this.capacity + elementsNeeded));
+    }
+    
+    private void setBuffer(ImmutableBuffer buffer) {
+        this.arenaBuffer = buffer;
+        this.capacity = this.toElements(buffer.capacity());
     }
 
     private void checkAssertions() {
@@ -333,14 +342,16 @@ public class AsyncArenaBuffer implements ArenaBuffer {
         Validate.isTrue(this.position - this.used == used, "arena.used is invalid");
         Validate.isTrue(this.freedSegmentsByLength.size() == this.freedSegmentsByOffset.size(),
                         "freedSegmentsByLength.size != freedSegmentsByOffset.size, mismatched add/remove");
+        Validate.isTrue(this.arenaBuffer.capacity() == this.toBytes(this.capacity),
+                        "this.capacity != buffer.capacity, failure to track");
     }
 
-    private long toBytes(long index) {
-        return index * this.stride;
+    private long toBytes(int index) {
+        return (long) index * this.stride;
     }
 
-    private long toElements(long bytes) {
-        return bytes / this.stride;
+    private int toElements(long bytes) {
+        return (int) (bytes / this.stride);
     }
 
     @Override
