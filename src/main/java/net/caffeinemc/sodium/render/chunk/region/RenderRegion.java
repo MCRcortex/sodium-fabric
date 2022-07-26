@@ -6,10 +6,15 @@ import net.caffeinemc.gfx.util.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.gfx.util.buffer.BufferPool;
 import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.AsyncArenaBuffer;
+import net.caffeinemc.sodium.render.buffer.arena.sparse.v2.AsyncSparseArenaBuffer;
+import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.util.MathUtil;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.apache.commons.lang3.Validate;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class RenderRegion {
     public static final int REGION_WIDTH = 16;
@@ -36,12 +41,10 @@ public class RenderRegion {
     public final int id;
 
     public RenderRegion(RenderDevice device, StreamingBuffer stagingBuffer, BufferPool<ImmutableBuffer> vertexBufferPool, TerrainVertexType vertexType, int id) {
-        this.vertexBuffers = new AsyncArenaBuffer(
+        this.vertexBuffers = new AsyncSparseArenaBuffer(
                 device,
                 stagingBuffer,
-                vertexBufferPool,
-                REGION_SIZE * 756, // 756 is the average-ish amount of vertices in a section
-                .25f, // add 25% each resize
+                1000000000,
                 vertexType.getBufferVertexFormat().stride()
         );
         this.id = id;
@@ -65,5 +68,15 @@ public class RenderRegion {
 
     public static long getRegionCoord(int chunkX, int chunkY, int chunkZ) {
         return ChunkSectionPos.asLong(chunkX >> REGION_WIDTH_SH, chunkY >> REGION_HEIGHT_SH, chunkZ >> REGION_LENGTH_SH);
+    }
+
+
+    private final Set<RenderSection> activeSections = new HashSet<>();
+    public void markActive(RenderSection section) {
+
+    }
+
+    public void markDeActive(RenderSection section) {
+
     }
 }

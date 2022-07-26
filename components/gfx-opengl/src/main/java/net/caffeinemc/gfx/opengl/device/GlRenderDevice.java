@@ -43,6 +43,8 @@ import org.lwjgl.opengl.*;
 import org.lwjgl.system.MathUtil;
 import org.lwjgl.system.MemoryUtil;
 
+import static org.lwjgl.opengl.GL11C.glGetError;
+
 public class GlRenderDevice implements RenderDevice {
     private final GlPipelineManager pipelineManager;
     private final RenderDeviceProperties properties;
@@ -148,7 +150,10 @@ public class GlRenderDevice implements RenderDevice {
     private void commitPages0(GlBuffer buffer, long pageStart, long pageCount) {
         //TODO:FIXME: API CHECKS, note, unsure why GL_EXT_direct_state_access and GL_ARB_direct_state_access are different things
         long pageSize = sparsePageSize();
-        ARBSparseBuffer.glNamedBufferPageCommitmentEXT(buffer.getHandle(), pageSize * pageStart, pageSize * pageCount, true);
+        //THIS IS BROKEN FOR SOME REASON IN LWJGL 3.3.1
+        //ARBSparseBuffer.glNamedBufferPageCommitmentARB(buffer.getHandle(), pageSize * pageStart, pageSize * pageCount, true);
+        GL21.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.getHandle());
+        ARBSparseBuffer.glBufferPageCommitmentARB(GL15.GL_ARRAY_BUFFER, pageSize * pageStart, pageSize * pageCount, true);
     }
 
     @Override
@@ -159,7 +164,9 @@ public class GlRenderDevice implements RenderDevice {
     private void uncommitPages0(GlBuffer buffer, long pageStart, long pageCount) {
         //TODO:FIXME: API CHECKS
         long pageSize = sparsePageSize();
-        ARBSparseBuffer.glNamedBufferPageCommitmentEXT(buffer.getHandle(), pageSize * pageStart, pageSize * pageCount, false);
+        //ARBSparseBuffer.glNamedBufferPageCommitmentARB(buffer.getHandle(), pageSize * pageStart, pageSize * pageCount, false);
+        GL21.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.getHandle());
+        ARBSparseBuffer.glBufferPageCommitmentARB(GL15.GL_ARRAY_BUFFER, pageSize * pageStart, pageSize * pageCount, false);
     }
 
     //FIXME: i dont think this should go here, should access it via render device properties

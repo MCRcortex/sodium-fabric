@@ -3,6 +3,7 @@ package net.caffeinemc.sodium.render.chunk;
 import java.util.concurrent.CompletableFuture;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.SectionMeta;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.minecraft.util.math.ChunkSectionPos;
@@ -78,6 +79,7 @@ public class RenderSection {
 
         this.data = data;
         this.flags = data.getFlags();
+        updateMeta();
     }
 
     /**
@@ -150,8 +152,9 @@ public class RenderSection {
 
     public void updateGeometry(RenderRegion region, long segment) {
         this.deleteGeometry();
-        this.uploadedGeometrySegment = segment;
         this.region = region;
+        this.uploadedGeometrySegment = segment;
+        updateMeta();
     }
     
     public long getUploadedGeometrySegment() {
@@ -198,5 +201,27 @@ public class RenderSection {
 
     public int getFlags() {
         return this.flags;
+    }
+
+    private SectionMeta meta;
+    private boolean shouldRender() {
+        if (uploadedGeometrySegment == BufferSegment.INVALID)
+            return false;
+        if (data == ChunkRenderData.EMPTY || data == ChunkRenderData.ABSENT)
+            return false;
+        return true;
+    }
+
+    private void updateMeta() {
+        if (shouldRender() == (meta == null)) {
+            if (meta == null) {
+                System.out.println("NEW META");
+                //Request new meta
+            } else {
+                System.out.println("DELETE META");
+                //Delete and free old meta
+            }
+        }
+        //Update and submit new meta upload
     }
 }
