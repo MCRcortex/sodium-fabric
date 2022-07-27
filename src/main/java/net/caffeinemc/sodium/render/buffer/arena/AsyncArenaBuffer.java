@@ -6,17 +6,17 @@ import it.unimi.dsi.fastutil.longs.LongRBTreeSet;
 import it.unimi.dsi.fastutil.longs.LongSortedSet;
 import java.util.LinkedList;
 import java.util.List;
+import javax.annotation.Nullable;
 import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
 import net.caffeinemc.gfx.api.device.RenderDevice;
-import net.caffeinemc.gfx.util.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.gfx.util.buffer.BufferPool;
+import net.caffeinemc.gfx.util.buffer.streaming.StreamingBuffer;
 import org.apache.commons.lang3.Validate;
 import org.lwjgl.system.MemoryUtil;
 
 // TODO: handle alignment
 // TODO: handle element vs pointers
-// TODO: convert to longs
 public class AsyncArenaBuffer implements ArenaBuffer {
     private static final boolean CHECK_ASSERTIONS = true;
 
@@ -26,10 +26,10 @@ public class AsyncArenaBuffer implements ArenaBuffer {
     private final StreamingBuffer stagingBuffer;
     private final BufferPool<ImmutableBuffer> bufferPool;
     
-    private ImmutableBuffer arenaBuffer;
+    private ImmutableBuffer deviceBuffer;
 
-    private final LongSortedSet freedSegmentsByOffset = new LongRBTreeSet(BufferSegment::compareOffset);
-    private final LongSortedSet freedSegmentsByLength = new LongRBTreeSet(BufferSegment::compareLengthOffset);
+    private final LongRBTreeSet freedSegmentsByOffset = new LongRBTreeSet(BufferSegment::compareOffset);
+    private final LongRBTreeSet freedSegmentsByLength = new LongRBTreeSet(BufferSegment::compareLengthOffset);
 
     private int capacity;
     private int position;
@@ -50,7 +50,7 @@ public class AsyncArenaBuffer implements ArenaBuffer {
         this.bufferPool = bufferPool;
         this.resizeMultiplier = resizeMultiplier;
         this.stride = stride;
-        this.setBuffer(bufferPool.getBufferLenient(this.toBytes(initialCapacityTarget)));
+        this.setDeviceBuffer(bufferPool.getBufferLenient(this.toBytes(initialCapacityTarget)));
     }
     
     public void reset() {
@@ -60,16 +60,15 @@ public class AsyncArenaBuffer implements ArenaBuffer {
         this.position = 0;
     }
 
-    private void resize(int capacityTarget) {
-        if (this.position > capacityTarget) {
-            throw new UnsupportedOperationException("New capacity must be larger than position");
+    private void grow(int capacityTarget) {
+        if (this.capacity >= capacityTarget) {
+            throw new UnsupportedOperationException("New capacity must be larger than old capacity");
         }
 
         this.checkAssertions();
     
-        var srcBufferObj = this.arenaBuffer;
-        // TODO: maybe use existing buffer sometimes?
-        var dstBufferObj = this.bufferPool.getBufferLenient(this.toBytes(capacityTarget));
+        ImmutableBuffer srcBufferObj = this.deviceBuffer;
+        ImmutableBuffer dstBufferObj = this.bufferPool.getBufferLenient(this.toBytes(capacityTarget));
         
         this.device.copyBuffer(
                 srcBufferObj,
@@ -81,7 +80,7 @@ public class AsyncArenaBuffer implements ArenaBuffer {
         
         this.bufferPool.recycleBuffer(srcBufferObj);
     
-        this.setBuffer(dstBufferObj);
+        this.setDeviceBuffer(dstBufferObj);
 
         this.checkAssertions();
     }
@@ -146,6 +145,7 @@ public class AsyncArenaBuffer implements ArenaBuffer {
         
         LongBidirectionalIterator itr = this.freedSegmentsByOffset.iterator(key);
         
+        // get and attempt to merge with left key
         if (itr.hasPrevious()) {
             long prev = itr.previousLong();
             
@@ -158,13 +158,24 @@ public class AsyncArenaBuffer implements ArenaBuffer {
                         BufferSegment.getLength(prev) + BufferSegment.getLength(key),
                         BufferSegment.getOffset(prev)
                 );
+                
             } else {
                 // need to skip one in the iterator to cancel out the previous() call
                 itr.nextLong();
             }
         }
     
+        // fast path if we happen to be on the far right, touching the bump allocator position
+        // this is checked after we merge with the left key to guarantee that there won't be a freed segment
+        // touching the bump allocator position.
+        if (BufferSegment.getEnd(key) == this.position) {
+            this.position -= BufferSegment.getLength(key);
     
+            this.checkAssertions();
+            return;
+        }
+        
+        // get and attempt to merge with right key
         if (itr.hasNext()) {
             long next = itr.nextLong();
             
@@ -185,10 +196,98 @@ public class AsyncArenaBuffer implements ArenaBuffer {
     
         this.checkAssertions();
     }
+    
+    @Nullable
+    public LongSortedSet compact() {
+        if (this.freedSegmentsByOffset.isEmpty()) {
+            return null;
+        }
 
+        this.checkAssertions();
+
+        var srcBufferObj = this.deviceBuffer;
+        var dstBufferObj = this.bufferPool.getBufferLenient(this.toBytes(this.used));
+
+        long dstOffset = 0;
+        // the end of the previous freed segment (exclusive) is also the start of the next allocated segment (inclusive)
+        long prevFreedSegmentEnd = 0;
+
+        for (long freedSegment : this.freedSegmentsByOffset) {
+            long freedOffset = this.toBytes(BufferSegment.getOffset(freedSegment));
+            long freedLength = this.toBytes(BufferSegment.getLength(freedSegment));
+            long copyLength = freedOffset - prevFreedSegmentEnd;
+
+            // if all freed segments are merged correctly, then this should only be able to be false on the first
+            // segment
+            if(copyLength != 0) {
+                this.device.copyBuffer(
+                        srcBufferObj,
+                        dstBufferObj,
+                        prevFreedSegmentEnd,
+                        dstOffset,
+                        copyLength
+                );
+
+                dstOffset += copyLength;
+            }
+
+            prevFreedSegmentEnd = freedOffset + freedLength;
+        }
+        
+        // because free guarantees that we will never have a segment touching the bump position, there will always be
+        // an allocated segment after the last freed segment.
+        this.device.copyBuffer(
+                srcBufferObj,
+                dstBufferObj,
+                prevFreedSegmentEnd,
+                dstOffset,
+                this.toBytes(this.position) - prevFreedSegmentEnd
+        );
+    
+        this.bufferPool.recycleBuffer(srcBufferObj);
+        this.setDeviceBuffer(dstBufferObj);
+        this.position = this.used;
+    
+        // TODO: check if this is expensive
+        // if it is, just provide an immutable view and hope the caller doesn't hold on to it for too long
+        LongSortedSet removedSegmentsByOffset = (LongRBTreeSet) this.freedSegmentsByOffset.clone();
+    
+        this.freedSegmentsByOffset.clear();
+        this.freedSegmentsByLength.clear();
+
+        this.checkAssertions();
+
+        return removedSegmentsByOffset;
+    }
+    
+    // TODO: should this use bytes?
+    @Override
+    public float getFragmentation() {
+        // original algorithm
+//        return 1.0f - ((float) this.used / this.position);
+    
+        // yoinked from here: https://stackoverflow.com/a/4587077/4563900
+//        try {
+//            int largestFreedLength = BufferSegment.getLength(this.freedSegmentsByLength.lastLong());
+//            int free = this.capacity - this.used;
+//            return (float) (free - largestFreedLength) / free;
+//        } catch (NoSuchElementException ignored) {
+//            // no freed segments, fragmentation is 0%
+//            return 0.0f;
+//        }
+    
+        // a buffer with alternating length 1 free and length 1 alloc segments should have a 100% fragmentation rate.
+        // a buffer with alternating length 2 free and length 2 alloc segments should have a 50% fragmentation rate.
+        long freeBytes = this.toBytes(this.position - this.used);
+        long totalBytes = this.toBytes(this.position);
+        double segmentRatio = (double) this.freedSegmentsByOffset.size() / freeBytes;
+        double sizeRatio = (double) (freeBytes * 2) / totalBytes;
+        return (float) (segmentRatio * sizeRatio);
+    }
+    
     @Override
     public void delete() {
-        this.bufferPool.recycleBuffer(this.arenaBuffer);
+        this.bufferPool.recycleBuffer(this.deviceBuffer);
     }
 
     @Override
@@ -198,7 +297,7 @@ public class AsyncArenaBuffer implements ArenaBuffer {
 
     @Override
     public Buffer getBufferObject() {
-        return this.arenaBuffer;
+        return this.deviceBuffer;
     }
 
     @Override
@@ -222,7 +321,7 @@ public class AsyncArenaBuffer implements ArenaBuffer {
             int length = upload.data.getLength();
             pendingTransfers.add(
                     new PendingTransfer(
-                            upload.bufferSegmentHolder,
+                            upload.bufferSegmentResult,
                             sectionOffset + transferOffset,
                             length
                     )
@@ -277,7 +376,7 @@ public class AsyncArenaBuffer implements ArenaBuffer {
         // Copy the uploads from the streaming buffer to the arena buffer
         this.device.copyBuffer(
                 streamingBuffer,
-                this.arenaBuffer,
+                this.deviceBuffer,
                 transfer.offset(),
                 this.toBytes(BufferSegment.getOffset(segment)),
                 transfer.length()
@@ -295,11 +394,11 @@ public class AsyncArenaBuffer implements ArenaBuffer {
         int elementsNeeded = elementCount - (this.capacity - this.position);
 
         // Try to allocate some extra buffer space unless this is an unusually large allocation
-        this.resize(Math.max(this.capacity + (int) (this.capacity * this.resizeMultiplier), this.capacity + elementsNeeded));
+        this.grow(Math.max(this.capacity + (int) (this.capacity * this.resizeMultiplier), this.capacity + elementsNeeded));
     }
     
-    private void setBuffer(ImmutableBuffer buffer) {
-        this.arenaBuffer = buffer;
+    private void setDeviceBuffer(ImmutableBuffer buffer) {
+        this.deviceBuffer = buffer;
         this.capacity = this.toElements(buffer.capacity());
     }
 
@@ -320,15 +419,17 @@ public class AsyncArenaBuffer implements ArenaBuffer {
             int end = BufferSegment.getEnd(freedSegment);
             
             Validate.isTrue(offset >= 0, "segment.offset < 0: out of bounds");
-            // TODO: is it actually valid for a freed section to be past the position?
-            Validate.isTrue(end <= this.position, "segment.end > arena.position: out of bounds");
+            Validate.isTrue(end != this.position, "segment.end == arena.position: segment touches bump pos (failure to track)");
+            Validate.isTrue(end < this.position, "segment.end > arena.position: out of bounds");
             
             used += length;
             
             if (prev != BufferSegment.INVALID) {
                 int prevEnd = BufferSegment.getEnd(prev);
     
-                Validate.isTrue(prevEnd <= offset,
+                Validate.isTrue(prevEnd != offset,
+                                "segment.prev.end == segment.offset: failure to merge");
+                Validate.isTrue(prevEnd < offset,
                                 "segment.prev.end > segment.offset: overlapping segments (corrupted)");
             }
             
@@ -342,7 +443,7 @@ public class AsyncArenaBuffer implements ArenaBuffer {
         Validate.isTrue(this.position - this.used == used, "arena.used is invalid");
         Validate.isTrue(this.freedSegmentsByLength.size() == this.freedSegmentsByOffset.size(),
                         "freedSegmentsByLength.size != freedSegmentsByOffset.size, mismatched add/remove");
-        Validate.isTrue(this.arenaBuffer.capacity() == this.toBytes(this.capacity),
+        Validate.isTrue(this.deviceBuffer.capacity() == this.toBytes(this.capacity),
                         "this.capacity != buffer.capacity, failure to track");
     }
 

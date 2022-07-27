@@ -1,5 +1,6 @@
 package net.caffeinemc.sodium.render.chunk;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
@@ -67,8 +68,7 @@ public class RenderSection {
      */
     public void delete() {
         this.cancelRebuildTask();
-        this.deleteGeometry();
-
+        this.ensureGeometryDeleted();
         this.disposed = true;
     }
 
@@ -140,23 +140,33 @@ public class RenderSection {
         this.lastAcceptedBuildTime = time;
     }
 
-    public void deleteGeometry() {
+    public void ensureGeometryDeleted() {
         long uploadedGeometrySegment = this.uploadedGeometrySegment;
         
         if (uploadedGeometrySegment != BufferSegment.INVALID) {
-            this.region.vertexBuffers.free(uploadedGeometrySegment);
+            this.region.removeSection(this);
             this.uploadedGeometrySegment = BufferSegment.INVALID;
             this.region = null;
         }
     }
 
-    public void updateGeometry(RenderRegion region, long segment) {
-        this.deleteGeometry();
+    /**
+     * Make sure to call {@link #ensureGeometryDeleted()} before calling this!
+     */
+    public void setGeometry(RenderRegion region, long bufferSegment) {
+        this.setBufferSegment(bufferSegment);
         this.region = region;
-        this.uploadedGeometrySegment = segment;
+        this.uploadedGeometrySegment = bufferSegment;
         updateMeta();
     }
     
+    public void setBufferSegment(long bufferSegment) {
+        if (bufferSegment == BufferSegment.INVALID) {
+            throw new IllegalArgumentException("Segment cannot be invalid");
+        }
+        this.uploadedGeometrySegment = bufferSegment;
+    }
+
     public long getUploadedGeometrySegment() {
         return this.uploadedGeometrySegment;
     }
@@ -201,6 +211,21 @@ public class RenderSection {
 
     public int getFlags() {
         return this.flags;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || this.getClass() != o.getClass()) return false;
+        RenderSection section = (RenderSection) o;
+        return this.chunkX == section.chunkX &&
+               this.chunkY == section.chunkY &&
+               this.chunkZ == section.chunkZ;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(this.chunkX, this.chunkY, this.chunkZ);
     }
 
     private SectionMeta meta;

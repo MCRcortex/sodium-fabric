@@ -2,33 +2,41 @@ package net.caffeinemc.sodium.render.chunk.region;
 
 import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongSortedSet;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
 import net.caffeinemc.gfx.api.buffer.ImmutableBufferFlags;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
+import net.caffeinemc.gfx.util.buffer.BufferPool;
 import net.caffeinemc.gfx.util.buffer.streaming.SectionedStreamingBuffer;
 import net.caffeinemc.gfx.util.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
-import net.caffeinemc.gfx.util.buffer.BufferPool;
+import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
+import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
 import net.caffeinemc.sodium.render.buffer.arena.PendingUpload;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
-import net.caffeinemc.sodium.render.chunk.state.BuiltChunkGeometry;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.util.IntPool;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.profiler.Profiler;
 
 public class RenderRegionManager {
+    // these constants have been found from experimentation
+    private static final double PRUNE_RATIO_THRESHOLD = .35;
+    private static final float PRUNE_PERCENT_MODIFIER = -.2f;
+    private static final float DEFRAG_THRESHOLD = 0.000008f; // this may look dumb, but keep in mind that 1.0 is the absolute maximum
+    
     private final Long2ReferenceMap<RenderRegion> regions = new Long2ReferenceOpenHashMap<>();
     private final IntPool idPool = new IntPool();
-    private final BufferPool<ImmutableBuffer> vertexBufferPool;
+    private final BufferPool<ImmutableBuffer> bufferPool;
 
     private final RenderDevice device;
     private final TerrainVertexType vertexType;
@@ -38,7 +46,7 @@ public class RenderRegionManager {
         this.device = device;
         this.vertexType = vertexType;
     
-        this.vertexBufferPool = new BufferPool<>(
+        this.bufferPool = new BufferPool<>(
                 device,
                 100,
                 c -> device.createBuffer(
@@ -76,13 +84,27 @@ public class RenderRegionManager {
                 it.remove();
             }
         }
+    
+        long activeSize = this.getDeviceAllocatedMemoryActive();
+        long reserveSize = this.bufferPool.getDeviceAllocatedMemory();
+        
+        if ((double) reserveSize / activeSize > PRUNE_RATIO_THRESHOLD) {
+            this.prune();
+        }
     }
     
     public void prune() {
-        this.vertexBufferPool.prune();
+        this.bufferPool.prune(PRUNE_PERCENT_MODIFIER);
     }
 
     public void uploadChunks(Iterator<TerrainBuildResult> queue, int frameIndex, @Deprecated RenderUpdateCallback callback) {
+        Profiler profiler = MinecraftClient.getInstance().getProfiler();
+        
+        profiler.push("chunk_upload");
+        
+        // we have to use a list with a varied size here, because the upload method can create new regions
+        ObjectList<RenderRegion> writtenRegions = new ObjectArrayList<>(Math.max(this.getRegionTableSize(), 16));
+        
         for (var entry : this.setupUploadBatches(queue)) {
             this.uploadGeometryBatch(entry.getLongKey(), entry.getValue(), frameIndex);
 
@@ -97,8 +119,54 @@ public class RenderRegionManager {
                 section.setLastAcceptedBuildTime(result.buildTime());
 
                 result.delete();
+    
+                RenderRegion region = section.getRegion();
+                if (region != null) {
+                    // expand list as needed
+                    int currentSize = writtenRegions.size();
+                    int requiredSize = region.getId() + 1;
+                    if (currentSize < requiredSize) {
+                        writtenRegions.size(Math.max(requiredSize, currentSize * 2));
+                    }
+                    writtenRegions.set(region.getId(), region);
+                }
             }
         }
+    
+        profiler.swap("chunk_defrag");
+        
+        // check if we need to defragment any of the regions we just modified
+        for (RenderRegion region : writtenRegions) {
+            // null entries will exist due to the nature of the ID based table
+            if (region == null) {
+                continue;
+            }
+            
+            ArenaBuffer arenaBuffer = region.getVertexBuffer();
+            if (arenaBuffer.getFragmentation() >= DEFRAG_THRESHOLD) {
+                LongSortedSet removedSegments = arenaBuffer.compact();
+            
+                if (removedSegments == null) {
+                    continue;
+                }
+            
+                // fix existing sections' buffer segment locations after the defrag
+                for (RenderSection section : region.getSections()) {
+                    long currentBufferSegment = section.getUploadedGeometrySegment();
+                    int currentSegmentOffset = BufferSegment.getOffset(currentBufferSegment);
+                    int currentSegmentLength = BufferSegment.getLength(currentBufferSegment);
+                
+                    for (long prevFreedSegment : removedSegments.headSet(currentBufferSegment)) {
+                        currentSegmentOffset -= BufferSegment.getLength(prevFreedSegment);
+                    }
+                
+                    long newBufferSegment = BufferSegment.createKey(currentSegmentLength, currentSegmentOffset);
+                    section.setBufferSegment(newBufferSegment); // TODO: in the future, if something extra happens when this method is called, we should check if cur = new
+                }
+            }
+        }
+    
+        profiler.pop();
     }
 
     public int getRegionTableSize() {
@@ -110,30 +178,26 @@ public class RenderRegionManager {
     }
 
     private void uploadGeometryBatch(long regionKey, List<TerrainBuildResult> results, int frameIndex) {
-        List<PendingUpload> uploads = new ArrayList<>();
-        List<ChunkGeometryUpload> jobs = new ArrayList<>(results.size());
+        List<PendingUpload> uploads = new ObjectArrayList<>(results.size());
 
         for (TerrainBuildResult result : results) {
-            var render = result.render();
+            var section = result.render();
             var geometry = result.geometry();
 
             // De-allocate all storage for the meshes we're about to replace
             // This will allow it to be cheaply re-allocated later
-            render.deleteGeometry();
+            section.ensureGeometryDeleted();
 
             var vertices = geometry.vertices();
     
             // Only submit an upload job if there is data in the first place
             if (vertices != null) {
-                var upload = new PendingUpload(vertices.buffer());
-                jobs.add(new ChunkGeometryUpload(render, geometry, upload.bufferSegmentHolder));
-
-                uploads.add(upload);
+                uploads.add(new PendingUpload(section, vertices.buffer()));
             }
         }
 
-        // If we have nothing to upload, don't allocate a region
-        if (jobs.isEmpty()) {
+        // If we have nothing to upload, don't attempt to allocate a region
+        if (uploads.isEmpty()) {
             return;
         }
 
@@ -143,20 +207,15 @@ public class RenderRegionManager {
             region = new RenderRegion(
                     this.device,
                     this.stagingBuffer,
-                    this.vertexBufferPool,
+                    this.bufferPool,
                     this.vertexType,
                     this.idPool.create()
             );
             
             this.regions.put(regionKey, region);
         }
-
-        region.vertexBuffers.upload(uploads, frameIndex);
-
-        // Collect the upload results
-        for (ChunkGeometryUpload upload : jobs) {
-            upload.section.updateGeometry(region, upload.bufferSegmentResult.get());
-        }
+        
+        region.submitUploads(uploads, frameIndex);
     }
 
     private Iterable<Long2ReferenceMap.Entry<List<TerrainBuildResult>>> setupUploadBatches(Iterator<TerrainBuildResult> renders) {
@@ -185,26 +244,31 @@ public class RenderRegionManager {
         }
         this.regions.clear();
         
-        this.vertexBufferPool.delete();
+        this.bufferPool.delete();
         this.stagingBuffer.delete();
     }
 
     private void deleteRegion(RenderRegion region) {
-        var id = region.id;
+        var id = region.getId();
         region.delete();
 
         this.idPool.free(id);
     }
     
-    public Collection<RenderRegion> getLoadedRegions() {
-        return this.regions.values();
+    private long getDeviceAllocatedMemoryActive() {
+        return this.regions.values().stream().mapToLong(RenderRegion::getDeviceAllocatedMemory).sum();
     }
     
-    public BufferPool<ImmutableBuffer> getVertexBufferPool() {
-        return this.vertexBufferPool;
+    public int getDeviceBufferObjects() {
+        return this.regions.size() + this.bufferPool.getDeviceBufferObjects();
     }
-
-    private record ChunkGeometryUpload(RenderSection section, BuiltChunkGeometry geometry, AtomicLong bufferSegmentResult) {
-
+    
+    public long getDeviceUsedMemory() {
+        // the buffer pool doesn't actively use any memory
+        return this.regions.values().stream().mapToLong(RenderRegion::getDeviceUsedMemory).sum();
+    }
+    
+    public long getDeviceAllocatedMemory() {
+        return this.getDeviceAllocatedMemoryActive() + this.bufferPool.getDeviceAllocatedMemory();
     }
 }

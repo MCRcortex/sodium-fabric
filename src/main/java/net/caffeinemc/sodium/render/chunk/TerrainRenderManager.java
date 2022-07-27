@@ -5,11 +5,12 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
-import net.caffeinemc.gfx.util.buffer.BufferPool;
 import net.caffeinemc.sodium.render.chunk.compile.ChunkBuilder;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.AbstractBuilderTask;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.EmptyTerrainBuildTask;
@@ -46,9 +47,6 @@ import net.minecraft.util.profiler.Profiler;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
 
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-
 public class TerrainRenderManager {
     /**
      * The maximum distance a chunk can be from the player's camera in order to be eligible for blocking updates.
@@ -68,12 +66,8 @@ public class TerrainRenderManager {
     private final ChunkRenderer chunkRenderer;
 
     private final ClientWorld world;
-    
-    private static final int PRUNE_COMPLETED = -1;
-    private static final int PRUNE_DELAY_FRAMES = 10;
 
     private boolean needsUpdate;
-    private int pruneFrameIndex = PRUNE_COMPLETED;
     private int frameIndex = 0;
 
     private final ChunkTracker tracker;
@@ -119,11 +113,12 @@ public class TerrainRenderManager {
         this.tracker = worldRenderer.getChunkTracker();
         this.tree = new ChunkTree(4, RenderSection::new);
         
-        if (SodiumClientMod.options().quality.useTranslucentFaceSorting) {
-            this.chunkGeometrySorter = new ChunkGeometrySorter(device, renderPassManager, vertexType, (float) Math.toRadians(5.0f));
-        } else {
+        // TODO: uncomment when working on translucency sorting
+//        if (SodiumClientMod.options().quality.useTranslucentFaceSorting) {
+//            this.chunkGeometrySorter = new ChunkGeometrySorter(device, renderPassManager, vertexType, (float) Math.toRadians(5.0f));
+//        } else {
             this.chunkGeometrySorter = null;
-        }
+//        }
     }
 
     public void reloadChunks(ChunkTracker tracker) {
@@ -159,16 +154,6 @@ public class TerrainRenderManager {
         this.chunkRenderer.createRenderLists(chunkLists, camera, this.frameIndex);
         
         this.needsUpdate = false;
-        this.pruneFrameIndex = this.frameIndex + PRUNE_DELAY_FRAMES;
-    }
-    
-    public void prune() {
-        Profiler profiler = MinecraftClient.getInstance().getProfiler();
-        
-        profiler.swap("prune_buffers");
-        this.regionManager.prune();
-        
-        this.pruneFrameIndex = PRUNE_COMPLETED;
     }
 
     private void updateVisibilityLists(IntArrayList visible, ChunkCameraContext camera) {
@@ -296,6 +281,8 @@ public class TerrainRenderManager {
     }
 
     public void updateChunks() {
+        Profiler profiler = MinecraftClient.getInstance().getProfiler();
+        
         var blockingFutures = this.submitRebuildTasks(ChunkUpdateType.IMPORTANT_REBUILD);
 
         this.submitRebuildTasks(ChunkUpdateType.INITIAL_BUILD);
@@ -315,7 +302,8 @@ public class TerrainRenderManager {
                     this::onChunkDataChanged
             );
         }
-
+    
+        profiler.swap("chunk_cleanup");
         this.regionManager.cleanup();
     }
 
@@ -394,10 +382,6 @@ public class TerrainRenderManager {
     public boolean isGraphDirty() {
         return this.needsUpdate;
     }
-    
-    public boolean needsPrune() {
-        return this.pruneFrameIndex != PRUNE_COMPLETED && this.pruneFrameIndex <= this.frameIndex;
-    }
 
     public ChunkBuilder getBuilder() {
         return this.builder;
@@ -451,17 +435,10 @@ public class TerrainRenderManager {
 
         long deviceUsed = 0;
         long deviceAllocated = 0;
-
-        for (var region : this.regionManager.getLoadedRegions()) {
-            deviceUsed += region.getDeviceUsedMemory();
-            deviceAllocated += region.getDeviceAllocatedMemory();
-
-            count++;
-        }
-    
-        BufferPool<?> reserves = this.regionManager.getVertexBufferPool();
-        deviceAllocated += reserves.getDeviceAllocatedMemory();
-        count += reserves.getDeviceBufferObjects();
+        
+        deviceAllocated += this.regionManager.getDeviceAllocatedMemory();
+        deviceUsed += this.regionManager.getDeviceUsedMemory();
+        count += this.regionManager.getDeviceBufferObjects();
 
         deviceUsed += this.chunkRenderer.getDeviceUsedMemory();
         deviceAllocated += this.chunkRenderer.getDeviceAllocatedMemory();

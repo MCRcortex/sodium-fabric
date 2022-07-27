@@ -17,7 +17,7 @@ public interface RenderDevice extends ResourceFactory, ResourceDestructors {
 
     void updateBuffer(DynamicBuffer buffer, int offset, ByteBuffer data);
 
-    void copyBuffer(Buffer readBuffer, Buffer writeBuffer, long readOffset, long writeOffset, long bytes);
+    void copyBuffer(Buffer readBuffer, Buffer writeBuffer, long readOffset, long writeOffset, long length);
 
     void commitPages(SparseBuffer buffer, long pageStart, long pageCount);
 
