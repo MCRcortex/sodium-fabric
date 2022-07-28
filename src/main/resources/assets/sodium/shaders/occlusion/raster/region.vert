@@ -3,16 +3,17 @@
 #import <sodium:occlusion/datatypes.h>
 #import <sodium:occlusion/scene_data.glsl>
 
-
+//TODO: MAYBE MERGE regionList and the visibility array into a single buffer that is bitset
 layout(std430, binding = 1) restrict readonly buffer RegionArrayData {
-    int[] regionLUT;
+    int[] regionList;
 };
-#define REGION_ID regionLUT[gl_InstanceID]
+#define REGION_ID regionList[gl_InstanceID]
 
 layout(std430, binding = 2) restrict readonly buffer RegionMetaData {
     RegionMeta[] regions;
 };
-#define REGION regions[gl_InstanceID]
+
+#define REGION regions[REGION_ID]
 
 vec4 getBoxCorner(int corner) {
     return vec4(REGION.bb.offset.xyz + vec3((corner&1), ((corner>>2)&1), ((corner>>1)&1))*REGION.bb.size.xyz, 1);
@@ -22,6 +23,6 @@ vec4 getBoxCorner(int corner) {
 flat out uint ID;
 void main() {
     ID = gl_InstanceID;
-    gl_Position = (MVP*getBoxCorner(REGION_ID));
+    gl_Position = (MVP*getBoxCorner(gl_VertexID));
     gl_Position.z -= 0.005;//Bias the depth to be closer to the camera, this is to reduce flicker
 }

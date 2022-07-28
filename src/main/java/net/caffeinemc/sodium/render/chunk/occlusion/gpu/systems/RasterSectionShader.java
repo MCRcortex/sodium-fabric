@@ -63,7 +63,7 @@ public class RasterSectionShader {
 
     //Note: an exact number of calls are used as parameter draw takes too long, this is ok as long as the region compute
     // emits exactly regionCount calls which it should always do as long as it emits a null draw call on non visibility
-    public void execute(Buffer renderCommands, int regionCount, Buffer scene, Buffer sectionMeta, Buffer visibilityBuffer) {
+    public void execute(int regionCount, Buffer scene, Buffer renderCommands, Buffer sectionMeta, Buffer visibilityBuffer) {
         device.useRenderPipeline(rasterCullPipeline, (cmd, programInterface, pipelineState) -> {
             cmd.bindCommandBuffer(renderCommands);
             cmd.bindElementBuffer(CubeIndexBuffer.INDEX_BUFFER);

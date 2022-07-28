@@ -5,8 +5,8 @@ layout(local_size_x = LOCAL_SIZE_X) in;
 #import <sodium:occlusion/scene_data.glsl>
 
 
-layout(std430, binding = 1) restrict readonly buffer RegionLUTData {
-    int[] regionLUT;
+layout(std430, binding = 1) restrict readonly buffer RegionArrayData {
+    int[] regionArray;
 };
 
 layout(std430, binding = 2) restrict readonly buffer RegionMetaData {
@@ -21,6 +21,15 @@ layout(std430, binding = 4) restrict writeonly buffer SectionRasterCommandsData 
     DrawElementsIndirectCommand[] rasterCommands;
 };
 
+//NOTE: needs to be set too zero per frame
+layout(std430, binding = 5) restrict buffer SectionComputeIndirect {
+    DispatchIndirectCommand dispatchCommand;
+};
+
+layout(std430, binding = 6) restrict writeonly buffer RegionArrayOutData {
+    int[] regionArrayOut;
+};
+
 void main() {
     if (gl_GlobalInvocationID.x >= regionCount) {
         return;
@@ -29,19 +38,25 @@ void main() {
     //uint mult = visibility[gl_GlobalInvocationID.x] == frameId?1:0;
 
 
+    //TODO: pre set the constants or some shit
+    rasterCommands[gl_GlobalInvocationID.x].firstIndex   = 0;
+    rasterCommands[gl_GlobalInvocationID.x].baseVertex   = 0;
     if (visibility[gl_GlobalInvocationID.x] == frameId) {//The region is visible so must raster tests
-        int rid = regionLUT[gl_GlobalInvocationID.x];
-        //TODO: pre set the constants or some shit
+        int rid = regionArray[gl_GlobalInvocationID.x];
         rasterCommands[gl_GlobalInvocationID.x].count = 3*2*6;
-        rasterCommands[gl_GlobalInvocationID.x].instanceCount = regions[rid].sectionCount;
-        rasterCommands[gl_GlobalInvocationID.x].firstIndex   = 0;
-        rasterCommands[gl_GlobalInvocationID.x].baseVertex   = 0;
+        uint sectionCount = regions[rid].sectionCount;
+        rasterCommands[gl_GlobalInvocationID.x].instanceCount = sectionCount;
         rasterCommands[gl_GlobalInvocationID.x].baseInstance = regions[rid].sectionStart;
+        //TODO: could also use the data from the dispatchCommand to do a multidrawindirectcount command
+        {
+            uint offset = atomicAdd(dispatchCommand.num_groups_x, 1);
+            atomicMax(dispatchCommand.num_groups_y, sectionCount/TERRAIN_LOCAL_SIZE_Y);
+            regionArrayOut[offset] = rid;
+        }
+
     } else {//The region isnt visible so dont test anything
         rasterCommands[gl_GlobalInvocationID.x].count = 0;
         rasterCommands[gl_GlobalInvocationID.x].instanceCount = 0;
-        rasterCommands[gl_GlobalInvocationID.x].firstIndex   = 0;
-        rasterCommands[gl_GlobalInvocationID.x].baseVertex   = 0;
         rasterCommands[gl_GlobalInvocationID.x].baseInstance = 0;
     }
 }

@@ -9,6 +9,7 @@ import net.caffeinemc.gfx.util.buffer.BufferPool;
 import net.caffeinemc.gfx.util.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.AsyncArenaBuffer;
+import net.caffeinemc.sodium.render.buffer.arena.PendingUpload;
 import net.caffeinemc.sodium.render.buffer.arena.sparse.v2.AsyncSparseArenaBuffer;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;

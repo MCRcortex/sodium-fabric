@@ -11,6 +11,7 @@ import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
 import net.caffeinemc.sodium.render.buffer.arena.PendingTransfer;
 import net.caffeinemc.sodium.render.buffer.arena.PendingUpload;
 import org.apache.commons.lang3.Validate;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.system.MemoryUtil;
 
 import java.util.LinkedList;
@@ -202,14 +203,25 @@ public class AsyncSparseArenaBuffer implements ArenaBuffer {
         
         this.freedSegmentsByOffset.add(key);
         this.freedSegmentsByLength.add(key);
-
-        markUnused(this.toBytes(BufferSegment.getOffset(key)), this.toBytes(BufferSegment.getLength(key)));
+        if (key != BufferSegment.INVALID)
+            markUnused(this.toBytes(BufferSegment.getOffset(key)), this.toBytes(BufferSegment.getLength(key)));
         this.checkAssertions();
     }
 
     @Override
     public void delete() {
         this.device.deleteBuffer(arenaBuffer);
+    }
+
+    @Nullable
+    @Override
+    public LongSortedSet compact() {
+        return null;
+    }
+
+    @Override
+    public float getFragmentation() {
+        return 0;
     }
 
     @Override
@@ -243,7 +255,7 @@ public class AsyncSparseArenaBuffer implements ArenaBuffer {
             int length = upload.data.getLength();
             pendingTransfers.add(
                     new PendingTransfer(
-                            upload.bufferSegmentHolder,
+                            upload.bufferSegmentResult,
                             sectionOffset + transferOffset,
                             length
                     )
