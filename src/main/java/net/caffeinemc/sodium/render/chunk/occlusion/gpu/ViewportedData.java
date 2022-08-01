@@ -16,6 +16,7 @@ public class ViewportedData {
     public final TreeSet<RenderRegion> visible_regions = new TreeSet<>();
 
     public final Buffer scene;
+
     public final Buffer frustumRegionArray;
 
     public final Buffer visibleRegionArray;
@@ -26,9 +27,10 @@ public class ViewportedData {
 
     public final Buffer computeDispatchCommandBuffer;
 
+    public final Buffer sectionVisibilityBuffer;
+
     //TODO: FIGURE OUT A MORE compact and efficent WAY TO DO sectionVisibilityBuffer rather than having
     // every region have its own visibility buffer cause this wastes alot of vram
-    public final Buffer sectionVisibilityBuffer;
 
     //scene, regionArray, regionVisibilityArray, sectionCommandBuff, sectionVisibilityBuff
     //NOTE: could merge regionArray and regionVisibilityArray with a bit or
