@@ -36,7 +36,9 @@ public class RenderRegionManager {
     
     private final Long2ReferenceMap<RenderRegion> regions = new Long2ReferenceOpenHashMap<>();
     private final IntPool idPool = new IntPool();
-    private final BufferPool<ImmutableBuffer> bufferPool;
+
+    private final IVertexBufferProvider bufferProvider;
+    //private final BufferPool<ImmutableBuffer> bufferPool;
 
     private final RenderDevice device;
     private final TerrainVertexType vertexType;
@@ -45,15 +47,6 @@ public class RenderRegionManager {
     public RenderRegionManager(RenderDevice device, TerrainVertexType vertexType) {
         this.device = device;
         this.vertexType = vertexType;
-    
-        this.bufferPool = new BufferPool<>(
-                device,
-                100,
-                c -> device.createBuffer(
-                        c,
-                        EnumSet.noneOf(ImmutableBufferFlags.class)
-                )
-        );
 
         var maxInFlightFrames = SodiumClientMod.options().advanced.cpuRenderAheadLimit + 1;
         this.stagingBuffer = new SectionedStreamingBuffer(
@@ -66,6 +59,11 @@ public class RenderRegionManager {
                         MappedBufferFlags.CLIENT_STORAGE
                 )
         );
+
+
+        //TODO: make it an option of which system its using
+        bufferProvider = new GlobalAsyncBufferProvider(device, stagingBuffer, vertexType, 5000000000L);//5GB max size
+        //bufferProvider = new DistinctRecycledBufferProvider(device, stagingBuffer, vertexType);
     }
 
     public RenderRegion getRegion(long regionId) {
@@ -86,7 +84,7 @@ public class RenderRegionManager {
         }
     
         long activeSize = this.getDeviceAllocatedMemoryActive();
-        long reserveSize = this.bufferPool.getDeviceAllocatedMemory();
+        long reserveSize = this.bufferProvider.getDeviceAllocatedMemory();
         
         if ((double) reserveSize / activeSize > PRUNE_RATIO_THRESHOLD) {
             this.prune();
@@ -94,7 +92,7 @@ public class RenderRegionManager {
     }
     
     public void prune() {
-        this.bufferPool.prune(PRUNE_PERCENT_MODIFIER);
+        this.bufferProvider.prune(PRUNE_PERCENT_MODIFIER);
     }
 
     public void uploadChunks(Iterator<TerrainBuildResult> queue, int frameIndex, @Deprecated RenderUpdateCallback callback) {
@@ -210,9 +208,7 @@ public class RenderRegionManager {
         if (region == null) {
             region = new RenderRegion(
                     this.device,
-                    this.stagingBuffer,
-                    this.bufferPool,
-                    this.vertexType,
+                    this.bufferProvider,
                     this.idPool.create()
             );
             
@@ -248,7 +244,7 @@ public class RenderRegionManager {
         }
         this.regions.clear();
         
-        this.bufferPool.delete();
+        this.bufferProvider.destroy();
         this.stagingBuffer.delete();
     }
 
@@ -264,7 +260,7 @@ public class RenderRegionManager {
     }
     
     public int getDeviceBufferObjects() {
-        return this.regions.size() + this.bufferPool.getDeviceBufferObjects();
+        return this.regions.size() + this.bufferProvider.getDeviceBufferObjects();
     }
     
     public long getDeviceUsedMemory() {
@@ -273,6 +269,6 @@ public class RenderRegionManager {
     }
     
     public long getDeviceAllocatedMemory() {
-        return this.getDeviceAllocatedMemoryActive() + this.bufferPool.getDeviceAllocatedMemory();
+        return this.getDeviceAllocatedMemoryActive() + this.bufferProvider.getDeviceAllocatedMemory();
     }
 }

@@ -55,16 +55,16 @@ public class AsyncSparseArenaBuffer implements ArenaBuffer {
     public AsyncSparseArenaBuffer(
             RenderDevice device,
             StreamingBuffer stagingBuffer,
-            int maxCapacity,
+            long maxCapacityBytes,
             int stride
     ) {
         this.device = device;
         this.stagingBuffer = stagingBuffer;
         this.stride = stride;
         int mul = lcm(stride, device.sparsePageSize());
-        maxCapacity = maxCapacity + (maxCapacity%mul);
+        maxCapacityBytes = maxCapacityBytes + (maxCapacityBytes%mul);
         this.pageSize = device.sparsePageSize();
-        this.setBuffer(device.createSparseBuffer(maxCapacity, Set.of()));
+        this.setBuffer(device.createSparseBuffer(maxCapacityBytes, Set.of()));
     }
     
     public void reset() {

@@ -3,23 +3,15 @@ package net.caffeinemc.sodium.render.chunk.region;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import java.util.List;
 import java.util.Set;
-import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
+
 import net.caffeinemc.gfx.api.device.RenderDevice;
-import net.caffeinemc.gfx.util.buffer.BufferPool;
-import net.caffeinemc.gfx.util.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
-import net.caffeinemc.sodium.render.buffer.arena.AsyncArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.PendingUpload;
-import net.caffeinemc.sodium.render.buffer.arena.sparse.v2.AsyncSparseArenaBuffer;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.RegionMeta;
-import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.util.MathUtil;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.apache.commons.lang3.Validate;
-
-import java.util.HashSet;
-import java.util.Set;
 
 public class RenderRegion {
     public static final int REGION_WIDTH = 16;
@@ -45,16 +37,13 @@ public class RenderRegion {
     private final Set<RenderSection> sections = new ObjectOpenHashSet<>(REGION_SIZE);
 
     private final ArenaBuffer vertexBuffer;
+    private final IVertexBufferProvider vbm;
     private final int id;
     public RegionMeta meta;
 
-    public RenderRegion(RenderDevice device, StreamingBuffer stagingBuffer, BufferPool<ImmutableBuffer> vertexBufferPool, TerrainVertexType vertexType, int id) {
-        this.vertexBuffer = new AsyncSparseArenaBuffer(
-                device,
-                stagingBuffer,
-                1000000000,
-                vertexType.getBufferVertexFormat().stride()
-        );
+    public RenderRegion(RenderDevice device, IVertexBufferProvider provider, int id) {
+        this.vertexBuffer = provider.provide();
+        vbm = provider;
         this.id = id;
     }
 
@@ -83,7 +72,7 @@ public class RenderRegion {
     }
 
     public void delete() {
-        this.vertexBuffer.delete();
+        vbm.remove(vertexBuffer);
     }
 
     public boolean isEmpty() {
