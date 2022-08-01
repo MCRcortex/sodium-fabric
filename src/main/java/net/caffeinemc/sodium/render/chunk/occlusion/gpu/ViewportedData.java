@@ -1,10 +1,11 @@
 package net.caffeinemc.sodium.render.chunk.occlusion.gpu;
 
 import net.caffeinemc.gfx.api.buffer.Buffer;
+import net.caffeinemc.gfx.api.buffer.MappedBuffer;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.sodium.SodiumClientMod;
-import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.chunk.ViewportInstancedData;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.SceneStruct;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 
 import java.util.TreeSet;
@@ -15,9 +16,10 @@ public class ViewportedData {
     private final RenderDevice device;
     public final TreeSet<RenderRegion> visible_regions = new TreeSet<>();
 
-    public final Buffer scene;
+    public final SceneStruct scene = new SceneStruct();
+    public final MappedBuffer sceneBuffer;
 
-    public final Buffer frustumRegionArray;
+    public final MappedBuffer frustumRegionArray;
 
     public final Buffer visibleRegionArray;
 
@@ -37,7 +39,7 @@ public class ViewportedData {
     //regionLUT?
     public ViewportedData(int viewport) {
         this.device = SodiumClientMod.DEVICE;
-        scene = null;
+        sceneBuffer = null;
         frustumRegionArray = null;
         regionVisibilityArray = null;
         sectionCommandBuffer = null;

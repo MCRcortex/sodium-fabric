@@ -12,6 +12,7 @@ import net.caffeinemc.sodium.render.buffer.arena.AsyncArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.PendingUpload;
 import net.caffeinemc.sodium.render.buffer.arena.sparse.v2.AsyncSparseArenaBuffer;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.RegionMeta;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.util.MathUtil;
 import net.minecraft.util.math.ChunkSectionPos;
@@ -45,6 +46,7 @@ public class RenderRegion {
 
     private final ArenaBuffer vertexBuffer;
     private final int id;
+    public RegionMeta meta;
 
     public RenderRegion(RenderDevice device, StreamingBuffer stagingBuffer, BufferPool<ImmutableBuffer> vertexBufferPool, TerrainVertexType vertexType, int id) {
         this.vertexBuffer = new AsyncSparseArenaBuffer(

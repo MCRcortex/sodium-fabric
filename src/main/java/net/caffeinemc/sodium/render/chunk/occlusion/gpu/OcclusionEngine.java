@@ -6,11 +6,13 @@ import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.buffers.RegionMetaManager;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.buffers.SectionMetaManager;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.MappedBufferWriter;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.CreateRasterSectionCommandsComputeShader;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.CreateTerrainCommandsComputeShader;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.RasterRegionShader;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.RasterSectionShader;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
+import org.lwjgl.system.MemoryUtil;
 
 import java.util.Set;
 
@@ -37,21 +39,43 @@ public class OcclusionEngine {
     public void doOcclusion(Set<RenderRegion> regions, int renderId, ChunkRenderMatrices matrices, ChunkCameraContext cam, Frustum frustum) {
         var viewport = ViewportedData.DATA.get();
         viewport.visible_regions.clear();
-        for (RenderRegion region : regions) {
-
+        int regionCount = 0;
+        {
+            long addrFrustumRegion = MemoryUtil.memAddress(viewport.frustumRegionArray.view());
+            for (RenderRegion region : regions) {
+                if (region.isEmpty() || region.meta == null || !region.meta.aabb.isVisible(frustum)) {
+                    continue;
+                }
+                viewport.visible_regions.add(region);
+                MemoryUtil.memPutInt(addrFrustumRegion + regionCount* 4L, region.meta.id);
+                regionCount++;
+                //TODO: Region on vis tick
+            }
+            viewport.frustumRegionArray.flush(0, regionCount * 4L);
         }
-        int regionCount = viewport.visible_regions.size();
+
+        {
+            viewport.scene.MVP.set(matrices.modelView()).mul(matrices.projection());
+            viewport.scene.MV.set(matrices.modelView());
+            viewport.scene.camera.set(cam.blockX + cam.deltaX, cam.blockY + cam.deltaY, cam.blockZ + cam.deltaZ);
+            viewport.scene.regionCount = regionCount;
+            viewport.scene.frameId = renderId;
+
+            viewport.scene.write(new MappedBufferWriter(viewport.sceneBuffer));
+            viewport.sceneBuffer.flush();
+        }
+
         rasterRegion.execute(
                 regionCount,
-                viewport.scene,
+                viewport.sceneBuffer,
                 viewport.frustumRegionArray,
                 regionMeta.getBuffer(),
                 viewport.regionVisibilityArray
-                );
+        );
 
         createRasterSectionCommands.execute(
                 regionCount,
-                viewport.scene,
+                viewport.sceneBuffer,
                 regionMeta.getBuffer(),
                 viewport.frustumRegionArray,
                 viewport.regionVisibilityArray,
@@ -62,18 +86,19 @@ public class OcclusionEngine {
 
         rasterSection.execute(
                 regionCount,
-                viewport.scene,
+                viewport.sceneBuffer,
                 viewport.sectionCommandBuffer,
                 sectionMeta.getBuffer(),
                 viewport.sectionVisibilityBuffer
         );
 
         createTerrainCommands.execute(
-                viewport.scene,
+                viewport.sceneBuffer,
                 viewport.computeDispatchCommandBuffer,
                 viewport.visibleRegionArray,
                 regionMeta.getBuffer(),
                 sectionMeta.getBuffer(),
-                viewport.sectionVisibilityBuffer);
+                viewport.sectionVisibilityBuffer
+        );
     }
 }
