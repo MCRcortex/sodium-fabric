@@ -4,6 +4,8 @@ import org.joml.Matrix4f;
 import org.joml.Vector4f;
 
 public class SceneStruct {
+    public static final int SIZE = 4*4*4*2+4*4+2*4;
+
     public Matrix4f MVP = new Matrix4f();
     public Matrix4f MV = new Matrix4f();
     public Vector4f camera = new Vector4f();

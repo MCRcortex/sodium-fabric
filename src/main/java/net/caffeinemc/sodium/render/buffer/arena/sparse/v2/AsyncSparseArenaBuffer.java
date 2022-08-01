@@ -164,7 +164,9 @@ public class AsyncSparseArenaBuffer implements ArenaBuffer {
     @Override
     public void free(long key) {
         this.used -= BufferSegment.getLength(key);
-        
+        if (key != BufferSegment.INVALID)
+            markUnused(this.toBytes(BufferSegment.getOffset(key)), this.toBytes(BufferSegment.getLength(key)));
+
         LongBidirectionalIterator itr = this.freedSegmentsByOffset.iterator(key);
         
         if (itr.hasPrevious()) {
@@ -203,8 +205,6 @@ public class AsyncSparseArenaBuffer implements ArenaBuffer {
         
         this.freedSegmentsByOffset.add(key);
         this.freedSegmentsByLength.add(key);
-        if (key != BufferSegment.INVALID)
-            markUnused(this.toBytes(BufferSegment.getOffset(key)), this.toBytes(BufferSegment.getLength(key)));
         this.checkAssertions();
     }
 

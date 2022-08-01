@@ -14,6 +14,7 @@ import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.RasterSectionSha
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import org.lwjgl.system.MemoryUtil;
 
+import java.util.Collection;
 import java.util.Set;
 
 public class OcclusionEngine {
@@ -36,7 +37,7 @@ public class OcclusionEngine {
         this.createTerrainCommands = new CreateTerrainCommandsComputeShader(device);
     }
 
-    public void doOcclusion(Set<RenderRegion> regions, int renderId, ChunkRenderMatrices matrices, ChunkCameraContext cam, Frustum frustum) {
+    public void doOcclusion(Collection<RenderRegion> regions, int renderId, ChunkRenderMatrices matrices, ChunkCameraContext cam, Frustum frustum) {
         var viewport = ViewportedData.DATA.get();
         viewport.visible_regions.clear();
         int regionCount = 0;
@@ -64,7 +65,8 @@ public class OcclusionEngine {
             viewport.scene.write(new MappedBufferWriter(viewport.sceneBuffer));
             viewport.sceneBuffer.flush();
         }
-
+        if (true)
+            return;
         rasterRegion.execute(
                 regionCount,
                 viewport.sceneBuffer,

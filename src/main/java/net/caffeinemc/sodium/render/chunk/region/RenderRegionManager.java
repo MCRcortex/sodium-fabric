@@ -6,9 +6,9 @@ import it.unimi.dsi.fastutil.longs.LongSortedSet;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
-import java.util.EnumSet;
-import java.util.Iterator;
-import java.util.List;
+
+import java.util.*;
+
 import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
 import net.caffeinemc.gfx.api.buffer.ImmutableBufferFlags;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
@@ -171,6 +171,10 @@ public class RenderRegionManager {
 
     public int getRegionTableSize() {
         return this.idPool.capacity();
+    }
+
+    public Collection<RenderRegion> getRegions() {
+        return regions.values();
     }
 
     public interface RenderUpdateCallback {

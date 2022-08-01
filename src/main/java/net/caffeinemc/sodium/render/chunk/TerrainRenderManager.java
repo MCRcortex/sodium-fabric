@@ -19,6 +19,7 @@ import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildTask;
 import net.caffeinemc.sodium.render.chunk.draw.*;
 import net.caffeinemc.sodium.render.chunk.occlusion.ChunkOcclusion;
 import net.caffeinemc.sodium.render.chunk.occlusion.ChunkTree;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegionManager;
@@ -61,6 +62,8 @@ public class TerrainRenderManager {
     private final ChunkTree tree;
     private final int chunkViewDistance;
 
+    private final OcclusionEngine occlusionEngine;
+
     private final Map<ChunkUpdateType, PriorityQueue<RenderSection>> rebuildQueues = new EnumMap<>(ChunkUpdateType.class);
 
     private final ChunkRenderer chunkRenderer;
@@ -74,6 +77,7 @@ public class TerrainRenderManager {
     private final RenderDevice device;
 
     private ChunkCameraContext camera;
+    private Frustum frustum;
 
     private final List<RenderSection> visibleMeshedSections = new ReferenceArrayList<>();
     private final List<RenderSection> visibleTickingSections = new ReferenceArrayList<>();
@@ -119,6 +123,10 @@ public class TerrainRenderManager {
 //        } else {
             this.chunkGeometrySorter = null;
 //        }
+
+
+        //TODO: need to clean up the old OcclusionEngine data when removing
+        occlusionEngine = new OcclusionEngine(SodiumClientMod.DEVICE);
     }
 
     public void reloadChunks(ChunkTracker tracker) {
@@ -134,7 +142,8 @@ public class TerrainRenderManager {
         Profiler profiler = MinecraftClient.getInstance().getProfiler();
     
         this.camera = camera;
-    
+        this.frustum = frustum;
+
         profiler.swap("chunk_graph_rebuild");
         BlockPos origin = camera.getBlockPos();
         var useOcclusionCulling = MinecraftClient.getInstance().chunkCullingEnabled &&
@@ -201,6 +210,7 @@ public class TerrainRenderManager {
         this.sectionVisibility = vis;
     }
 
+
     private void schedulePendingUpdates(RenderSection section) {
         PriorityQueue<RenderSection> queue = this.rebuildQueues.get(section.getPendingUpdate());
 
@@ -260,6 +270,10 @@ public class TerrainRenderManager {
 
     public void renderLayer(ChunkRenderMatrices matrices, ChunkRenderPass renderPass) {
         this.chunkRenderer.render(renderPass, matrices, this.frameIndex);
+    }
+
+    public void doTerrainOcclusion(ChunkRenderMatrices matrices) {
+        occlusionEngine.doOcclusion(regionManager.getRegions(), frameIndex, matrices, camera, frustum);
     }
 
     public void tickVisibleRenders() {
@@ -467,4 +481,5 @@ public class TerrainRenderManager {
     private static TerrainVertexType createVertexType() {
         return SodiumClientMod.options().performance.useCompactVertexFormat ? TerrainVertexFormats.COMPACT : TerrainVertexFormats.STANDARD;
     }
+
 }

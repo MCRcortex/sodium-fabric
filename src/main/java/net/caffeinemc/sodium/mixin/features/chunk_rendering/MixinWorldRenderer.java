@@ -97,6 +97,15 @@ public abstract class MixinWorldRenderer implements WorldRendererHolder {
     }
 
     /**
+     * @reason executes gpu occlusion
+     * @author cortex
+     */
+    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;renderLayer(Lnet/minecraft/client/render/RenderLayer;Lnet/minecraft/client/util/math/MatrixStack;DDDLnet/minecraft/util/math/Matrix4f;)V", ordinal = 2, shift = At.Shift.AFTER))
+    private void occlusion(MatrixStack matrices, float tickDelta, long limitTime, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f positionMatrix, CallbackInfo ci) {
+        this.renderer.doOcclusion(matrices);
+    }
+
+    /**
      * @reason Redirect the terrain setup phase to our renderer
      * @author JellySquid
      */

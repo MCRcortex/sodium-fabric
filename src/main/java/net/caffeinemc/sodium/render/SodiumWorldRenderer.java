@@ -85,7 +85,6 @@ public class SodiumWorldRenderer {
 
     public SodiumWorldRenderer(MinecraftClient client) {
         this.client = client;
-        new OcclusionEngine(SodiumClientMod.DEVICE);
     }
 
     public void setWorld(ClientWorld world) {
@@ -216,6 +215,10 @@ public class SodiumWorldRenderer {
     public void drawChunkLayer(RenderLayer renderLayer, MatrixStack matrixStack) {
         ChunkRenderPass renderPass = this.renderPassManager.getRenderPassForLayer(renderLayer);
         this.terrainRenderManager.renderLayer(ChunkRenderMatrices.from(matrixStack), renderPass);
+    }
+
+    public void doOcclusion(MatrixStack matrixStack) {
+        this.terrainRenderManager.doTerrainOcclusion(ChunkRenderMatrices.from(matrixStack));
     }
 
     public void reload() {
@@ -395,4 +398,5 @@ public class SodiumWorldRenderer {
     public ChunkTracker getChunkTracker() {
         return this.chunkTracker;
     }
+
 }
