@@ -110,7 +110,7 @@ public class MdiChunkRenderer extends AbstractMdChunkRenderer<MdiChunkRenderer.M
         long transformOffset = 0;
         for (int i = 0; i < lists.regionCount; i++) {
             var data = lists.renderData[i];
-            MemoryUtil.memCopy(data.instanceBuffer.getAddress(), transformBufferSectionAddress + transformOffset, (long) data.instanceIndex * TRANSFORM_STRUCT_STRIDE);
+            MemoryUtil.memCopy(data.instanceBuffer, transformBufferSectionAddress + transformOffset, (long) data.instanceIndex * TRANSFORM_STRUCT_STRIDE);
             data.instanceBufferLocationCopy = transformOffset;
             transformOffset += (long) data.instanceIndex * TRANSFORM_STRUCT_STRIDE;
             transformOffset = MathUtil.align(
@@ -130,7 +130,7 @@ public class MdiChunkRenderer extends AbstractMdChunkRenderer<MdiChunkRenderer.M
                         data.commandIndexes[passId],
                         data.instanceBufferLocationCopy,
                         commandOffset));
-                MemoryUtil.memCopy(data.commandBuffers[passId].getAddress(), commandBufferSectionAddress + commandOffset, (long) data.commandIndexes[passId] * COMMAND_STRUCT_STRIDE);
+                MemoryUtil.memCopy(data.commandBuffers[passId], commandBufferSectionAddress + commandOffset, (long) data.commandIndexes[passId] * COMMAND_STRUCT_STRIDE);
                 commandOffset += (long) data.commandIndexes[passId] * COMMAND_STRUCT_STRIDE;
                 commandOffset = MathUtil.align(
                         commandOffset,

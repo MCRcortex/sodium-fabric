@@ -28,6 +28,7 @@ import java.util.Objects;
 public class GeneratingMDICommandSet {
     private final ChunkRenderPassManager renderPassManager;
     private final RenderRegionManager regionManager;
+    private final NativeBuffer blob = new NativeBuffer(100000000);
     public GeneratingMDICommandSet(RenderRegionManager regionManager, ChunkRenderPassManager renderPassManager) {
         this.regionManager = regionManager;
         this.renderPassManager = renderPassManager;
@@ -38,10 +39,10 @@ public class GeneratingMDICommandSet {
     public static final class RegionData {
         public RenderRegion region;
         //TODO: this will have to be an abstract class or something, cause data written here will differ on backend (MDI vs MDBV)
-        public NativeBuffer[] commandBuffers;//Command buffers for each render layer;
+        public long[] commandBuffers;//Command buffers for each render layer;
         public int[] commandIndexes;//Command count
         public int instanceIndex;
-        public NativeBuffer instanceBuffer;
+        public long instanceBuffer;
         public long instanceBufferLocationCopy;
     }
 
@@ -88,7 +89,7 @@ public class GeneratingMDICommandSet {
                 RenderRegion region = section.getRegion();
                 if (region.lastFrameId != frameId) {
                     //MinecraftClient.getInstance().getProfiler().push("new_data");
-                    data = renderData[regionCount] = createDataHold(region, useBlockFaceCulling);
+                    data = renderData[regionCount] = createDataHold(region, useBlockFaceCulling, regionCount);
                     //MinecraftClient.getInstance().getProfiler().pop();
                     region.renderDataIndex = regionCount++;
                     region.lastFrameId = frameId;
@@ -100,6 +101,7 @@ public class GeneratingMDICommandSet {
                 if (section.lastFrameId != frameId) {
                     //TODO: need to write instance camera data to
                     // data.instanceBuffer, maybe abstract to method that can be overriden
+                    //TODO: do this alligned and set the instanceCopyStuff, so it can just be memcopied
                     writeInstanceData(data, data.instanceIndex, section, camera);
                     section.instanceIndex = data.instanceIndex++;
                     section.lastFrameId = frameId;
@@ -107,6 +109,8 @@ public class GeneratingMDICommandSet {
                 long[] modelPartSegments = model.getModelPartSegments();
                 //TODO: do the reverse order shiz here or something
                 int baseVertex = BufferSegment.getOffset(section.getUploadedGeometrySegment());
+                //if (true)
+                //    continue;
                 if (reverse) {
                     while (visibility != 0) {
                         int dirIdx = (Integer.SIZE - 1) - Integer.numberOfLeadingZeros(visibility);
@@ -160,7 +164,7 @@ public class GeneratingMDICommandSet {
     }
 
     private void writeInstanceData(RegionData data, int index, RenderSection section, ChunkCameraContext camera) {
-        long addr = data.instanceBuffer.getAddress() + (long) index * AbstractMdChunkRenderer.TRANSFORM_STRUCT_STRIDE;
+        long addr = data.instanceBuffer + (long) index * AbstractMdChunkRenderer.TRANSFORM_STRUCT_STRIDE;
 
         float x = getCameraTranslation(
                 ChunkSectionPos.getBlockCoord(section.getChunkX()),
@@ -184,7 +188,7 @@ public class GeneratingMDICommandSet {
     }
 
     private void writeCommandData(RegionData data, RenderSection section, int passId, int baseVertex, long modelPartSegment, int commandIndex, int instanceDataIndex) {
-        long ptr = data.commandBuffers[passId].getAddress() + (long) commandIndex * MdiChunkRenderer.COMMAND_STRUCT_STRIDE;
+        long ptr = data.commandBuffers[passId] + (long) commandIndex * MdiChunkRenderer.COMMAND_STRUCT_STRIDE;
         MemoryUtil.memPutInt(ptr + 0, 6 * (BufferSegment.getLength(modelPartSegment) >> 2)); // go from vertex count -> index count
         MemoryUtil.memPutInt(ptr + 4, 1);
         MemoryUtil.memPutInt(ptr + 8, 0);
@@ -192,24 +196,9 @@ public class GeneratingMDICommandSet {
         MemoryUtil.memPutInt(ptr + 16, instanceDataIndex); // baseInstance
     }
 
-    private record BHold(NativeBuffer buffer, long length, long address) {}
-
-    private final ObjectAVLTreeSet<BHold> freeBuffers = new ObjectAVLTreeSet<>((a, b)-> a.length==b.length?Long.compare(a.address,b.address):Long.compare(a.length, b.length));
-
-    private void freeBuf(NativeBuffer buffer) {
-        freeBuffers.add(new BHold(buffer, buffer.getLength(), buffer.getAddress()));
-    }
-    private NativeBuffer findOrMake(int size) {
-        for (BHold holder : freeBuffers.tailSet(new BHold(null, size, 0))) {
-            freeBuffers.remove(holder);
-            return holder.buffer;
-        }
-        return new NativeBuffer(size*2);
-    }
-
 
     //TODO: make cache of NativeBuffers and find/fill optimal RegionData with them
-    private RegionData createDataHold(RenderRegion region, boolean useBlockFaceCulling) {
+    private RegionData createDataHold(RenderRegion region, boolean useBlockFaceCulling, int id) {
         //NOTE: only have to fill in the slots where it could possibly have visibility with face culling, so take into account when finding buffers to use
         int sectionCount = region.getSections().size();
         //TODO: if useBlockFaceCulling is true, check the max possible faces it can be, then calculate using that
@@ -220,20 +209,25 @@ public class GeneratingMDICommandSet {
         //TODO: have a cache of RenderData objects
         RegionData data = createNew();
         {
-            int estimatedInstanceSize = sectionCount * AbstractMdChunkRenderer.TRANSFORM_STRUCT_STRIDE;
+            long estimatedInstanceSize = RenderRegion.REGION_SIZE * AbstractMdChunkRenderer.TRANSFORM_STRUCT_STRIDE;
             data.instanceIndex = 0;
             //TODO: native buffer cache
-            data.instanceBuffer = findOrMake(estimatedInstanceSize);
+            data.instanceBuffer = blob.getLength()-estimatedInstanceSize*(id+1) + blob.getAddress();
         }
 
         for (int i = 0; i < renderPassManager.getRenderPassCount(); i++) {
             data.commandIndexes[i] = 0;
 
-            int estimatedCommandSize = visibilityCount * sectionCount * MdiChunkRenderer.COMMAND_STRUCT_STRIDE;
+            long estimatedCommandSize = 7L * RenderRegion.REGION_SIZE *
+                    MdiChunkRenderer.COMMAND_STRUCT_STRIDE *
+                    renderPassManager.getRenderPassCount();
 
 
             //TODO: native buffer cache
-            data.commandBuffers[i] = findOrMake(estimatedCommandSize);
+            data.commandBuffers[i] = estimatedCommandSize * id +
+                    7L * RenderRegion.REGION_SIZE *
+                    MdiChunkRenderer.COMMAND_STRUCT_STRIDE *
+                            i + blob.getAddress();
         }
 
         return data;
@@ -241,21 +235,12 @@ public class GeneratingMDICommandSet {
 
     private RegionData createNew() {
         RegionData data = new RegionData();
-        data.commandBuffers = new NativeBuffer[renderPassManager.getRenderPassCount()];
+        data.commandBuffers = new long[renderPassManager.getRenderPassCount()];
         data.commandIndexes = new int[renderPassManager.getRenderPassCount()];
         return data;
     }
 
     private void reset() {
-        for (int i = 0; i < regionCount; i++) {
-            RegionData data = renderData[i];
-            freeBuf(data.instanceBuffer);
-            for (NativeBuffer buff : data.commandBuffers) {
-                freeBuf(buff);
-            }
-            //TODO: free stuff in data into cache or something
-            renderData[i] = null;
-        }
         regionCount = 0;
     }
 

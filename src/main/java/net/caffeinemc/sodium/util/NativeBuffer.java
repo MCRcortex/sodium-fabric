@@ -14,7 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.system.MemoryUtil;
 
-public class NativeBuffer {
+public final class NativeBuffer {
     private static final Logger LOGGER = LogManager.getLogger(NativeBuffer.class);
 
     private static final ReferenceQueue<NativeBuffer> RECLAIM_QUEUE = new ReferenceQueue<>();
@@ -142,7 +142,7 @@ public class NativeBuffer {
         ALLOCATED -= ref.length;
     }
 
-    private static class BufferReference {
+    private static final class BufferReference {
         public final long address;
         public final int length;
 
