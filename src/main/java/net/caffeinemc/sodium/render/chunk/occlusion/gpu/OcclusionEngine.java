@@ -49,6 +49,7 @@ public class OcclusionEngine {
                 if (region.isEmpty() || region.meta == null || !region.meta.aabb.isVisible(frustum)) {
                     continue;
                 }
+                //TODO: need to sort it by distance
                 viewport.visible_regions.add(region);
                 MemoryUtil.memPutInt(addrFrustumRegion + regionCount* 4L, region.meta.id);
                 regionCount++;

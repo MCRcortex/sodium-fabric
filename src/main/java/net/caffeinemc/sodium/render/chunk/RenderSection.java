@@ -17,6 +17,7 @@ public class RenderSection {
     private final int id;
 
     private final long regionKey;
+    public final int innerRegionKey;
     private RenderRegion region;
 
     private final int chunkX, chunkY, chunkZ;
@@ -48,6 +49,7 @@ public class RenderSection {
 
         this.id = id;
         this.regionKey = RenderRegion.getRegionCoord(this.chunkX, this.chunkY, this.chunkZ);
+        this.innerRegionKey = RenderRegion.getInnerCoord(this.chunkX, this.chunkY, this.chunkZ);
     }
 
     /**
@@ -71,19 +73,21 @@ public class RenderSection {
      * be used.
      */
     public void delete() {
+        RenderRegion region = this.region;
         this.cancelRebuildTask();
         this.ensureGeometryDeleted();
         this.disposed = true;
+        updateMeta(region, data, data);
     }
 
     public void setData(ChunkRenderData data) {
         if (data == null) {
             throw new NullPointerException("Mesh information must not be null");
         }
-
+        ChunkRenderData old = this.data;
         this.data = data;
         this.flags = data.getFlags();
-        updateMeta();
+        updateMeta(region, old, data);
     }
 
     /**
@@ -161,7 +165,7 @@ public class RenderSection {
         this.setBufferSegment(bufferSegment);
         this.region = region;
         this.uploadedGeometrySegment = bufferSegment;
-        updateMeta();
+        updateMeta(region, data, data);
     }
     
     public void setBufferSegment(long bufferSegment) {
@@ -241,16 +245,30 @@ public class RenderSection {
         return true;
     }
 
-    private void updateMeta() {
+
+    private void updateMeta(RenderRegion region, ChunkRenderData Old, ChunkRenderData New) {
         if (shouldRender() == (meta == null)) {
             if (meta == null) {
-                //System.out.println("NEW META");
+                meta = new SectionMeta();
+                region.sectionReady(this);
                 //Request new meta
             } else {
-                //System.out.println("DELETE META");
                 //Delete and free old meta
+                region.sectionDestroy(this);
+                meta = null;
+                return;
             }
         }
+        if (!shouldRender())
+            return;
         //Update and submit new meta upload
+
+        if (!Old.bounds.equals(New.bounds)) {
+            region.chunkBoundsUpdate(this, Old.bounds, New.bounds);
+        }
+
+        //TODO: update meta
+
+        region.enqueueSectionMetaUpdate(this);
     }
 }

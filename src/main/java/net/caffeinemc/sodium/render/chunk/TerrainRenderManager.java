@@ -5,6 +5,8 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
+
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import net.caffeinemc.gfx.api.device.RenderDevice;
@@ -48,6 +50,10 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.profiler.Profiler;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
+import org.lwjgl.PointerBuffer;
+import org.lwjgl.opengl.GL20C;
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.MemoryUtil;
 
 public class TerrainRenderManager {
     /**
@@ -68,7 +74,7 @@ public class TerrainRenderManager {
     private final ChunkTree tree;
     private final int chunkViewDistance;
 
-    private final OcclusionEngine occlusionEngine;
+    public final OcclusionEngine occlusionEngine;
 
     private final Map<ChunkUpdateType, PriorityQueue<RenderSection>> rebuildQueues = new EnumMap<>(ChunkUpdateType.class);
 
@@ -154,7 +160,7 @@ public class TerrainRenderManager {
 
     public void update(ChunkCameraContext camera, Frustum frustum, boolean spectator) {
         Profiler profiler = MinecraftClient.getInstance().getProfiler();
-    
+
         this.camera = camera;
         this.frustum = frustum;
 

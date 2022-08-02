@@ -399,4 +399,7 @@ public class SodiumWorldRenderer {
         return this.chunkTracker;
     }
 
+    public OcclusionEngine getOcclusionEngine() {
+        return terrainRenderManager.occlusionEngine;
+    }
 }

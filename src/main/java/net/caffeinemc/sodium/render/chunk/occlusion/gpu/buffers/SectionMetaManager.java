@@ -19,7 +19,6 @@ public final class SectionMetaManager {
 
     public SectionMetaManager(RenderDevice device) {
         this.device = device;
-        //TODO: FIX THE HARDCODED 100 max regions in a world
         buffer = device.createMappedBuffer(SectionMeta.SIZE * RenderRegion.REGION_SIZE * OcclusionEngine.MAX_REGIONS,
                 Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));
         writer = new MappedBufferWriter(buffer);
