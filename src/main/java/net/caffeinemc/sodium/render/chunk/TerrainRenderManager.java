@@ -24,6 +24,7 @@ import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegionManager;
 import net.caffeinemc.sodium.render.chunk.sort.ChunkGeometrySorter;
+import net.caffeinemc.sodium.render.chunk.state.ChunkPassModel;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderFlag;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexFormats;
@@ -57,6 +58,7 @@ public class TerrainRenderManager {
     private final RenderDevice device;
     
     private final SortedTerrainLists sortedTerrainLists;
+    private final GeneratingMDICommandSet generatingCommandSet;
 
     private final ChunkBuilder builder;
 
@@ -86,6 +88,8 @@ public class TerrainRenderManager {
     private final List<RenderSection> visibleTickingSections = new ReferenceArrayList<>();
     private final List<RenderSection> visibleBlockEntitySections = new ReferenceArrayList<>();
 
+    private final List<RenderSection>[] visibleMeshedSectionsPasses;
+
     private final Set<BlockEntity> globalBlockEntities = new ObjectOpenHashSet<>();
 
     private final boolean alwaysDeferChunkUpdates = SodiumClientMod.options().performance.alwaysDeferChunkUpdates;
@@ -114,6 +118,7 @@ public class TerrainRenderManager {
         this.sectionCache = new ClonedChunkSectionCache(this.world);
     
         this.sortedTerrainLists = new SortedTerrainLists(this.regionManager, renderPassManager);
+        this.generatingCommandSet = new GeneratingMDICommandSet(this.regionManager, renderPassManager);
 
         for (ChunkUpdateType type : ChunkUpdateType.values()) {
             this.rebuildQueues.put(type, new ObjectArrayFIFOQueue<>());
@@ -129,6 +134,10 @@ public class TerrainRenderManager {
             this.chunkGeometrySorter = null;
 //        }
 
+        visibleMeshedSectionsPasses = new List[renderPassManager.getRenderPassCount()];
+        for (int i = 0; i < visibleMeshedSectionsPasses.length; i++) {
+            visibleMeshedSectionsPasses[i] = new ReferenceArrayList<>(1000);
+        }
 
         //TODO: need to clean up the old OcclusionEngine data when removing
         occlusionEngine = new OcclusionEngine(SodiumClientMod.DEVICE);
@@ -154,19 +163,25 @@ public class TerrainRenderManager {
         var useOcclusionCulling = MinecraftClient.getInstance().chunkCullingEnabled &&
                 (!spectator || !this.world.getBlockState(origin).isOpaqueFullCube(this.world, origin));
 
+        profiler.push("calculate_visible_sections");
         var visibleSections = ChunkOcclusion.calculateVisibleSections(this.tree, frustum, this.world, origin, this.chunkViewDistance, useOcclusionCulling);
-
+        profiler.swap("update_visible_sections");
         this.updateVisibilityLists(visibleSections, camera);
-    
+        profiler.pop();
+
         if (this.chunkGeometrySorter != null) {
             profiler.swap("translucency_sort");
             this.chunkGeometrySorter.sortGeometry(this.visibleMeshedSections, camera);
         }
 
+        profiler.swap("update_render_list_burg");
+        //this.sortedTerrainLists.update(this.visibleMeshedSections, camera);
+        profiler.swap("update_render_list_cortex");
+        this.generatingCommandSet.update(this.visibleMeshedSectionsPasses, camera, frameIndex);
         profiler.swap("create_render_lists");
-        this.sortedTerrainLists.update(this.visibleMeshedSections, camera);
-        this.chunkRenderer.createRenderLists(this.sortedTerrainLists, camera, this.frameIndex);
-        
+        //this.chunkRenderer.createRenderLists(this.sortedTerrainLists, camera, this.frameIndex);
+        ((MdiChunkRenderer)this.chunkRenderer).createRenderLists(generatingCommandSet, this.frameIndex);
+
         this.needsUpdate = false;
     }
 
@@ -180,6 +195,11 @@ public class TerrainRenderManager {
         this.visibleMeshedSections.clear();
         this.visibleTickingSections.clear();
         this.visibleBlockEntitySections.clear();
+        for (List l : visibleMeshedSectionsPasses) {
+            //TODO: replace this with a version that just resets count to 0
+            l.clear();
+        }
+
 
         var vis = new BitArray(this.tree.getSectionTableSize());
 
@@ -201,6 +221,14 @@ public class TerrainRenderManager {
 
             if (ChunkRenderFlag.has(data, ChunkRenderFlag.HAS_TERRAIN_MODELS)) {
                 this.visibleMeshedSections.add(section);
+                //TODO: do directional culling here too, todo: make an array of non null that just loop over or append or something
+
+                ChunkPassModel[] models = section.getData().models;
+                for (int j = 0; j < models.length; j++) {
+                    if (models[j] == null)
+                        continue;
+                    visibleMeshedSectionsPasses[j].add(section);
+                }
             }
 
             if (ChunkRenderFlag.has(data, ChunkRenderFlag.HAS_TICKING_TEXTURES)) {

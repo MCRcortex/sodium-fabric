@@ -25,7 +25,7 @@ public class DistinctRecycledBufferProvider implements IVertexBufferProvider {
         this.vertexType = vertexType;
         this.bufferPool = new BufferPool<>(
                 device,
-                100,
+                RenderRegionManager.PRUNE_SAMPLE_SIZE,
                 c -> device.createBuffer(
                         c,
                         EnumSet.noneOf(ImmutableBufferFlags.class)

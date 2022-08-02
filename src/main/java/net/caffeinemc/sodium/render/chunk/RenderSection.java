@@ -33,6 +33,10 @@ public class RenderSection {
     private int lastAcceptedBuildTime = -1;
     private int flags;
 
+    //Render data
+    public int lastFrameId;
+    public int instanceIndex;
+
     public RenderSection(int chunkX, int chunkY, int chunkZ, int id) {
         this.chunkX = chunkX;
         this.chunkY = chunkY;

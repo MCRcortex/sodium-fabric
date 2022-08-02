@@ -9,6 +9,7 @@ import it.unimi.dsi.fastutil.objects.ReferenceList;
 import java.util.List;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
+import net.caffeinemc.sodium.render.chunk.draw.pool.LinkedDeque;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
@@ -122,7 +123,7 @@ public class SortedTerrainLists {
             return cachedList;
         }
     }
-    
+
     private IntList getSectionIndicesList() {
         if (this.sectionIndicesListPool.isEmpty()) {
             return new IntArrayList(SECTIONS_PER_REGION_ESTIMATE);
@@ -132,7 +133,7 @@ public class SortedTerrainLists {
             return cachedList;
         }
     }
-    
+
     private IntList getModelPartCountsList() {
         if (this.modelPartCountsListPool.isEmpty()) {
             return new IntArrayList(SECTIONS_PER_REGION_ESTIMATE);

@@ -196,7 +196,7 @@ public class SodiumWorldRenderer {
         this.terrainRenderManager.setFrameIndex(frame);
         this.terrainRenderManager.updateChunks();
 
-        if (this.terrainRenderManager.isGraphDirty()) {
+        if (this.terrainRenderManager.isGraphDirty()||true) {
             this.terrainRenderManager.update(new ChunkCameraContext(camera), frustum, spectator);
         }
 

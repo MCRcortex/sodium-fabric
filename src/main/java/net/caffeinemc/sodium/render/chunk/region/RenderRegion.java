@@ -41,6 +41,9 @@ public class RenderRegion {
     private final int id;
     public RegionMeta meta;
 
+    public int renderDataIndex;
+    public int lastFrameId;
+
     public RenderRegion(RenderDevice device, IVertexBufferProvider provider, int id) {
         this.vertexBuffer = provider.provide();
         vbm = provider;
