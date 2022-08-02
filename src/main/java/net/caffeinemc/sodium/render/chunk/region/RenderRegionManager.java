@@ -3,12 +3,14 @@ package net.caffeinemc.sodium.render.chunk.region;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongSortedSet;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 
 import java.util.*;
 
+import it.unimi.dsi.fastutil.objects.ReferenceList;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
 import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
 import net.caffeinemc.gfx.api.buffer.ImmutableBufferFlags;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
@@ -30,6 +32,7 @@ import net.minecraft.util.profiler.Profiler;
 
 public class RenderRegionManager {
     // these constants have been found from experimentation
+    private static final int PRUNE_SAMPLE_SIZE = 100;
     private static final double PRUNE_RATIO_THRESHOLD = .35;
     private static final float PRUNE_PERCENT_MODIFIER = -.2f;
     private static final float DEFRAG_THRESHOLD = 0.000008f; // this may look dumb, but keep in mind that 1.0 is the absolute maximum
@@ -47,6 +50,14 @@ public class RenderRegionManager {
     public RenderRegionManager(RenderDevice device, TerrainVertexType vertexType) {
         this.device = device;
         this.vertexType = vertexType;
+        this.bufferPool = new BufferPool<>(
+                device,
+                PRUNE_SAMPLE_SIZE,
+                c -> device.createBuffer(
+                        c,
+                        EnumSet.noneOf(ImmutableBufferFlags.class)
+                )
+        );
 
         var maxInFlightFrames = SodiumClientMod.options().advanced.cpuRenderAheadLimit + 1;
         this.stagingBuffer = new SectionedStreamingBuffer(
@@ -101,7 +112,7 @@ public class RenderRegionManager {
         profiler.push("chunk_upload");
         
         // we have to use a list with a varied size here, because the upload method can create new regions
-        ObjectList<RenderRegion> writtenRegions = new ObjectArrayList<>(Math.max(this.getRegionTableSize(), 16));
+        ReferenceList<RenderRegion> writtenRegions = new ReferenceArrayList<>(Math.max(this.getRegionTableSize(), 16));
         
         for (var entry : this.setupUploadBatches(queue)) {
             this.uploadGeometryBatch(entry.getLongKey(), entry.getValue(), frameIndex);
@@ -180,7 +191,7 @@ public class RenderRegionManager {
     }
 
     private void uploadGeometryBatch(long regionKey, List<TerrainBuildResult> results, int frameIndex) {
-        List<PendingUpload> uploads = new ObjectArrayList<>(results.size());
+        List<PendingUpload> uploads = new ReferenceArrayList<>(results.size());
 
         for (TerrainBuildResult result : results) {
             var section = result.render();

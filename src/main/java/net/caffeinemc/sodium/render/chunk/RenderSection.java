@@ -171,7 +171,7 @@ public class RenderSection {
         return this.uploadedGeometrySegment;
     }
     
-    public int id() {
+    public int getId() {
         return this.id;
     }
 

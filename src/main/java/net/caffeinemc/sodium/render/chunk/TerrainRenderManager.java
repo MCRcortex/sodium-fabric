@@ -53,6 +53,10 @@ public class TerrainRenderManager {
      * The maximum distance a chunk can be from the player's camera in order to be eligible for blocking updates.
      */
     private static final double NEARBY_BLOCK_UPDATE_DISTANCE = 32.0;
+    
+    private final RenderDevice device;
+    
+    private final SortedTerrainLists sortedTerrainLists;
 
     private final ChunkBuilder builder;
 
@@ -74,7 +78,6 @@ public class TerrainRenderManager {
     private int frameIndex = 0;
 
     private final ChunkTracker tracker;
-    private final RenderDevice device;
 
     private ChunkCameraContext camera;
     private Frustum frustum;
@@ -109,6 +112,8 @@ public class TerrainRenderManager {
 
         this.regionManager = new RenderRegionManager(device, vertexType);
         this.sectionCache = new ClonedChunkSectionCache(this.world);
+    
+        this.sortedTerrainLists = new SortedTerrainLists(this.regionManager, renderPassManager);
 
         for (ChunkUpdateType type : ChunkUpdateType.values()) {
             this.rebuildQueues.put(type, new ObjectArrayFIFOQueue<>());
@@ -159,8 +164,8 @@ public class TerrainRenderManager {
         }
 
         profiler.swap("create_render_lists");
-        var chunkLists = new SortedChunkLists(this.visibleMeshedSections, this.regionManager);
-        this.chunkRenderer.createRenderLists(chunkLists, camera, this.frameIndex);
+        this.sortedTerrainLists.update(this.visibleMeshedSections, camera);
+        this.chunkRenderer.createRenderLists(this.sortedTerrainLists, camera, this.frameIndex);
         
         this.needsUpdate = false;
     }
@@ -375,7 +380,7 @@ public class TerrainRenderManager {
     private void onChunkDataChanged(RenderSection section, ChunkRenderData prev, ChunkRenderData next) {
         ListUtil.updateList(this.globalBlockEntities, prev.globalBlockEntities, next.globalBlockEntities);
 
-        this.tree.setVisibilityData(section.id(), next.occlusionData);
+        this.tree.setVisibilityData(section.getId(), next.occlusionData);
     }
 
     public AbstractBuilderTask createTerrainBuildTask(RenderSection render) {
