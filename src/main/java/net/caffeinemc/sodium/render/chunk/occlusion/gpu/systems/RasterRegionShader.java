@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Set;
 
 public class RasterRegionShader {
+
     private static final class RasterCullerInterface {
         public final BufferBlock scene;
         public final BufferBlock regionArray;
@@ -75,5 +76,10 @@ public class RasterRegionShader {
             // tests
             cmd.drawElementsInstanced(PrimitiveType.TRIANGLES, ElementFormat.UNSIGNED_BYTE, 3*2*6, 0, regionCount);
         });
+    }
+
+    public void delete() {
+        device.deleteProgram(rasterCullProgram);
+        device.deleteRenderPipeline(rasterCullPipeline);
     }
 }

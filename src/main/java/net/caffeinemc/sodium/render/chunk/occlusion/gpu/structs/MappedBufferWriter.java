@@ -41,4 +41,8 @@ public final class MappedBufferWriter implements IStructWriter {
     public void reset() {
         offset = 0;
     }
+
+    public void setOffset(long offset) {
+        this.offset = offset;
+    }
 }

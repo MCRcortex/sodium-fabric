@@ -13,6 +13,7 @@ import net.minecraft.util.Identifier;
 // simply add 1 to x dim and atomic max the y dim
 public class CreateTerrainCommandsComputeShader {
     public static final int LOCAL_SIZE_Y = 32;
+
     private static final class ComputeInterface {
         public final BufferBlock scene;
         public final BufferBlock regionArray;
@@ -58,5 +59,10 @@ public class CreateTerrainCommandsComputeShader {
             cmd.bindDispatchIndirectBuffer(dispatchCompute);
             cmd.dispatchComputeIndirect(0);
         });
+    }
+
+    public void delete() {
+        device.deleteProgram(computeProgram);
+        device.deleteComputePipeline(pipeline);
     }
 }

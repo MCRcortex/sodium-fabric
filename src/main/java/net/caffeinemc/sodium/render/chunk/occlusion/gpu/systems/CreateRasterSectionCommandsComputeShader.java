@@ -16,6 +16,7 @@ import net.minecraft.util.Identifier;
 // to optimize dim counts
 public class CreateRasterSectionCommandsComputeShader {
     public static final int LOCAL_SIZE_X = 32;
+
     private static final class ComputeInterface {
         public final BufferBlock scene;
         public final BufferBlock regionArray;
@@ -67,4 +68,8 @@ public class CreateRasterSectionCommandsComputeShader {
         });
     }
 
+    public void delete() {
+        device.deleteProgram(computeProgram);
+        device.deleteComputePipeline(pipeline);
+    }
 }

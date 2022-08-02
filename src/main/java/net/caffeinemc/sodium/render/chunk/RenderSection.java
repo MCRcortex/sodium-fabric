@@ -228,7 +228,7 @@ public class RenderSection {
         return Objects.hash(this.chunkX, this.chunkY, this.chunkZ);
     }
 
-    private SectionMeta meta;
+    public SectionMeta meta;
     private boolean shouldRender() {
         if (uploadedGeometrySegment == BufferSegment.INVALID)
             return false;
@@ -240,10 +240,10 @@ public class RenderSection {
     private void updateMeta() {
         if (shouldRender() == (meta == null)) {
             if (meta == null) {
-                System.out.println("NEW META");
+                //System.out.println("NEW META");
                 //Request new meta
             } else {
-                System.out.println("DELETE META");
+                //System.out.println("DELETE META");
                 //Delete and free old meta
             }
         }

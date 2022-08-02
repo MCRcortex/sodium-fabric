@@ -44,10 +44,12 @@ public class ViewportedData {
         sceneBuffer = device.createMappedBuffer(SceneStruct.SIZE,
                 Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));
         //TODO: Instead of just putting in a random "max region in frustum" count, calculate it based on render distance
-        frustumRegionArray = device.createMappedBuffer(4*1000,//1000 max regions in a frames frustum
+        frustumRegionArray = device.createMappedBuffer(4*OcclusionEngine.MAX_REGIONS,//1000 max regions in a frames frustum
                 Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH)
         );
-        regionVisibilityArray = null;
+        regionVisibilityArray  = device.createMappedBuffer(4*OcclusionEngine.MAX_REGIONS,//1000 max regions in a frames frustum
+                Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH)
+        );
         sectionCommandBuffer = null;
         computeDispatchCommandBuffer = null;
         visibleRegionArray = null;

@@ -18,6 +18,8 @@ import java.util.Collection;
 import java.util.Set;
 
 public class OcclusionEngine {
+    public static final int MAX_REGIONS = 150;
+
     public final RegionMetaManager regionMeta;
     public final SectionMetaManager sectionMeta;
 
@@ -102,5 +104,14 @@ public class OcclusionEngine {
                 sectionMeta.getBuffer(),
                 viewport.sectionVisibilityBuffer
         );
+    }
+
+    public void delete() {
+        regionMeta.delete();
+        sectionMeta.delete();
+        rasterRegion.delete();
+        createRasterSectionCommands.delete();
+        rasterSection.delete();
+        createTerrainCommands.delete();
     }
 }
