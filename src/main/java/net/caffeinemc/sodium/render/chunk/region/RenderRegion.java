@@ -37,6 +37,8 @@ public class RenderRegion {
 
     public static final int REGION_SIZE = REGION_WIDTH * REGION_HEIGHT * REGION_LENGTH;
 
+    public static final int REGION_SIZE_M = REGION_SIZE-1;
+
     static {
         Validate.isTrue(MathUtil.isPowerOfTwo(REGION_WIDTH));
         Validate.isTrue(MathUtil.isPowerOfTwo(REGION_HEIGHT));
@@ -140,10 +142,10 @@ public class RenderRegion {
 
 
     public int sectionCount = 0;
-    private Int2ObjectOpenHashMap<RenderSection> sectionMetaMap = new Int2ObjectOpenHashMap<>();
+    private final Int2ObjectOpenHashMap<RenderSection> sectionMetaMap = new Int2ObjectOpenHashMap<>();
     //TODO: optimize this as RenderSections already have position id
-    private Int2IntOpenHashMap pos2id = new Int2IntOpenHashMap();
-    private IntAVLTreeSet freeIds = new IntAVLTreeSet();
+    private final Int2IntOpenHashMap pos2id = new Int2IntOpenHashMap();
+    private final IntAVLTreeSet freeIds = new IntAVLTreeSet();
 
     private int newSectionId() {
         if (freeIds.isEmpty()) {
@@ -194,10 +196,15 @@ public class RenderRegion {
 
     public void chunkBoundsUpdate(RenderSection section, ChunkRenderBounds Old, ChunkRenderBounds New) {
         //TODO: this: update region bounding meta
+
         if (meta.aabb.isOnInsideBoarder(Old)) {
             //TODO: need to update the entire AABB of the region, i.e. recreate it and enumerate over all sections aabbs
+            meta.aabb.set(New);
+            for (var sec : sectionMetaMap.values()) {
+                meta.aabb.ensureContains(sec.getData().bounds);
+            }
         } else {
-            meta.aabb.ensureContains(New);
+            meta.aabb.setOrExpand(New);
         }
         updateRegionMeta();
     }
@@ -215,7 +222,12 @@ public class RenderRegion {
             if (meta == null) {
                 //System.out.println("NEW REGION ALLOCATION");
                 meta = new RegionMeta();
-                meta.id = id;
+                meta.id = id - 1;//FIXME: THE -1 IS CAUSE THE ID POOL STARTS AT 1 this is not good to do this
+                if (pos2id.size() != 1)
+                    throw new IllegalStateException();
+                for (var sec : sectionMetaMap.values()) {
+                    meta.aabb.set(sec.getData().bounds);
+                }
             } else {
                 //System.out.println("DESTROY REGION ALLOCATION");
                 SodiumWorldRenderer.instance().getOcclusionEngine().regionMeta.remove(this);

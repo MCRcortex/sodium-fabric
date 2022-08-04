@@ -28,6 +28,7 @@ public class JomlFrustum implements Frustum {
 
     @Override
     public boolean isBoxVisible(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
-        return intersection.testAab(minX, minY, minZ, maxX, maxY, maxZ);
+        return intersection.testAab(minX - this.offset.x, minY - this.offset.y, minZ - this.offset.z,
+                maxX - this.offset.x, maxY - this.offset.y, maxZ - this.offset.z);
     }
 }

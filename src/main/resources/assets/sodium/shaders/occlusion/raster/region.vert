@@ -24,5 +24,5 @@ flat out uint ID;
 void main() {
     ID = gl_InstanceID;
     gl_Position = (MVP*getBoxCorner(gl_VertexID));
-    gl_Position.z -= 0.005;//Bias the depth to be closer to the camera, this is to reduce flicker
+    gl_Position.z -= 0.0005;//Bias the depth to be closer to the camera, this is to reduce flicker
 }

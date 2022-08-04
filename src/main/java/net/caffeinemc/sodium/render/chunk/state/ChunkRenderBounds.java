@@ -60,13 +60,13 @@ public class ChunkRenderBounds {
             int z2 = origin.getMinZ() + rightBound(this.z);
 
             return new ChunkRenderBounds(
-                    Math.max(x1, origin.getMinX()) - 0.5d,
-                    Math.max(y1, origin.getMinY()) - 0.5d,
-                    Math.max(z1, origin.getMinZ()) - 0.5d,
+                    x1,
+                    y1,
+                    z1,
 
-                    Math.min(x2, origin.getMaxX()) + 0.5d,
-                    Math.min(y2, origin.getMaxY()) + 0.5d,
-                    Math.min(z2, origin.getMaxZ()) + 0.5d
+                    x2,
+                    y2,
+                    z2
             );
         }
 

@@ -4,6 +4,7 @@ import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.api.pipeline.ComputePipeline;
 import net.caffeinemc.gfx.api.shader.*;
+import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
 import net.caffeinemc.sodium.render.shader.ShaderParser;
@@ -36,6 +37,7 @@ public class CreateTerrainCommandsComputeShader {
         this.device = device;
         ShaderConstants constants = ShaderConstants.builder()
                 .add("LOCAL_SIZE_Y", Integer.toString(LOCAL_SIZE_Y))
+                .add("REGION_SECTION_MAX_SIZE", Integer.toString(RenderRegion.REGION_SIZE))
                 .build();
         this.computeProgram = this.device.createProgram(ShaderDescription.builder()
                 .addShaderSource(ShaderType.COMPUTE,

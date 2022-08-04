@@ -1,17 +1,18 @@
 package net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs;
 
 public class RegionMeta {
-    public static final int SIZE = 4 + AABB.SIZE + 4 + 4;
+    public static final int SIZE = 4 + 4 + 4 + 4 + AABB.SIZE;
 
     public int id = -1;
-    public AABB aabb = new AABB();
     public int sectionStart;
     public int sectionCount;
+    public AABB aabb = new AABB();
 
     public void write(IStructWriter writer) {
         writer.write(id);
-        aabb.write(writer);
-        writer.write(sectionCount);
         writer.write(sectionStart);
+        writer.write(sectionCount);
+        writer.write(0);//PADDING
+        aabb.write(writer);
     }
 }

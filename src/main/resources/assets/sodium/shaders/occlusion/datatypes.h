@@ -11,16 +11,21 @@ struct AABB {
 struct RegionMeta {
     uint id;
 
-    //Bounding box of the region and all sections inside
-    AABB bb;
-
     uint sectionStart;
     uint sectionCount;
+
+    uint ALIGNMENT_PADDING;
+
+    //Bounding box of the region and all sections inside
+    AABB bb;
 };
 
 struct SectionMeta {
     uint id;
     uint regionId;
+
+    uint ALIGNMENT_PADDING1;
+    uint ALIGNMENT_PADDING2;
 
     //Offset to chunk section corner in world space
     vec4 sectionPos;

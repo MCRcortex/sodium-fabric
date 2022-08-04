@@ -11,6 +11,7 @@ import net.caffeinemc.gfx.api.shader.*;
 import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.CubeIndexBuffer;
+import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
 import net.caffeinemc.sodium.render.shader.ShaderParser;
@@ -19,6 +20,8 @@ import net.minecraft.util.Identifier;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Set;
+
+import static org.lwjgl.opengl.GL11C.*;
 
 public class RasterSectionShader {
 
@@ -44,7 +47,9 @@ public class RasterSectionShader {
 
         var vertexArray = new VertexArrayDescription<>(EmptyTarget.values(), List.of());
 
-        ShaderConstants constants = ShaderConstants.builder().build();
+        ShaderConstants constants = ShaderConstants.builder()
+                .add("REGION_SECTION_SIZE_MASK", Integer.toString(RenderRegion.REGION_SIZE_M))
+                .build();
         this.rasterCullProgram = this.device.createProgram(ShaderDescription.builder()
                 .addShaderSource(ShaderType.VERTEX,
                         ShaderParser.parseSodiumShader(ShaderLoader.MINECRAFT_ASSETS,
@@ -73,6 +78,9 @@ public class RasterSectionShader {
             pipelineState.bindBufferBlock(programInterface.visbuff, visibilityBuffer);
             //TODO: change from triangles to like triangle fan or something, then on nvidia enable representitive fragment
             // tests
+            //glColorMask(true, true, true, true);
+            //glDepthMask(true);
+            //glDepthFunc(GL_LEQUAL);
             cmd.multiDrawElementsIndirect(PrimitiveType.TRIANGLES, ElementFormat.UNSIGNED_BYTE, 0, regionCount, 5*4);
         });
     }

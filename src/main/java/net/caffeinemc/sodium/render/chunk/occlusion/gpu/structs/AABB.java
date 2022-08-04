@@ -7,7 +7,7 @@ import org.joml.Vector4f;
 public class AABB {
     //TODO: maybe convert too min and max vectors and when writing convert to min + size as it simplifies alot of things
     public static final int SIZE = 4 * 4 * 2;
-    public Vector4f offset = new Vector4f();
+    public Vector4f offset = new Vector4f(Float.POSITIVE_INFINITY);
     public Vector4f size = new Vector4f();
 
     public void write(IStructWriter writer) {
@@ -29,17 +29,18 @@ public class AABB {
 
     public boolean isOnInsideBoarder(ChunkRenderBounds other) {
         //TODO: CHECK THIS WORKS DUE TO FLOATING POINT ISSUES, if not make it like if its close enough
-        if ((float)other.x1 == offset.x)
+
+        if (Math.abs((float)other.x1 - offset.x) < 0.0001)
             return true;
-        if ((float)other.y1 == offset.y)
+        if (Math.abs((float)other.y1 - offset.y) < 0.0001)
             return true;
-        if ((float)other.z1 == offset.z)
+        if (Math.abs((float)other.z1 - offset.z) < 0.0001)
             return true;
-        if ((float)other.x2 == offset.x + size.x)
+        if (Math.abs((float)other.x2 - (offset.x + size.x)) < 0.0001)
             return true;
-        if ((float)other.y2 == offset.y + size.y)
+        if (Math.abs((float)other.y2 - (offset.y + size.y)) < 0.0001)
             return true;
-        if ((float)other.z2 == offset.z + size.z)
+        if (Math.abs((float)other.z2 - (offset.z + size.z)) < 0.0001)
             return true;
 
         return false;
@@ -64,5 +65,13 @@ public class AABB {
         size.x = (float) Math.max(bounds.x2, lsx) - offset.x;
         size.y = (float) Math.max(bounds.y2, lsy) - offset.y;
         size.z = (float) Math.max(bounds.z2, lsz) - offset.z;
+    }
+
+    public void setOrExpand(ChunkRenderBounds bounds) {
+        if ((offset.x == Float.POSITIVE_INFINITY) && (offset.y == Float.POSITIVE_INFINITY) && (offset.z == Float.POSITIVE_INFINITY)) {
+            set(bounds);
+        } else {
+            ensureContains(bounds);
+        }
     }
 }

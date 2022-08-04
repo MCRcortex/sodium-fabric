@@ -11,11 +11,9 @@ import it.unimi.dsi.fastutil.objects.ReferenceList;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
-import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
-import net.caffeinemc.gfx.api.buffer.ImmutableBufferFlags;
+
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
-import net.caffeinemc.gfx.util.buffer.BufferPool;
 import net.caffeinemc.gfx.util.buffer.streaming.SectionedStreamingBuffer;
 import net.caffeinemc.gfx.util.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
@@ -65,8 +63,9 @@ public class RenderRegionManager {
 
 
         //TODO: make it an option of which system its using
-        bufferProvider = new GlobalAsyncBufferProvider(device, stagingBuffer, vertexType, 5000000000L);//5GB max size
+        //bufferProvider = new GlobalSparseAsyncBufferProvider(device, stagingBuffer, vertexType, 5000000000L);//5GB max size
         //bufferProvider = new DistinctRecycledBufferProvider(device, stagingBuffer, vertexType);
+        bufferProvider = new GlobalSingleBufferProvider(device, stagingBuffer, vertexType);
     }
 
     public RenderRegion getRegion(long regionId) {

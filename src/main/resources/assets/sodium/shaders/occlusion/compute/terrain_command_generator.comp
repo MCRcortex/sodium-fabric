@@ -37,7 +37,7 @@ void main() {
         return;
     }
 
-    if (visibility[SECTION_ID] != frameId) {
+    if (visibility[gl_GlobalInvocationID.x*REGION_SECTION_MAX_SIZE + gl_GlobalInvocationID.y] != frameId) {
         return;
     }
 

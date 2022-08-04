@@ -268,6 +268,11 @@ public class RenderSection {
         }
 
         //TODO: update meta
+        meta.regionId = region.meta.id;
+        meta.aabb.set(data.bounds);
+        meta.sectionPos.x = chunkX<<4;
+        meta.sectionPos.y = chunkY<<4;
+        meta.sectionPos.z = chunkZ<<4;
 
         region.enqueueSectionMetaUpdate(this);
     }

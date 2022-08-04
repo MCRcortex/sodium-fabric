@@ -40,23 +40,26 @@ void main() {
 
     //TODO: pre set the constants or some shit
     rasterCommands[gl_GlobalInvocationID.x].firstIndex   = 0;
-    rasterCommands[gl_GlobalInvocationID.x].baseVertex   = 0;
     if (visibility[gl_GlobalInvocationID.x] == frameId) {//The region is visible so must raster tests
         int rid = regionArray[gl_GlobalInvocationID.x];
         rasterCommands[gl_GlobalInvocationID.x].count = 3*2*6;
         uint sectionCount = regions[rid].sectionCount;
         rasterCommands[gl_GlobalInvocationID.x].instanceCount = sectionCount;
-        rasterCommands[gl_GlobalInvocationID.x].baseInstance = regions[rid].sectionStart;
+        rasterCommands[gl_GlobalInvocationID.x].baseVertex    = regions[rid].sectionStart;
         //TODO: could also use the data from the dispatchCommand to do a multidrawindirectcount command
         {
             uint offset = atomicAdd(dispatchCommand.num_groups_x, 1);
             atomicMax(dispatchCommand.num_groups_y, (sectionCount/TERRAIN_LOCAL_SIZE_Y)+1);//TODO: FIXME: need to just ceil this division or something better than + 1
             regionArrayOut[offset] = rid;
+
+
+            rasterCommands[gl_GlobalInvocationID.x].baseInstance = offset * REGION_SECTION_MAX_SIZE;
         }
 
     } else {//The region isnt visible so dont test anything
         rasterCommands[gl_GlobalInvocationID.x].count = 0;
         rasterCommands[gl_GlobalInvocationID.x].instanceCount = 0;
         rasterCommands[gl_GlobalInvocationID.x].baseInstance = 0;
+        rasterCommands[gl_GlobalInvocationID.x].baseVertex   = 0;
     }
 }

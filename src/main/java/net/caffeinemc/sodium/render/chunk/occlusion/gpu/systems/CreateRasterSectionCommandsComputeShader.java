@@ -6,6 +6,7 @@ import net.caffeinemc.gfx.api.pipeline.ComputePipeline;
 import net.caffeinemc.gfx.api.pipeline.RenderPipelineDescription;
 import net.caffeinemc.gfx.api.pipeline.state.WriteMask;
 import net.caffeinemc.gfx.api.shader.*;
+import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
 import net.caffeinemc.sodium.render.shader.ShaderParser;
@@ -45,6 +46,7 @@ public class CreateRasterSectionCommandsComputeShader {
         ShaderConstants constants = ShaderConstants.builder()
                 .add("LOCAL_SIZE_X", Integer.toString(LOCAL_SIZE_X))
                 .add("TERRAIN_LOCAL_SIZE_Y", Integer.toString(CreateTerrainCommandsComputeShader.LOCAL_SIZE_Y))
+                .add("REGION_SECTION_MAX_SIZE", Integer.toString(RenderRegion.REGION_SIZE))
                 .build();
         this.computeProgram = this.device.createProgram(ShaderDescription.builder()
                 .addShaderSource(ShaderType.COMPUTE,

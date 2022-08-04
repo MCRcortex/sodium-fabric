@@ -55,6 +55,8 @@ import org.lwjgl.opengl.GL20C;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
+import static org.lwjgl.opengl.GL11C.glFinish;
+
 public class TerrainRenderManager {
     /**
      * The maximum distance a chunk can be from the player's camera in order to be eligible for blocking updates.
@@ -181,12 +183,12 @@ public class TerrainRenderManager {
         }
 
         profiler.swap("update_render_list_burg");
-        //this.sortedTerrainLists.update(this.visibleMeshedSections, camera);
-        profiler.swap("update_render_list_cortex");
-        this.generatingCommandSet.update(this.visibleMeshedSectionsPasses, camera, frameIndex);
+        this.sortedTerrainLists.update(this.visibleMeshedSections, camera);
+        //profiler.swap("update_render_list_cortex");
+        //this.generatingCommandSet.update(this.visibleMeshedSectionsPasses, camera, frameIndex);
         profiler.swap("create_render_lists");
-        //this.chunkRenderer.createRenderLists(this.sortedTerrainLists, camera, this.frameIndex);
-        ((MdiChunkRenderer)this.chunkRenderer).createRenderLists(generatingCommandSet, this.frameIndex);
+        this.chunkRenderer.createRenderLists(this.sortedTerrainLists, camera, this.frameIndex);
+        //((MdiChunkRenderer)this.chunkRenderer).createRenderLists(generatingCommandSet, this.frameIndex);
 
         this.needsUpdate = false;
     }
@@ -312,8 +314,10 @@ public class TerrainRenderManager {
     }
 
     public void doTerrainOcclusion(ChunkRenderMatrices matrices) {
+        //glFinish();
         MinecraftClient.getInstance().getProfiler().push("occlusion_engine_culling");
         occlusionEngine.doOcclusion(regionManager.getRegions(), frameIndex, matrices, camera, frustum);
+        //glFinish();
         MinecraftClient.getInstance().getProfiler().pop();
     }
 

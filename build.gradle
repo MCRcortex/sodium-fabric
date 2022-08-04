@@ -77,9 +77,10 @@ dependencies {
         modRuntimeOnly "maven.modrinth:lithium:mc1.19-0.8.0"
     }
 }
+/*
 import org.gradle.internal.os.OperatingSystem
 
-project.ext.lwjglVersion = "3.3.1"
+project.ext.lwjglVersion = "3.3.0"
 
 switch (OperatingSystem.current()) {
     case OperatingSystem.LINUX:
@@ -107,7 +108,7 @@ dependencies {
     runtimeOnly "org.lwjgl:lwjgl-tootle::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-vma::$lwjglNatives"
     if (lwjglNatives == "natives-macos") runtimeOnly "org.lwjgl:lwjgl-vulkan::$lwjglNatives"
-}
+}*/
 
 String getVersion() {
     String version = "${project.mod_version}+mc${project.minecraft_version}"

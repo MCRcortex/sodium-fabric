@@ -19,12 +19,17 @@ import java.util.Collection;
 import java.util.Set;
 
 import static org.lwjgl.opengl.ARBDirectStateAccess.glClearNamedBufferData;
+import static org.lwjgl.opengl.ARBDirectStateAccess.glClearNamedBufferSubData;
 import static org.lwjgl.opengl.GL11C.GL_RED;
 import static org.lwjgl.opengl.GL11C.GL_UNSIGNED_INT;
 import static org.lwjgl.opengl.GL30C.GL_R32UI;
+import static org.lwjgl.opengl.GL42C.*;
+import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BARRIER_BIT;
 
-//TODO: For the section visibility thing, could pack it much more compactly into its buffer by having
-// the index of the regionVisibilityOut buffer be the lookup index into the sectionVisibility buffer
+
+//FIXME: The region the camera is in will get culled,
+// this is cause winding culling, 2 ways to fix, hard inject the current section the camera is in too index 0 and just hard set
+// that invocation id 0 is always true
 public class OcclusionEngine {
     public static final int MAX_REGIONS = 150;
     public static final long MULTI_DRAW_INDIRECT_COMMAND_SIZE = 5*4;
@@ -50,12 +55,17 @@ public class OcclusionEngine {
 
     public void doOcclusion(Collection<RenderRegion> regions, int renderId, ChunkRenderMatrices matrices, ChunkCameraContext cam, Frustum frustum) {
         var viewport = ViewportedData.DATA.get();
+
         viewport.visible_regions.clear();
         int regionCount = 0;
         {
             long addrFrustumRegion = MemoryUtil.memAddress(viewport.frustumRegionArray.view());
             for (RenderRegion region : regions) {
-                if (region.isEmpty() || region.meta == null || !region.meta.aabb.isVisible(frustum)) {
+                if (region.isEmpty() || region.meta == null) {
+                    continue;
+                }
+
+                if (!region.meta.aabb.isVisible(frustum)) {
                     continue;
                 }
 
@@ -63,6 +73,7 @@ public class OcclusionEngine {
                                 Math.pow(region.regionCenterBlockY-cam.posY, 2)+
                                 Math.pow(region.regionCenterBlockZ-cam.posZ, 2);
                 viewport.visible_regions.add(region);
+                //TODO: NEED TO ONLY DO THIS AFTER ALL REGIONS ARE DONE SO THAT ITS BASED ON THE sorted distance
                 MemoryUtil.memPutInt(addrFrustumRegion + regionCount* 4L, region.meta.id);
                 regionCount++;
                 //TODO: Region on vis tick
@@ -71,10 +82,18 @@ public class OcclusionEngine {
         }
         {
             //TODO: put into gfx
-            glClearNamedBufferData(GlBuffer.getHandle(viewport.computeDispatchCommandBuffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
+            //TODO: FIXME: need to set the first 2 ints too 0 and the last one too 1
+            glClearNamedBufferData(GlBuffer.getHandle(viewport.computeDispatchCommandBuffer),
+                    GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
+            //ULTRA HACK FIX
+            glClearNamedBufferSubData(GlBuffer.getHandle(viewport.computeDispatchCommandBuffer),
+                    GL_R32UI, 8, 4,GL_RED, GL_UNSIGNED_INT, new int[]{1});
         }
         {
-            viewport.scene.MVP.set(matrices.modelView()).mul(matrices.projection());
+            viewport.scene.MVP.set(matrices.projection())
+                    .mul(matrices.modelView())
+                    //.translate(-(cam.blockX + cam.deltaX), -(cam.blockY + cam.deltaY), -(cam.blockZ + cam.deltaZ));
+                    .translate((float) -(cam.posX), (float) -(cam.posY),(float) -(cam.posZ));
             viewport.scene.MV.set(matrices.modelView());
             viewport.scene.camera.set(cam.blockX + cam.deltaX, cam.blockY + cam.deltaY, cam.blockZ + cam.deltaZ);
             viewport.scene.regionCount = regionCount;
@@ -83,6 +102,7 @@ public class OcclusionEngine {
             viewport.scene.write(new MappedBufferWriter(viewport.sceneBuffer));
             viewport.sceneBuffer.flush();
         }
+
         rasterRegion.execute(
                 regionCount,
                 viewport.sceneBuffer,
@@ -109,9 +129,6 @@ public class OcclusionEngine {
                 sectionMeta.getBuffer(),
                 viewport.sectionVisibilityBuffer
         );
-        if (true)
-            return;
-
 
         createTerrainCommands.execute(
                 viewport.sceneBuffer,

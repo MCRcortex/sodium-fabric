@@ -57,6 +57,6 @@ public class ViewportedData {
         sectionCommandBuffer = device.createBuffer(OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE*OcclusionEngine.MAX_REGIONS, Set.of());
         computeDispatchCommandBuffer = device.createBuffer(4*3, Set.of());
         visibleRegionArray = device.createBuffer(4*OcclusionEngine.MAX_REGIONS,Set.of());
-        sectionVisibilityBuffer = null;
+        sectionVisibilityBuffer = device.createBuffer(4*OcclusionEngine.MAX_REGIONS*RenderRegion.REGION_SIZE,Set.of());
     }
 }
