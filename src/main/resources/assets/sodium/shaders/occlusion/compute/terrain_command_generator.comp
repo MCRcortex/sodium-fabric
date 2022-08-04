@@ -21,9 +21,10 @@ layout(std430, binding = 4) restrict readonly buffer SectionMetaData {
     SectionMeta sections[];
 };
 
+uint SECTION_ID;
+
 #define SECTION sections[SECTION_ID]
 
-uint SECTION_ID;
 
 void main() {
     if (REGION.sectionCount >= gl_GlobalInvocationID.y) {

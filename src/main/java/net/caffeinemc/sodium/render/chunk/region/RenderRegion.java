@@ -54,10 +54,28 @@ public class RenderRegion {
     public int renderDataIndex;
     public int lastFrameId;
 
-    public RenderRegion(RenderDevice device, IVertexBufferProvider provider, int id) {
+    public double regionSortDistance;
+
+    public final int regionX;
+    public final int regionY;
+    public final int regionZ;
+
+    public final double regionCenterBlockX;
+    public final double regionCenterBlockY;
+    public final double regionCenterBlockZ;
+
+    public RenderRegion(RenderDevice device, IVertexBufferProvider provider, int id, long packedPosition) {
         this.vertexBuffer = provider.provide();
         vbm = provider;
         this.id = id;
+        ChunkSectionPos pos  = ChunkSectionPos.from(packedPosition);
+        regionX = pos.getX();
+        regionY = pos.getY();
+        regionZ = pos.getZ();
+
+        regionCenterBlockX = (regionX*REGION_WIDTH+(double)REGION_WIDTH/2)*16+8;
+        regionCenterBlockY = (regionY*REGION_HEIGHT+(double)REGION_HEIGHT/2)*16+8;
+        regionCenterBlockZ = (regionZ*REGION_LENGTH+(double)REGION_LENGTH/2)*16+8;
     }
 
     /**
@@ -176,6 +194,11 @@ public class RenderRegion {
 
     public void chunkBoundsUpdate(RenderSection section, ChunkRenderBounds Old, ChunkRenderBounds New) {
         //TODO: this: update region bounding meta
+        if (meta.aabb.isOnInsideBoarder(Old)) {
+            //TODO: need to update the entire AABB of the region, i.e. recreate it and enumerate over all sections aabbs
+        } else {
+            meta.aabb.ensureContains(New);
+        }
         updateRegionMeta();
     }
 
@@ -190,14 +213,19 @@ public class RenderRegion {
     private void updateRegionMeta() {
         if (shouldRender() == (meta == null)) {
             if (meta == null) {
-                System.out.println("NEW REGION ALLOCATION");
+                //System.out.println("NEW REGION ALLOCATION");
                 meta = new RegionMeta();
+                meta.id = id;
             } else {
-                System.out.println("DESTROY REGION ALLOCATION");
-                //TODO: emit destruction to meta buffer
+                //System.out.println("DESTROY REGION ALLOCATION");
+                SodiumWorldRenderer.instance().getOcclusionEngine().regionMeta.remove(this);
                 meta = null;
                 return;
             }
         }
+
+        meta.sectionCount = sectionCount;
+        meta.sectionStart = meta.id * REGION_SIZE;
+        SodiumWorldRenderer.instance().getOcclusionEngine().regionMeta.update(this);
     }
 }

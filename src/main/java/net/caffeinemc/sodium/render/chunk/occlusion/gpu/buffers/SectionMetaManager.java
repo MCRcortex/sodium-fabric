@@ -24,17 +24,11 @@ public final class SectionMetaManager {
         writer = new MappedBufferWriter(buffer);
     }
 
-    public void allocateRegion(RenderRegion region) {
-
-    }
-
-    public void deallocateRegion(RenderRegion region) {
-
-    }
-
     public void update(RenderSection section) {
         if (section.meta == null || section.getRegion() == null || section.getRegion().meta == null)
             return;
+        if (section.getRegion().meta.id == -1)
+            throw new IllegalStateException();
         //TODO: abstract the getting of the region offset or something
         long offset = ((long) section.meta.id * SectionMeta.SIZE) + ((long) section.getRegion().meta.id * RenderRegion.REGION_SIZE * SectionMeta.SIZE);
         writer.setOffset(offset);

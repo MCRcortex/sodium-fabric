@@ -1,6 +1,7 @@
 package net.caffeinemc.sodium.render.chunk.occlusion.gpu;
 
 import net.caffeinemc.gfx.api.device.RenderDevice;
+import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
@@ -17,8 +18,16 @@ import org.lwjgl.system.MemoryUtil;
 import java.util.Collection;
 import java.util.Set;
 
+import static org.lwjgl.opengl.ARBDirectStateAccess.glClearNamedBufferData;
+import static org.lwjgl.opengl.GL11C.GL_RED;
+import static org.lwjgl.opengl.GL11C.GL_UNSIGNED_INT;
+import static org.lwjgl.opengl.GL30C.GL_R32UI;
+
+//TODO: For the section visibility thing, could pack it much more compactly into its buffer by having
+// the index of the regionVisibilityOut buffer be the lookup index into the sectionVisibility buffer
 public class OcclusionEngine {
     public static final int MAX_REGIONS = 150;
+    public static final long MULTI_DRAW_INDIRECT_COMMAND_SIZE = 5*4;
 
     public final RegionMetaManager regionMeta;
     public final SectionMetaManager sectionMeta;
@@ -49,7 +58,10 @@ public class OcclusionEngine {
                 if (region.isEmpty() || region.meta == null || !region.meta.aabb.isVisible(frustum)) {
                     continue;
                 }
-                //TODO: need to sort it by distance
+
+                region.regionSortDistance = Math.pow(region.regionCenterBlockX-cam.posX, 2)+
+                                Math.pow(region.regionCenterBlockY-cam.posY, 2)+
+                                Math.pow(region.regionCenterBlockZ-cam.posZ, 2);
                 viewport.visible_regions.add(region);
                 MemoryUtil.memPutInt(addrFrustumRegion + regionCount* 4L, region.meta.id);
                 regionCount++;
@@ -57,7 +69,10 @@ public class OcclusionEngine {
             }
             viewport.frustumRegionArray.flush(0, regionCount * 4L);
         }
-
+        {
+            //TODO: put into gfx
+            glClearNamedBufferData(GlBuffer.getHandle(viewport.computeDispatchCommandBuffer),  GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
+        }
         {
             viewport.scene.MVP.set(matrices.modelView()).mul(matrices.projection());
             viewport.scene.MV.set(matrices.modelView());
@@ -68,8 +83,6 @@ public class OcclusionEngine {
             viewport.scene.write(new MappedBufferWriter(viewport.sceneBuffer));
             viewport.sceneBuffer.flush();
         }
-        if (true)
-            return;
         rasterRegion.execute(
                 regionCount,
                 viewport.sceneBuffer,
@@ -96,6 +109,9 @@ public class OcclusionEngine {
                 sectionMeta.getBuffer(),
                 viewport.sectionVisibilityBuffer
         );
+        if (true)
+            return;
+
 
         createTerrainCommands.execute(
                 viewport.sceneBuffer,

@@ -312,7 +312,9 @@ public class TerrainRenderManager {
     }
 
     public void doTerrainOcclusion(ChunkRenderMatrices matrices) {
+        MinecraftClient.getInstance().getProfiler().push("occlusion_engine_culling");
         occlusionEngine.doOcclusion(regionManager.getRegions(), frameIndex, matrices, camera, frustum);
+        MinecraftClient.getInstance().getProfiler().pop();
     }
 
     public void tickVisibleRenders() {

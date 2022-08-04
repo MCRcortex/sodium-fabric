@@ -212,7 +212,8 @@ public class RenderRegionManager {
             region = new RenderRegion(
                     this.device,
                     this.bufferProvider,
-                    this.idPool.create()
+                    this.idPool.create(),
+                    regionKey
             );
             
             this.regions.put(regionKey, region);
