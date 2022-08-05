@@ -7,14 +7,15 @@ public class SectionMeta {
 
     public int id;
     public int regionId;
+    public int visbitmask;
     public Vector4f sectionPos = new Vector4f();
     public AABB aabb = new AABB();
 
     public void write(IStructWriter writer) {
         writer.write(id);
         writer.write(regionId);
+        writer.write(visbitmask);
         //PADDING
-        writer.write(0);
         writer.write(0);
 
         writer.write(sectionPos);

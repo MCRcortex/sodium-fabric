@@ -25,6 +25,8 @@ uint SECTION_ID;
 
 #define SECTION sections[SECTION_ID]
 
+vec3 half_size;
+vec3 relative_center;
 
 void main() {
     if (REGION.sectionCount >= gl_GlobalInvocationID.y) {
@@ -40,7 +42,16 @@ void main() {
     if (visibility[gl_GlobalInvocationID.x*REGION_SECTION_MAX_SIZE + gl_GlobalInvocationID.y] != frameId) {
         return;
     }
+    half_size = SECTION.aabb.size.xyz/2;
+    relative_center = SECTION.aabb.offset.xyz + half_size - camera.xyz;
 
+    uint msk = SECTION.bitvismsk;
+    msk &= relative_center.y<half_size.y ? 0xFFFFFFFFu : 4278124286u;
+    msk &= relative_center.y>-half_size.y? 0xFFFFFFFFu : 4261281277u;
+    msk &= relative_center.x<half_size.x ? 0xFFFFFFFFu : 4227595259u;
+    msk &= relative_center.x>-half_size.x? 0xFFFFFFFFu : 4160223223u;
+    msk &= relative_center.z<half_size.z ? 0xFFFFFFFFu : 4025479151u;
+    msk &= relative_center.z>-half_size.z? 0xFFFFFFFFu : 3755991007u;
 
 
 }

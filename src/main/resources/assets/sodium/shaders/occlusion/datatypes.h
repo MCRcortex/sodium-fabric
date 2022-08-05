@@ -23,15 +23,15 @@ struct RegionMeta {
 struct SectionMeta {
     uint id;
     uint regionId;
+    uint bitvismsk;
 
-    uint ALIGNMENT_PADDING1;
-    uint ALIGNMENT_PADDING2;
+    uint ALIGNMENT_PADDING;
 
     //Offset to chunk section corner in world space
     vec4 sectionPos;
 
     //AABB in world space
-    AABB bb;
+    AABB aabb;
 
     //TODO: try to make AABB relative to chunk corner and the chunk corner an int or something of chunk space coords
     // this should prevent any issues relating to loss of precision

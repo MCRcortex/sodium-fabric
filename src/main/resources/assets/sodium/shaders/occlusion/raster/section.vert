@@ -18,7 +18,7 @@ layout(std430, binding = 1) restrict readonly buffer SectionMetaData {
 
 
 vec4 getBoxCorner(int corner) {
-    return vec4(SECTION.bb.offset.xyz + vec3((corner&1), ((corner>>2)&1), ((corner>>1)&1))*SECTION.bb.size.xyz, 1);
+    return vec4(SECTION.aabb.offset.xyz + vec3((corner&1), ((corner>>2)&1), ((corner>>1)&1))*SECTION.aabb.size.xyz, 1);
 }
 
 
