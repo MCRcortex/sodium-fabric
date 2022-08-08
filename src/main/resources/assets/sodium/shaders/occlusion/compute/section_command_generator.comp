@@ -6,7 +6,7 @@ layout(local_size_x = LOCAL_SIZE_X) in;
 
 
 layout(std430, binding = 1) restrict readonly buffer RegionArrayData {
-    int[] regionArray;
+    int regionArray[MAX_REGIONS];
 };
 
 layout(std430, binding = 2) restrict readonly buffer RegionMetaData {

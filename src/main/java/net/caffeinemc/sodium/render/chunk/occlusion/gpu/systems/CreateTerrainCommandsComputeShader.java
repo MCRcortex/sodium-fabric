@@ -48,6 +48,7 @@ public class CreateTerrainCommandsComputeShader {
                 .add("LOCAL_SIZE_Y", Integer.toString(LOCAL_SIZE_Y))
                 .add("REGION_SECTION_MAX_SIZE", Integer.toString(RenderRegion.REGION_SIZE))
                 .add("MAX_COMMAND_COUNT_PER_LAYER", Integer.toString(OcclusionEngine.MAX_RENDER_COMMANDS_PER_LAYER))
+                .add("MAX_REGIONS", String.valueOf(OcclusionEngine.MAX_REGIONS))
                 .build();
         this.computeProgram = this.device.createProgram(ShaderDescription.builder()
                 .addShaderSource(ShaderType.COMPUTE,

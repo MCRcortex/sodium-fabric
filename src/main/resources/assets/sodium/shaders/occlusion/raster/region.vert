@@ -5,8 +5,9 @@
 
 //TODO: MAYBE MERGE regionList and the visibility array into a single buffer that is bitset
 layout(std430, binding = 1) restrict readonly buffer RegionArrayData {
-    int[] regionList;
+    int regionList[MAX_REGIONS];
 };
+
 #define REGION_ID regionList[gl_InstanceID]
 
 layout(std430, binding = 2) restrict readonly buffer RegionMetaData {

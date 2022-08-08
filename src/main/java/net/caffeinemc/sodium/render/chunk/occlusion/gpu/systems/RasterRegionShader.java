@@ -11,6 +11,7 @@ import net.caffeinemc.gfx.api.shader.*;
 import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.CubeIndexBuffer;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.ViewportedData;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
@@ -50,6 +51,7 @@ public class RasterRegionShader {
         var vertexArray = new VertexArrayDescription<>(EmptyTarget.values(), List.of());
 
         ShaderConstants constants = ShaderConstants.builder()
+                .add("MAX_REGIONS", String.valueOf(OcclusionEngine.MAX_REGIONS))
                 .build();
         this.rasterCullProgram = this.device.createProgram(ShaderDescription.builder()
                 .addShaderSource(ShaderType.VERTEX,
