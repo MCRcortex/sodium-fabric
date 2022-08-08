@@ -28,10 +28,14 @@ layout(std430, binding = 2) restrict writeonly buffer VisibilityBuffer {
 flat out uint ID;
 void main() {
     ID = gl_InstanceID + gl_BaseInstanceARB;
+
+    //TODO: only maybe do this
     if (SECTION.id != SECTION_ID) {
         gl_Position = vec4(-2,-2,-2,1);
         return;
     }
+
+
     gl_Position = (MVP*getBoxCorner(gl_VertexID));
     gl_Position.z -= 0.0005;//Bias the depth to be closer to the camera, this is to reduce flicker
 }

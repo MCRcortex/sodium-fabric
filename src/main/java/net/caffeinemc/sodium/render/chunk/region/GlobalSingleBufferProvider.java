@@ -72,9 +72,5 @@ public class GlobalSingleBufferProvider implements IVertexBufferProvider {
     public void prune(float prunePercentModifier) {
         bufferPool.prune(prunePercentModifier);
     }
-
-    public Buffer getGlobalBuffer() {
-        return buffer.getBufferObject();
-    }
 }
 

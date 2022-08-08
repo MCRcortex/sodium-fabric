@@ -56,12 +56,12 @@ void writeFaceRenderCommand(uint msk, uint faceIndex, uint consecutiveFaces, uin
         drawCommands[cmdIdx].baseInstance = instanceId;
     }
 
-    /*
+
     if ((msk&((1u<<16)<<faceIndex)) != 0) {//Layer 2
         uint count = SECTION.RANGES[2][faceIndex].count;
-        for (uint i = faceIndex+1; i < faceIndex + consecutiveFaces; i++) {
-            count += SECTION.RANGES[2][i].count;
-        }
+        //for (uint i = faceIndex+1; i < faceIndex + consecutiveFaces; i++) {
+        //    count += SECTION.RANGES[2][i].count;
+        //}
 
         uint cmdIdx = atomicAdd(cmdBuff2Count, 1) + COMMAND_INDEX_OFFSET(2);
 
@@ -70,5 +70,5 @@ void writeFaceRenderCommand(uint msk, uint faceIndex, uint consecutiveFaces, uin
         drawCommands[cmdIdx].count = count;
         drawCommands[cmdIdx].baseVertex = SECTION.RANGES[2][faceIndex].start;
         drawCommands[cmdIdx].baseInstance = instanceId;
-    }*/
+    }
 }

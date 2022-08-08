@@ -35,8 +35,9 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
             return;
         }
         RenderPipeline<ChunkShaderInterface, BufferTarget> renderPipeline = this.renderPipelines[passId];
-        if (renderPass != renderPassManager.getRenderPassForLayer(RenderLayer.getSolid()))
+        if (passId>2)
             return;
+
         indexBuffer.ensureCapacity(100000);
         this.device.useRenderPipeline(renderPipeline, (commandList, programInterface, pipelineState) -> {
             this.setupTextures(renderPass, pipelineState);
@@ -52,9 +53,7 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
 
             pipelineState.bindBufferBlock(
                     programInterface.ssboChunkTransforms,
-                    viewport.chunkInstancedDataBuffer,
-                    0,
-                    OcclusionEngine.MAX_VISIBLE_SECTIONS*(4*4)
+                    viewport.chunkInstancedDataBuffer
             );
 
             commandList.bindCommandBuffer(viewport.commandOutputBuffer);
@@ -63,18 +62,10 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
             commandList.multiDrawElementsIndirectCount(
                     PrimitiveType.TRIANGLES,
                     ElementFormat.UNSIGNED_INT,
-                    0,
-                    4,
+                    OcclusionEngine.MAX_RENDER_COMMANDS_PER_LAYER*passId*OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE,
+                    4+passId*4,
                     //100000,
-                    (int)(viewport.cpuCommandBufferCounter.view().getInt(4)*1.5),
-                    20);
-            commandList.multiDrawElementsIndirectCount(
-                    PrimitiveType.TRIANGLES,
-                    ElementFormat.UNSIGNED_INT,
-                    OcclusionEngine.MAX_RENDER_COMMANDS_PER_LAYER*OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE,
-                    8,
-                    //100000,
-                    (int)(viewport.cpuCommandBufferCounter.view().getInt(8)*1.5),
+                    (int)(viewport.cpuCommandBufferCounter.view().getInt(passId*4+4)*1.5),
                     20);
         });
     }
