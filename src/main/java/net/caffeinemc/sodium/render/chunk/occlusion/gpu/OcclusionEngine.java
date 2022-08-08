@@ -42,6 +42,7 @@ public class OcclusionEngine {
     public static final int MAX_VISIBLE_SECTIONS = 50000;
 
     public static final int MAX_RENDER_COMMANDS_PER_LAYER = 150000;
+    public static final int MAX_TEMPORAL_COMMANDS_PER_LAYER = 1000;
 
     public static final long MULTI_DRAW_INDIRECT_COMMAND_SIZE = 5*4;
 
@@ -179,7 +180,8 @@ public class OcclusionEngine {
                 viewport.sectionVisibilityBuffer,
                 viewport.commandBufferCounter,
                 viewport.chunkInstancedDataBuffer,
-                viewport.commandOutputBuffer
+                viewport.commandOutputBuffer,
+                viewport.temporalSectionData
         );
 
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);

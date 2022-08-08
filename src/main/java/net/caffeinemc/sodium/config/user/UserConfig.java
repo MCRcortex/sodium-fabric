@@ -66,7 +66,7 @@ public class UserConfig {
     public static class NotificationSettings {
         public boolean hideDonationButton = false;
     }
-    
+
     public enum ChunkRendererBackend implements TextProvider {
         DEFAULT("options.gamma.default", p -> true),
         BASEVERTEX("sodium.options.chunk_renderer_backend.base_vertex", p -> true),
@@ -75,25 +75,56 @@ public class UserConfig {
 
         private final Text name;
         private final Predicate<RenderDeviceProperties> supportedSupplier;
-    
+
         ChunkRendererBackend(String name, Predicate<RenderDeviceProperties> supportedSupplier) {
             this.name = Text.translatable(name);
             this.supportedSupplier = supportedSupplier;
         }
-    
+
         @Override
         public Text getLocalizedName() {
             return this.name;
         }
-        
+
         public boolean isSupported(RenderDeviceProperties deviceProperties) {
             return this.supportedSupplier.test(deviceProperties);
         }
-        
+
         public static ChunkRendererBackend[] getSupportedValues(RenderDeviceProperties deviceProperties) {
             return Arrays.stream(ChunkRendererBackend.values())
-                         .filter(tdm -> tdm.isSupported(deviceProperties))
-                         .toArray(ChunkRendererBackend[]::new);
+                    .filter(tdm -> tdm.isSupported(deviceProperties))
+                    .toArray(ChunkRendererBackend[]::new);
+        }
+    }
+
+
+    public enum RegionDataStore implements TextProvider {
+        DEFAULT("options.gamma.default", p -> true),
+        SPARSE_GLOBAL("sodium.options.gpu_occlusion.region_store.sparse_global", p -> true),
+        SINGLE_GLOBAL("sodium.options.gpu_occlusion.region_store.single_global", p -> true),
+        REGION_SPECIFIC("sodium.options.gpu_occlusion.region_store.region_specific", p -> true);
+
+        private final Text name;
+        private final Predicate<RenderDeviceProperties> supportedSupplier;
+
+        RegionDataStore(String name, Predicate<RenderDeviceProperties> supportedSupplier) {
+            this.name = Text.translatable(name);
+            this.supportedSupplier = supportedSupplier;
+        }
+
+        @Override
+        public Text getLocalizedName() {
+            return this.name;
+        }
+
+        public boolean isSupported(RenderDeviceProperties deviceProperties) {
+            return this.supportedSupplier.test(deviceProperties);
+        }
+
+        public static RegionDataStore[] getSupportedValues(RenderDeviceProperties deviceProperties) {
+            return Arrays.stream(RegionDataStore.values())
+                    .filter(tdm -> tdm.isSupported(deviceProperties))
+                    .toArray(RegionDataStore[]::new);
         }
     }
 

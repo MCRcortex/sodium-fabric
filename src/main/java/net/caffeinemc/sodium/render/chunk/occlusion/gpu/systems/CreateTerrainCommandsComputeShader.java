@@ -14,6 +14,8 @@ import net.minecraft.util.Identifier;
 
 //TODO: maybe do via dispatch indirect or something that is set via the RasterSection compute shader
 // simply add 1 to x dim and atomic max the y dim
+
+
 public class CreateTerrainCommandsComputeShader {
     public static final int LOCAL_SIZE_Y = 32;
 
@@ -26,6 +28,7 @@ public class CreateTerrainCommandsComputeShader {
         public final BufferBlock commandCounterBuffer;
         public final BufferBlock instancedDataBuffer;
         public final BufferBlock commandOutputBuffer;
+        public final BufferBlock temporalDataBuffer;
 
         public ComputeInterface(ShaderBindingContext context) {
             scene = context.bindBufferBlock(BufferBlockType.UNIFORM, 0);
@@ -33,9 +36,10 @@ public class CreateTerrainCommandsComputeShader {
             regionMeta = context.bindBufferBlock(BufferBlockType.STORAGE, 2);
             sectionVisBuff = context.bindBufferBlock(BufferBlockType.STORAGE, 3);
             sectionMeta = context.bindBufferBlock(BufferBlockType.STORAGE, 4);
-            commandCounterBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 5);
-            instancedDataBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 6);
-            commandOutputBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 7);
+            temporalDataBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 5);
+            commandCounterBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 6);
+            instancedDataBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 7);
+            commandOutputBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 8);
         }
     }
 
@@ -48,6 +52,7 @@ public class CreateTerrainCommandsComputeShader {
                 .add("LOCAL_SIZE_Y", Integer.toString(LOCAL_SIZE_Y))
                 .add("REGION_SECTION_MAX_SIZE", Integer.toString(RenderRegion.REGION_SIZE))
                 .add("MAX_COMMAND_COUNT_PER_LAYER", Integer.toString(OcclusionEngine.MAX_RENDER_COMMANDS_PER_LAYER))
+                .add("MAX_TEMPORAL_COMMANDS", Integer.toString(OcclusionEngine.MAX_TEMPORAL_COMMANDS_PER_LAYER))
                 .add("MAX_REGIONS", String.valueOf(OcclusionEngine.MAX_REGIONS))
                 .build();
         this.computeProgram = this.device.createProgram(ShaderDescription.builder()
@@ -60,13 +65,14 @@ public class CreateTerrainCommandsComputeShader {
     }
 
     //
-    public void execute(Buffer scene, int offset, Buffer dispatchCompute, Buffer regionArray, Buffer regionMeta, Buffer sectionMeta, Buffer sectionVisBuffer, Buffer commandCounter, Buffer instancedDataBuffer, Buffer commandOutputBuffer) {
+    public void execute(Buffer scene, int offset, Buffer dispatchCompute, Buffer regionArray, Buffer regionMeta, Buffer sectionMeta, Buffer sectionVisBuffer, Buffer commandCounter, Buffer instancedDataBuffer, Buffer commandOutputBuffer, Buffer temporalDataBuffer) {
         this.device.useComputePipeline(pipeline, (cmd, programInterface, state) -> {
             state.bindBufferBlock(programInterface.scene, scene, offset, ViewportedData.SCENE_STRUCT_ALIGNMENT);
             state.bindBufferBlock(programInterface.regionArray, regionArray);
             state.bindBufferBlock(programInterface.regionMeta, regionMeta);
             state.bindBufferBlock(programInterface.sectionVisBuff, sectionVisBuffer);
             state.bindBufferBlock(programInterface.sectionMeta, sectionMeta);
+            state.bindBufferBlock(programInterface.temporalDataBuffer, temporalDataBuffer);
             state.bindBufferBlock(programInterface.commandCounterBuffer, commandCounter);
             state.bindBufferBlock(programInterface.instancedDataBuffer, instancedDataBuffer);
             state.bindBufferBlock(programInterface.commandOutputBuffer, commandOutputBuffer);

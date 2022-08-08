@@ -49,6 +49,8 @@ public class ViewportedData {
     public final Buffer chunkInstancedDataBuffer;
     public final Buffer commandOutputBuffer;
 
+    public final Buffer temporalSectionData;
+
 
 
 
@@ -80,12 +82,16 @@ public class ViewportedData {
         sectionVisibilityBuffer = device.createBuffer(4*OcclusionEngine.MAX_REGIONS*RenderRegion.REGION_SIZE,Set.of());
 
         //TODO: will need to change this when doing the system that renders with distinct region buffers
-        commandBufferCounter = device.createBuffer(5*4,Set.of());
-        cpuCommandBufferCounter = device.createMappedBuffer(5*4,Set.of(MappedBufferFlags.READ));
+        //(normal render layers, then temporal layers)
+        commandBufferCounter = device.createBuffer(8*4,Set.of());
+        cpuCommandBufferCounter = device.createMappedBuffer(8*4,Set.of(MappedBufferFlags.READ));
 
         chunkInstancedDataBuffer = device.createBuffer(OcclusionEngine.MAX_VISIBLE_SECTIONS*(4*4),Set.of());
 
         //TODO: properly calculate commandOutputBuffer size
-        commandOutputBuffer = device.createBuffer(OcclusionEngine.MAX_RENDER_COMMANDS_PER_LAYER*OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE*3,Set.of());//3 layers
+        commandOutputBuffer = device.createBuffer((OcclusionEngine.MAX_RENDER_COMMANDS_PER_LAYER+OcclusionEngine.MAX_TEMPORAL_COMMANDS_PER_LAYER)*OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE*3,Set.of());//3 layers
+
+        //NOTE: can probably just use a slot in SectionMeta or some shiz
+        temporalSectionData = device.createBuffer(OcclusionEngine.MAX_REGIONS*OcclusionEngine.MAX_VISIBLE_SECTIONS*4,Set.of());//3 layers
     }
 }

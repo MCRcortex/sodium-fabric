@@ -22,6 +22,10 @@ layout(std430, binding = 4) restrict readonly buffer SectionMetaData {
     SectionMeta sections[];
 };
 
+layout(std430, binding = 5) restrict buffer TemporalData {
+    uint sectionSeen[];
+};
+
 uint SECTION_ID;
 
 #define SECTION sections[SECTION_ID]
@@ -44,13 +48,36 @@ void writeBackfaceCulledCommands() {
     msk &= relative_center.z<half_size.z ? 0xFFFFFFFFu : 4025479151u;
     msk &= relative_center.z>-half_size.z? 0xFFFFFFFFu : 3755991007u;
     */
+    /*
     uint msk = 0x40404040u;
-    msk |= uint(relative_center.y<half_size.y ) * 0x01010101u;
-    msk |= uint(relative_center.y>-half_size.y) * 0x02020202u;
-    msk |= uint(relative_center.x<half_size.x ) * 0x04040404u;
-    msk |= uint(relative_center.x>-half_size.x) * 0x08080808u;
-    msk |= uint(relative_center.z<half_size.z ) * 0x10101010u;
-    msk |= uint(relative_center.z>-half_size.z) * 0x20202020u;
+	uvec3 A = uvec3(lessThan(relative_center, half_size));
+	msk = A.x*0x04040404u+msk;
+	msk = A.y*0x01010101u+msk;
+	msk = A.z*0x10101010u+msk;
+	uvec3 B = uvec3(greaterThan(relative_center, -half_size));
+	msk = B.x*0x08080808u+msk;
+	msk = B.y*0x02020202u+msk;
+	msk = B.z*0x20202020u+msk;
+    msk &= SECTION.bitvismsk;
+	*/
+    uint msk = 0x40404040u;
+
+
+    msk = uint(relative_center.y<half_size.y ) * 0x01010101u + msk;
+    msk = uint(relative_center.y>-half_size.y) * 0x02020202u + msk;
+    msk = uint(relative_center.x<half_size.x ) * 0x04040404u + msk;
+    msk = uint(relative_center.x>-half_size.x) * 0x08080808u + msk;
+    msk = uint(relative_center.z<half_size.z ) * 0x10101010u + msk;
+    msk = uint(relative_center.z>-half_size.z) * 0x20202020u + msk;
+
+    /*
+    uvec3 A = uvec3(lessThan(relative_center, half_size))*uvec3(0x04040404u,0x01010101u,0x10101010u);
+    A += uvec3(greaterThan(relative_center, -half_size))*uvec3(0x08080808u,0x02020202u,0x20202020u);
+    msk += A.x;
+    msk += A.y;
+    msk += A.z;*/
+
+
     msk &= SECTION.bitvismsk;
     if (msk == 0)
         return;
@@ -65,7 +92,8 @@ void writeBackfaceCulledCommands() {
     skipmsk &= 255u;
 
     //TODO: THIS
-    bool wasNotVisibleLastFrame = false;
+    bool wasNotVisibleLastFrame = sectionSeen[SECTION_ID] == frameId;
+    sectionSeen[SECTION_ID] = frameId;
 
     /*
     int idx = 0;

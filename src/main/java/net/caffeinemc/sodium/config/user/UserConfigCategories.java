@@ -343,12 +343,19 @@ public class UserConfigCategories {
                 .build());
 
         groups.add(OptionGroup.createBuilder()
-                .add(OptionImpl.createBuilder(boolean.class, sodiumOpts)
-                        .setName(Text.translatable("sodium.options.gpu_occlusion.name"))
-                        .setTooltip(Text.translatable("sodium.options.gpu_occlusion.tooltip"))
-                        .setControl(TickBoxControl::new)
+                .add(OptionImpl.createBuilder(UserConfig.RegionDataStore.class, sodiumOpts)
+                        .setName(Text.translatable("sodium.options.gpu_occlusion.region_store.name"))
+                        .setTooltip(Text.translatable("sodium.options.gpu_occlusion.region_store.tooltip"))
+                        .setControl(option -> new CyclingControl<>(
+                                option,
+                                UserConfig.RegionDataStore.class,
+                                UserConfig.RegionDataStore.getSupportedValues(
+                                        SodiumClientMod.DEVICE.properties()
+                                )
+                        ))
                         .setImpact(OptionImpact.VARIES)
-                        .setBinding((opts, value) -> {}, opts -> true)
+                        .setBinding((opts, value) -> {
+                        }, opts -> UserConfig.RegionDataStore.DEFAULT)
                         .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)
                         .build()
                 )
