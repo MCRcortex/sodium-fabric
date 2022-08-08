@@ -11,6 +11,8 @@ public class AABB {
     public Vector4f size = new Vector4f();
 
     public void write(IStructWriter writer) {
+        offset.w = 1;
+        size.w = 0;
         writer.write(offset);
         writer.write(size);
     }

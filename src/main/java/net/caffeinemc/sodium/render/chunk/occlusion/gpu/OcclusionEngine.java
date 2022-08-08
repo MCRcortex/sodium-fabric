@@ -32,6 +32,9 @@ import static org.lwjgl.opengl.GL43C.glInvalidateBufferData;
 //FIXME: The region the camera is in will get culled,
 // this is cause winding culling, 2 ways to fix, hard inject the current section the camera is in too index 0 and just hard set
 // that invocation id 0 is always true
+
+
+//Todo: maybe try doing the multidraw command as 2 ivec4 or something to be able to batch store everything in 2 memory writes
 public class OcclusionEngine {
     public static final int MAX_REGIONS = 150;
 

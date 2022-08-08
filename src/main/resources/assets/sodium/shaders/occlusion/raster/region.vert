@@ -17,7 +17,7 @@ layout(std430, binding = 2) restrict readonly buffer RegionMetaData {
 #define REGION regions[REGION_ID]
 
 vec4 getBoxCorner(int corner) {
-    return vec4(REGION.bb.offset.xyz + vec3((corner&1), ((corner>>2)&1), ((corner>>1)&1))*REGION.bb.size.xyz, 1);
+    return fma(vec4((corner&1), ((corner>>2)&1), ((corner>>1)&1), 0), REGION.bb.size, REGION.bb.offset);
 }
 
 
