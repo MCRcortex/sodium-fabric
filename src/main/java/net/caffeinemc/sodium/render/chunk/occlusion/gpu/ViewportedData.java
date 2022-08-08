@@ -9,6 +9,7 @@ import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.render.chunk.ViewportInstancedData;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.SceneStruct;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
+import net.caffeinemc.sodium.util.MathUtil;
 
 import java.util.Comparator;
 import java.util.Set;
@@ -21,7 +22,10 @@ public class ViewportedData {
     public final ObjectAVLTreeSet<RenderRegion> visible_regions = new ObjectAVLTreeSet<>(Comparator.comparingDouble(a -> a.regionSortDistance));
 
     public final SceneStruct scene = new SceneStruct();
+    //TODO: replace with streaming buffer thing
     public final MappedBuffer sceneBuffer;
+    public static int SCENE_STRUCT_ALIGNMENT;
+    public int sceneOffset;
 
     public final MappedBuffer frustumRegionArray;
 
@@ -56,8 +60,13 @@ public class ViewportedData {
     //regionLUT?
     public ViewportedData(int viewport) {
         this.device = SodiumClientMod.DEVICE;
-        sceneBuffer = device.createMappedBuffer(SceneStruct.SIZE,
+
+        int uboAlignment = device.properties().values.uniformBufferOffsetAlignment;
+        int maxInFlightFrames = SodiumClientMod.options().advanced.cpuRenderAheadLimit + 1;
+        SCENE_STRUCT_ALIGNMENT = MathUtil.align(SceneStruct.SIZE, uboAlignment);
+        sceneBuffer = device.createMappedBuffer((long) SCENE_STRUCT_ALIGNMENT * maxInFlightFrames,
                 Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));
+
         //TODO: Instead of just putting in a random "max region in frustum" count, calculate it based on render distance
         frustumRegionArray = device.createMappedBuffer(4*OcclusionEngine.MAX_REGIONS,
                 Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH)

@@ -2,6 +2,7 @@ package net.caffeinemc.sodium.render.chunk.occlusion.gpu;
 
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
+import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
@@ -116,8 +117,10 @@ public class OcclusionEngine {
             viewport.scene.regionCount = regionCount;
             viewport.scene.frameId = renderId;
 
-            viewport.scene.write(new MappedBufferWriter(viewport.sceneBuffer));
-            viewport.sceneBuffer.flush();
+            int maxInFlightFrames = SodiumClientMod.options().advanced.cpuRenderAheadLimit + 1;
+            viewport.sceneOffset = viewport.SCENE_STRUCT_ALIGNMENT * (renderId%maxInFlightFrames);
+            viewport.scene.write(new MappedBufferWriter(viewport.sceneBuffer, viewport.sceneOffset));
+            viewport.sceneBuffer.flush(viewport.sceneOffset, viewport.SCENE_STRUCT_ALIGNMENT);
         }
     }
 
@@ -133,6 +136,7 @@ public class OcclusionEngine {
         rasterRegion.execute(
                 regionCount,
                 viewport.sceneBuffer,
+                viewport.sceneOffset,
                 viewport.frustumRegionArray,
                 regionMeta.getBuffer(),
                 viewport.regionVisibilityArray
@@ -141,6 +145,7 @@ public class OcclusionEngine {
         createRasterSectionCommands.execute(
                 regionCount,
                 viewport.sceneBuffer,
+                viewport.sceneOffset,
                 regionMeta.getBuffer(),
                 viewport.frustumRegionArray,
                 viewport.regionVisibilityArray,
@@ -154,6 +159,7 @@ public class OcclusionEngine {
         rasterSection.execute(
                 regionCount,
                 viewport.sceneBuffer,
+                viewport.sceneOffset,
                 viewport.sectionCommandBuffer,
                 sectionMeta.getBuffer(),
                 viewport.sectionVisibilityBuffer
@@ -162,6 +168,7 @@ public class OcclusionEngine {
 
         createTerrainCommands.execute(
                 viewport.sceneBuffer,
+                viewport.sceneOffset,
                 viewport.computeDispatchCommandBuffer,
                 viewport.visibleRegionArray,
                 regionMeta.getBuffer(),

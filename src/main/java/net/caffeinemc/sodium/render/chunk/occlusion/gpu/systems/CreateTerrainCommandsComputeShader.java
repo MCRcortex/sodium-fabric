@@ -5,6 +5,7 @@ import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.api.pipeline.ComputePipeline;
 import net.caffeinemc.gfx.api.shader.*;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.ViewportedData;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
@@ -58,9 +59,9 @@ public class CreateTerrainCommandsComputeShader {
     }
 
     //
-    public void execute(Buffer scene, Buffer dispatchCompute, Buffer regionArray, Buffer regionMeta, Buffer sectionMeta, Buffer sectionVisBuffer, Buffer commandCounter, Buffer instancedDataBuffer, Buffer commandOutputBuffer) {
+    public void execute(Buffer scene, int offset, Buffer dispatchCompute, Buffer regionArray, Buffer regionMeta, Buffer sectionMeta, Buffer sectionVisBuffer, Buffer commandCounter, Buffer instancedDataBuffer, Buffer commandOutputBuffer) {
         this.device.useComputePipeline(pipeline, (cmd, programInterface, state) -> {
-            state.bindBufferBlock(programInterface.scene, scene);
+            state.bindBufferBlock(programInterface.scene, scene, offset, ViewportedData.SCENE_STRUCT_ALIGNMENT);
             state.bindBufferBlock(programInterface.regionArray, regionArray);
             state.bindBufferBlock(programInterface.regionMeta, regionMeta);
             state.bindBufferBlock(programInterface.sectionVisBuff, sectionVisBuffer);

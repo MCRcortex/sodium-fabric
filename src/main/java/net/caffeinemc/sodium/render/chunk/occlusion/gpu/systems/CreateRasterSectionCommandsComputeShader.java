@@ -6,6 +6,7 @@ import net.caffeinemc.gfx.api.pipeline.ComputePipeline;
 import net.caffeinemc.gfx.api.pipeline.RenderPipelineDescription;
 import net.caffeinemc.gfx.api.pipeline.state.WriteMask;
 import net.caffeinemc.gfx.api.shader.*;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.ViewportedData;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
@@ -57,9 +58,9 @@ public class CreateRasterSectionCommandsComputeShader {
         this.pipeline = this.device.createComputePipeline(computeProgram);
     }
 
-    public void execute(int regionCount, Buffer scene, Buffer regionMeta, Buffer regionArray, Buffer regionVisArray, Buffer sectionCommandBuff, Buffer dispatchComputeBuffer, Buffer regionArrayOut) {
+    public void execute(int regionCount, Buffer scene, int offset, Buffer regionMeta, Buffer regionArray, Buffer regionVisArray, Buffer sectionCommandBuff, Buffer dispatchComputeBuffer, Buffer regionArrayOut) {
         this.device.useComputePipeline(pipeline, (cmd, programInterface, state) -> {
-            state.bindBufferBlock(programInterface.scene, scene);
+            state.bindBufferBlock(programInterface.scene, scene, offset, ViewportedData.SCENE_STRUCT_ALIGNMENT);
             state.bindBufferBlock(programInterface.regionArray, regionArray);
             state.bindBufferBlock(programInterface.regionMeta, regionMeta);
             state.bindBufferBlock(programInterface.regionVisArray, regionVisArray);

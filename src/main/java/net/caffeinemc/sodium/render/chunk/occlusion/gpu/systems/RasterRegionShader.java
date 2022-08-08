@@ -11,6 +11,7 @@ import net.caffeinemc.gfx.api.shader.*;
 import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.CubeIndexBuffer;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.ViewportedData;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
@@ -68,10 +69,10 @@ public class RasterRegionShader {
 
     //Note: an exact number of calls are used as parameter draw takes too long, this is ok as long as the region compute
     // emits exactly regionCount calls which it should always do as long as it emits a null draw call on non visibility
-    public void execute(int regionCount, Buffer scene, Buffer regionArray, Buffer regionMeta, Buffer regionVisibilityArray) {
+    public void execute(int regionCount, Buffer scene, int offset, Buffer regionArray, Buffer regionMeta, Buffer regionVisibilityArray) {
         device.useRenderPipeline(rasterCullPipeline, (cmd, programInterface, pipelineState) -> {
             cmd.bindElementBuffer(CubeIndexBuffer.INDEX_BUFFER);
-            pipelineState.bindBufferBlock(programInterface.scene, scene);
+            pipelineState.bindBufferBlock(programInterface.scene, scene, offset, ViewportedData.SCENE_STRUCT_ALIGNMENT);
             pipelineState.bindBufferBlock(programInterface.regionArray, regionArray);
             pipelineState.bindBufferBlock(programInterface.regionMeta, regionMeta);
             pipelineState.bindBufferBlock(programInterface.visArray, regionVisibilityArray);

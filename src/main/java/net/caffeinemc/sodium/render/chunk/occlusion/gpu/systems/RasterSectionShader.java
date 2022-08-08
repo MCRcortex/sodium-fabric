@@ -11,6 +11,7 @@ import net.caffeinemc.gfx.api.shader.*;
 import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.CubeIndexBuffer;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.ViewportedData;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
@@ -69,11 +70,11 @@ public class RasterSectionShader {
 
     //Note: an exact number of calls are used as parameter draw takes too long, this is ok as long as the region compute
     // emits exactly regionCount calls which it should always do as long as it emits a null draw call on non visibility
-    public void execute(int regionCount, Buffer scene, Buffer renderCommands, Buffer sectionMeta, Buffer visibilityBuffer) {
+    public void execute(int regionCount, Buffer scene, int offset, Buffer renderCommands, Buffer sectionMeta, Buffer visibilityBuffer) {
         device.useRenderPipeline(rasterCullPipeline, (cmd, programInterface, pipelineState) -> {
             cmd.bindCommandBuffer(renderCommands);
             cmd.bindElementBuffer(CubeIndexBuffer.INDEX_BUFFER);
-            pipelineState.bindBufferBlock(programInterface.scene, scene);
+            pipelineState.bindBufferBlock(programInterface.scene, scene, offset, ViewportedData.SCENE_STRUCT_ALIGNMENT);
             pipelineState.bindBufferBlock(programInterface.sectionMeta, sectionMeta);
             pipelineState.bindBufferBlock(programInterface.visbuff, visibilityBuffer);
             //TODO: change from triangles to like triangle fan or something, then on nvidia enable representitive fragment
