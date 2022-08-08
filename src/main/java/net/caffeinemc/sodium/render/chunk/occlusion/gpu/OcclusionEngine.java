@@ -25,6 +25,7 @@ import static org.lwjgl.opengl.GL11C.GL_UNSIGNED_INT;
 import static org.lwjgl.opengl.GL30C.GL_R32UI;
 import static org.lwjgl.opengl.GL42C.*;
 import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BARRIER_BIT;
+import static org.lwjgl.opengl.GL43C.glInvalidateBufferData;
 
 
 //FIXME: The region the camera is in will get culled,
@@ -63,7 +64,7 @@ public class OcclusionEngine {
         var viewport = ViewportedData.DATA.get();
 
         //TODO:FIXME: This is here cause else stuff like frameid gets overriden while shader is running causing ALOT of flickering
-        glFinish();
+        //glFinish();
 
         viewport.visible_regions.clear();
         int regionCount = 0;

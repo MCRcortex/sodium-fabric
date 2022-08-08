@@ -65,6 +65,7 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
                     ElementFormat.UNSIGNED_INT,
                     0,
                     4,
+                    //100000,
                     (int)(viewport.cpuCommandBufferCounter.view().getInt(4)*1.5),
                     20);
             commandList.multiDrawElementsIndirectCount(
@@ -72,6 +73,7 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
                     ElementFormat.UNSIGNED_INT,
                     OcclusionEngine.MAX_RENDER_COMMANDS_PER_LAYER*OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE,
                     8,
+                    //100000,
                     (int)(viewport.cpuCommandBufferCounter.view().getInt(8)*1.5),
                     20);
         });

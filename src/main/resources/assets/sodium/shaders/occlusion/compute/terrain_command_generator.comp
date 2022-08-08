@@ -57,6 +57,7 @@ void writeBackfaceCulledCommands() {
     //TODO: THIS
     bool wasNotVisibleLastFrame = false;
 
+    /*
     int idx = 0;
     while (skipmsk != 0) {
         int localOffset = findLSB(skipmsk);
@@ -66,6 +67,15 @@ void writeBackfaceCulledCommands() {
         idx += localOffset;
         writeFaceRenderCommand(msk, idx, localLength, instanceId, wasNotVisibleLastFrame);
         idx += localLength;
+    }*/
+
+    int idx = 0;
+    while (skipmsk != 0) {
+        int localOffset = findLSB(skipmsk);
+        skipmsk >>= localOffset+1;
+        idx += localOffset;
+        writeFaceRenderCommand(msk, idx, 1, instanceId, wasNotVisibleLastFrame);
+        idx++;
     }
 }
 

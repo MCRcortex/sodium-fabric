@@ -27,9 +27,9 @@ void writeFaceRenderCommand(uint msk, uint faceIndex, uint consecutiveFaces, uin
     if ((msk&((1u)<<faceIndex)) != 0) { //Layer 0
         //TODO: compile this into a LUT so its O(1) and doesnt do very very bad branch divergence
         uint count = SECTION.RANGES[0][faceIndex].count;
-        for (uint i = faceIndex+1; i < faceIndex + consecutiveFaces; i++) {
-            count += SECTION.RANGES[0][i].count;
-        }
+        //for (uint i = faceIndex+1; i < faceIndex + consecutiveFaces; i++) {
+        //    count += SECTION.RANGES[0][i].count;
+        //}
 
         uint cmdIdx = atomicAdd(cmdBuff0Count, 1) + COMMAND_INDEX_OFFSET(0);
 
@@ -43,9 +43,9 @@ void writeFaceRenderCommand(uint msk, uint faceIndex, uint consecutiveFaces, uin
 
     if ((msk&((1u<<8)<<faceIndex)) != 0) {//Layer 1
         uint count = SECTION.RANGES[1][faceIndex].count;
-        for (uint i = faceIndex+1; i < faceIndex + consecutiveFaces; i++) {
-            count += SECTION.RANGES[1][i].count;
-        }
+        //for (uint i = faceIndex+1; i < faceIndex + consecutiveFaces; i++) {
+        //    count += SECTION.RANGES[1][i].count;
+        //}
 
         uint cmdIdx = atomicAdd(cmdBuff1Count, 1) + COMMAND_INDEX_OFFSET(1);
 
@@ -56,7 +56,7 @@ void writeFaceRenderCommand(uint msk, uint faceIndex, uint consecutiveFaces, uin
         drawCommands[cmdIdx].baseInstance = instanceId;
     }
 
-
+    /*
     if ((msk&((1u<<16)<<faceIndex)) != 0) {//Layer 2
         uint count = SECTION.RANGES[2][faceIndex].count;
         for (uint i = faceIndex+1; i < faceIndex + consecutiveFaces; i++) {
@@ -70,5 +70,5 @@ void writeFaceRenderCommand(uint msk, uint faceIndex, uint consecutiveFaces, uin
         drawCommands[cmdIdx].count = count;
         drawCommands[cmdIdx].baseVertex = SECTION.RANGES[2][faceIndex].start;
         drawCommands[cmdIdx].baseInstance = instanceId;
-    }
+    }*/
 }
