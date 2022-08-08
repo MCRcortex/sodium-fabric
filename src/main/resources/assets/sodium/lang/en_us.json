@@ -65,6 +65,7 @@
   "sodium.options.chunk_renderer_backend.tooltip": "Selects the backend that will be used for rendering chunk geometry.\n- Default: Attempts to select the best option for your GPU.\n- BaseVertex: Most compatible option, but consumes slightly more video memory and may be slightly slower.\n- Indirect: Fastest option for some GPUs, but may cause graphical glitches on buggy drivers.",
   "sodium.options.chunk_renderer_backend.base_vertex": "BaseVertex",
   "sodium.options.chunk_renderer_backend.indirect": "Indirect",
+  "sodium.options.chunk_renderer_backend.gpu": "Gpu driven",
   "sodium.options.translucent_face_sorting.name": "Translucent Face Sorting",
   "sodium.options.translucent_face_sorting.tooltip": "If enabled, translucent effects from surfaces such as stained glass and water will be applied correctly. This uses a compute shader that is run on the GPU, but the CPU will still be impacted somewhat for dispatching.",
   "sodium.options.buttons.undo": "Undo",

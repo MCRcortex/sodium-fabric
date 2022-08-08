@@ -140,6 +140,11 @@ public class UserConfigScreen extends Screen {
         int y = 28;
 
         for (OptionGroup group : this.currentPage.getGroups()) {
+            if (group.getControl() != null) {
+                if (!group.getControl().shouldDisplay()) {
+                    continue;
+                }
+            }
             // Add each option's control element
             for (Option<?> option : group.getOptions()) {
                 Control<?> control = option.getControl();
@@ -280,6 +285,10 @@ public class UserConfigScreen extends Screen {
 
         for (OptionStorage<?> storage : dirtyStorages) {
             storage.save();
+        }
+
+        if (flags.contains(OptionFlag.REDRAW_UI)) {
+            rebuildGUI();
         }
     }
 

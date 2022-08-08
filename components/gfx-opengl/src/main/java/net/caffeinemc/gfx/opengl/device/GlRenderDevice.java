@@ -307,7 +307,7 @@ public class GlRenderDevice implements RenderDevice {
         var storage = GL45C.GL_MAP_PERSISTENT_BIT | getMappedBufferStorageBits(flags);
         GL45C.glNamedBufferStorage(handle, capacity, storage);
 
-        var access = GL45C.GL_MAP_PERSISTENT_BIT | GL45C.GL_MAP_UNSYNCHRONIZED_BIT | GL45C.GL_MAP_INVALIDATE_BUFFER_BIT | getMappedBufferAccessBits(flags);
+        var access = GL45C.GL_MAP_PERSISTENT_BIT | (flags.contains(MappedBufferFlags.EXPLICIT_FLUSH)?GL45C.GL_MAP_UNSYNCHRONIZED_BIT | GL45C.GL_MAP_INVALIDATE_BUFFER_BIT:0) | getMappedBufferAccessBits(flags);
         ByteBuffer mapping = GL45C.glMapNamedBufferRange(handle, 0, capacity, access);
 
         if (mapping == null) {

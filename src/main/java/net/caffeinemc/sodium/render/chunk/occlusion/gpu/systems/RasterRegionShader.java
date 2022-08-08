@@ -32,7 +32,7 @@ public class RasterRegionShader {
         public final BufferBlock visArray;
         public RasterCullerInterface(ShaderBindingContext context) {
             //TODO: change scene to a uniform
-            scene = context.bindBufferBlock(BufferBlockType.STORAGE, 0);
+            scene = context.bindBufferBlock(BufferBlockType.UNIFORM, 0);
             regionArray = context.bindBufferBlock(BufferBlockType.STORAGE, 1);
             regionMeta = context.bindBufferBlock(BufferBlockType.STORAGE, 2);
             visArray = context.bindBufferBlock(BufferBlockType.STORAGE, 3);

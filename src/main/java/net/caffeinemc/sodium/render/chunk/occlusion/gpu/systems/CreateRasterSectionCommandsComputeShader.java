@@ -27,7 +27,7 @@ public class CreateRasterSectionCommandsComputeShader {
         public final BufferBlock dispatchCompute;
         public final BufferBlock regionArrayOut;
         public ComputeInterface(ShaderBindingContext context) {
-            scene = context.bindBufferBlock(BufferBlockType.STORAGE, 0);
+            scene = context.bindBufferBlock(BufferBlockType.UNIFORM, 0);
             regionArray = context.bindBufferBlock(BufferBlockType.STORAGE, 1);
             regionMeta = context.bindBufferBlock(BufferBlockType.STORAGE, 2);
             regionVisArray = context.bindBufferBlock(BufferBlockType.STORAGE, 3);

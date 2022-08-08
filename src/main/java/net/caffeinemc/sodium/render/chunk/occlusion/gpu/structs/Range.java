@@ -1,6 +1,8 @@
 package net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs;
 
 public class Range {
+    public static final int SIZE = 8;
+
     public int start;
     public int count;
 

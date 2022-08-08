@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import java.util.Collection;
 import java.util.SortedSet;
 
+import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.opengl.device.GlRenderDevice;
 import net.caffeinemc.sodium.SodiumClientMod;
@@ -213,12 +214,17 @@ public class SodiumWorldRenderer {
      * Performs a render pass for the given {@link RenderLayer} and draws all visible chunks for it.
      */
     public void drawChunkLayer(RenderLayer renderLayer, MatrixStack matrixStack) {
+        //Hack to do pre render and get the matrixStack
+        if (renderLayer == RenderLayer.getSolid()) {
+            this.terrainRenderManager.prepTerrainRender(ChunkRenderMatrices.from(matrixStack));
+        }
+
         ChunkRenderPass renderPass = this.renderPassManager.getRenderPassForLayer(renderLayer);
         this.terrainRenderManager.renderLayer(ChunkRenderMatrices.from(matrixStack), renderPass);
     }
 
     public void doOcclusion(MatrixStack matrixStack) {
-        this.terrainRenderManager.doTerrainOcclusion(ChunkRenderMatrices.from(matrixStack));
+        this.terrainRenderManager.doTerrainOcclusion();
     }
 
     public void reload() {
@@ -401,5 +407,9 @@ public class SodiumWorldRenderer {
 
     public OcclusionEngine getOcclusionEngine() {
         return terrainRenderManager.occlusionEngine;
+    }
+
+    public Buffer getGlobalVertexBufferTHISISTEMPORARY() {
+        return terrainRenderManager.regionManager.getGlobalVertexBufferTHISISTEMPORARY();
     }
 }

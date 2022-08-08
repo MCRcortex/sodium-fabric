@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.RenderPassRanges;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.SectionMeta;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
@@ -273,6 +274,20 @@ public class RenderSection {
         meta.sectionPos.x = chunkX<<4;
         meta.sectionPos.y = chunkY<<4;
         meta.sectionPos.z = chunkZ<<4;
+
+        meta.visbitmask = 0;
+        for (int i = 0; i < 3; i++) {
+            var pass = data.models[i];
+            if (pass == null)
+                continue;
+            meta.visbitmask |= (pass.getVisibilityBits()&0xFF) << (i*8);
+            RenderPassRanges ranges = meta.ranges[i];
+            for (int j = 0; j < 7; j++) {
+                var range = ranges.ranges[j];
+                range.start = BufferSegment.getOffset(pass.getModelPartSegments()[j]) + BufferSegment.getOffset(uploadedGeometrySegment);
+                range.count = 6*(BufferSegment.getLength(pass.getModelPartSegments()[j])>>2);//Convert to correct format
+            }
+        }
 
         region.enqueueSectionMetaUpdate(this);
     }

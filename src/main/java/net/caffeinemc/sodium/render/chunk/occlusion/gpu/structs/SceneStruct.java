@@ -1,10 +1,11 @@
 package net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs;
 
+import net.caffeinemc.sodium.util.MathUtil;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
 
 public class SceneStruct {
-    public static final int SIZE = 4*4*4*2+4*4+2*4;
+    public static final int SIZE = MathUtil.align(4*4*4*2+4*4+2*4, 16);
 
     public Matrix4f MVP = new Matrix4f();
     public Matrix4f MV = new Matrix4f();

@@ -37,6 +37,17 @@ public class ViewportedData {
 
     public final Buffer sectionVisibilityBuffer;
 
+
+
+    public final Buffer commandBufferCounter;
+    public final MappedBuffer cpuCommandBufferCounter;
+
+    public final Buffer chunkInstancedDataBuffer;
+    public final Buffer commandOutputBuffer;
+
+
+
+
     //TODO: FIGURE OUT A MORE compact and efficent WAY TO DO sectionVisibilityBuffer rather than having
     // every region have its own visibility buffer cause this wastes alot of vram
 
@@ -58,5 +69,14 @@ public class ViewportedData {
         computeDispatchCommandBuffer = device.createBuffer(4*3, Set.of());
         visibleRegionArray = device.createBuffer(4*OcclusionEngine.MAX_REGIONS,Set.of());
         sectionVisibilityBuffer = device.createBuffer(4*OcclusionEngine.MAX_REGIONS*RenderRegion.REGION_SIZE,Set.of());
+
+        //TODO: will need to change this when doing the system that renders with distinct region buffers
+        commandBufferCounter = device.createBuffer(5*4,Set.of());
+        cpuCommandBufferCounter = device.createMappedBuffer(5*4,Set.of(MappedBufferFlags.READ));
+
+        chunkInstancedDataBuffer = device.createBuffer(OcclusionEngine.MAX_VISIBLE_SECTIONS*(4*4),Set.of());
+
+        //TODO: properly calculate commandOutputBuffer size
+        commandOutputBuffer = device.createBuffer(OcclusionEngine.MAX_RENDER_COMMANDS_PER_LAYER*OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE*3,Set.of());//3 layers
     }
 }

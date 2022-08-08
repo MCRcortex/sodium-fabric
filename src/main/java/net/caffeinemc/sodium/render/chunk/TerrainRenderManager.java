@@ -66,11 +66,11 @@ public class TerrainRenderManager {
     private final RenderDevice device;
     
     private final SortedTerrainLists sortedTerrainLists;
-    private final GeneratingMDICommandSet generatingCommandSet;
+    //private final GeneratingMDICommandSet generatingCommandSet;
 
     private final ChunkBuilder builder;
 
-    private final RenderRegionManager regionManager;
+    public final RenderRegionManager regionManager;
     private final ClonedChunkSectionCache sectionCache;
 
     private final ChunkTree tree;
@@ -126,7 +126,7 @@ public class TerrainRenderManager {
         this.sectionCache = new ClonedChunkSectionCache(this.world);
     
         this.sortedTerrainLists = new SortedTerrainLists(this.regionManager, renderPassManager);
-        this.generatingCommandSet = new GeneratingMDICommandSet(this.regionManager, renderPassManager);
+        //this.generatingCommandSet = new GeneratingMDICommandSet(this.regionManager, renderPassManager);
 
         for (ChunkUpdateType type : ChunkUpdateType.values()) {
             this.rebuildQueues.put(type, new ObjectArrayFIFOQueue<>());
@@ -313,10 +313,18 @@ public class TerrainRenderManager {
         this.chunkRenderer.render(renderPass, matrices, this.frameIndex);
     }
 
-    public void doTerrainOcclusion(ChunkRenderMatrices matrices) {
+    public void prepTerrainRender(ChunkRenderMatrices matrices) {
+        MinecraftClient.getInstance().getProfiler().push("occlusion_update");
+        if (!MinecraftClient.getInstance().player.isSneaking())
+            occlusionEngine.prepRender(regionManager.getRegions(), frameIndex, matrices, camera, frustum);
+        MinecraftClient.getInstance().getProfiler().pop();
+    }
+
+    public void doTerrainOcclusion() {
         //glFinish();
         MinecraftClient.getInstance().getProfiler().push("occlusion_engine_culling");
-        occlusionEngine.doOcclusion(regionManager.getRegions(), frameIndex, matrices, camera, frustum);
+        if (!MinecraftClient.getInstance().player.isSneaking())
+            occlusionEngine.doOcclusion();
         //glFinish();
         MinecraftClient.getInstance().getProfiler().pop();
     }
@@ -520,6 +528,8 @@ public class TerrainRenderManager {
             case BASEVERTEX -> new MdbvChunkRenderer(device, renderPassManager, vertexType);
             
             case INDIRECT -> new MdiChunkRenderer(device, renderPassManager, vertexType);
+
+            case GPU_DRIVEN -> new GPUMdicChunkRenderer(device, renderPassManager, vertexType);
         };
     }
 

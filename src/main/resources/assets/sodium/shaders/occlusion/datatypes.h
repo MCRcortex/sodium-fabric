@@ -3,6 +3,7 @@ struct Range {
     uint count;
 };
 
+
 struct AABB {
     vec4 offset;
     vec4 size;
@@ -35,6 +36,11 @@ struct SectionMeta {
 
     //TODO: try to make AABB relative to chunk corner and the chunk corner an int or something of chunk space coords
     // this should prevent any issues relating to loss of precision
+
+
+    //TODO: merge soild and cuttout into 1 call thing
+    //SOLID, CUTOUT_MIPPED, CUTOUT
+    Range RANGES[3][7];
 };
 
 struct DrawElementsIndirectCommand {

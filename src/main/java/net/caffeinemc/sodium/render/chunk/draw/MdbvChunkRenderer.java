@@ -28,7 +28,7 @@ import net.minecraft.util.math.ChunkSectionPos;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.Pointer;
 
-public class MdbvChunkRenderer extends AbstractMdChunkRenderer<MdbvChunkRenderer.MdbvChunkRenderBatch> {
+public class MdbvChunkRenderer extends AbstractBatchedMdChunkRenderer<MdbvChunkRenderer.MdbvChunkRenderBatch> {
     
     protected long indexCountsBufferPtr;
     protected long baseVerticesBufferPtr;

@@ -32,7 +32,7 @@ public class RasterSectionShader {
 
         public RasterCullerInterface(ShaderBindingContext context) {
             //TODO: change scene to a uniform
-            scene = context.bindBufferBlock(BufferBlockType.STORAGE, 0);
+            scene = context.bindBufferBlock(BufferBlockType.UNIFORM, 0);
             sectionMeta = context.bindBufferBlock(BufferBlockType.STORAGE, 1);
             visbuff = context.bindBufferBlock(BufferBlockType.STORAGE, 2);
         }
@@ -80,7 +80,8 @@ public class RasterSectionShader {
             // tests
             //glColorMask(true, true, true, true);
             //glDepthMask(true);
-            //glDepthFunc(GL_LEQUAL);
+            //glDepthFunc(GL_ALWAYS);
+
             cmd.multiDrawElementsIndirect(PrimitiveType.TRIANGLES, ElementFormat.UNSIGNED_BYTE, 0, regionCount, 5*4);
         });
     }

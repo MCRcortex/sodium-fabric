@@ -32,6 +32,12 @@ import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BARRIER_BIT;
 // that invocation id 0 is always true
 public class OcclusionEngine {
     public static final int MAX_REGIONS = 150;
+
+    //Used to create render command buffers and instanced data buffers
+    public static final int MAX_VISIBLE_SECTIONS = 50000;
+
+    public static final int MAX_RENDER_COMMANDS_PER_LAYER = 150000;
+
     public static final long MULTI_DRAW_INDIRECT_COMMAND_SIZE = 5*4;
 
     public final RegionMetaManager regionMeta;
@@ -53,8 +59,11 @@ public class OcclusionEngine {
         this.createTerrainCommands = new CreateTerrainCommandsComputeShader(device);
     }
 
-    public void doOcclusion(Collection<RenderRegion> regions, int renderId, ChunkRenderMatrices matrices, ChunkCameraContext cam, Frustum frustum) {
+    public void prepRender(Collection<RenderRegion> regions, int renderId, ChunkRenderMatrices matrices, ChunkCameraContext cam, Frustum frustum) {
         var viewport = ViewportedData.DATA.get();
+
+        //TODO:FIXME: This is here cause else stuff like frameid gets overriden while shader is running causing ALOT of flickering
+        glFinish();
 
         viewport.visible_regions.clear();
         int regionCount = 0;
@@ -70,8 +79,8 @@ public class OcclusionEngine {
                 }
 
                 region.regionSortDistance = Math.pow(region.regionCenterBlockX-cam.posX, 2)+
-                                Math.pow(region.regionCenterBlockY-cam.posY, 2)+
-                                Math.pow(region.regionCenterBlockZ-cam.posZ, 2);
+                        Math.pow(region.regionCenterBlockY-cam.posY, 2)+
+                        Math.pow(region.regionCenterBlockZ-cam.posZ, 2);
                 viewport.visible_regions.add(region);
                 //TODO: NEED TO ONLY DO THIS AFTER ALL REGIONS ARE DONE SO THAT ITS BASED ON THE sorted distance
                 MemoryUtil.memPutInt(addrFrustumRegion + regionCount* 4L, region.meta.id);
@@ -80,6 +89,7 @@ public class OcclusionEngine {
             }
             viewport.frustumRegionArray.flush(0, regionCount * 4L);
         }
+        //TODO: need to somehow add a delta for the render for position from last frame to the current frame camera position
         {
             //TODO: put into gfx
             //TODO: FIXME: need to set the first 2 ints too 0 and the last one too 1
@@ -88,7 +98,13 @@ public class OcclusionEngine {
             //ULTRA HACK FIX
             glClearNamedBufferSubData(GlBuffer.getHandle(viewport.computeDispatchCommandBuffer),
                     GL_R32UI, 8, 4,GL_RED, GL_UNSIGNED_INT, new int[]{1});
+
+
+            //Copy the counts from gpu to cpu buffers
+            device.copyBuffer(viewport.commandBufferCounter, viewport.cpuCommandBufferCounter,
+                    0, 0, viewport.cpuCommandBufferCounter.capacity());
         }
+
         {
             viewport.scene.MVP.set(matrices.projection())
                     .mul(matrices.modelView())
@@ -102,7 +118,17 @@ public class OcclusionEngine {
             viewport.scene.write(new MappedBufferWriter(viewport.sceneBuffer));
             viewport.sceneBuffer.flush();
         }
+    }
 
+    public void doOcclusion() {
+        var viewport = ViewportedData.DATA.get();
+        {
+            //Clear the commandCountBuffer, NOTE: this must be done here cause else the commandBufferCounter is 0 when drawing
+            glClearNamedBufferData(GlBuffer.getHandle(viewport.commandBufferCounter),
+                    GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
+        }
+        //glMemoryBarrier(GL_ALL_BARRIER_BITS);
+        int regionCount = viewport.visible_regions.size();
         rasterRegion.execute(
                 regionCount,
                 viewport.sceneBuffer,
@@ -110,7 +136,7 @@ public class OcclusionEngine {
                 regionMeta.getBuffer(),
                 viewport.regionVisibilityArray
         );
-
+        //glMemoryBarrier(GL_ALL_BARRIER_BITS);
         createRasterSectionCommands.execute(
                 regionCount,
                 viewport.sceneBuffer,
@@ -122,6 +148,8 @@ public class OcclusionEngine {
                 viewport.visibleRegionArray
         );
 
+        glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
+        //glMemoryBarrier(GL_ALL_BARRIER_BITS);
         rasterSection.execute(
                 regionCount,
                 viewport.sceneBuffer,
@@ -129,6 +157,7 @@ public class OcclusionEngine {
                 sectionMeta.getBuffer(),
                 viewport.sectionVisibilityBuffer
         );
+        //glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
         createTerrainCommands.execute(
                 viewport.sceneBuffer,
@@ -136,8 +165,14 @@ public class OcclusionEngine {
                 viewport.visibleRegionArray,
                 regionMeta.getBuffer(),
                 sectionMeta.getBuffer(),
-                viewport.sectionVisibilityBuffer
+                viewport.sectionVisibilityBuffer,
+                viewport.commandBufferCounter,
+                viewport.chunkInstancedDataBuffer,
+                viewport.commandOutputBuffer
         );
+
+        //glMemoryBarrier(GL_ALL_BARRIER_BITS);
+        glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
     }
 
     public void delete() {

@@ -5,11 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.config.user.binding.compat.VanillaOptionBinding;
-import net.caffeinemc.sodium.config.user.options.OptionFlag;
-import net.caffeinemc.sodium.config.user.options.OptionGroup;
-import net.caffeinemc.sodium.config.user.options.OptionImpact;
-import net.caffeinemc.sodium.config.user.options.OptionImpl;
-import net.caffeinemc.sodium.config.user.options.OptionPage;
+import net.caffeinemc.sodium.config.user.options.*;
 import net.caffeinemc.sodium.config.user.options.storage.UserConfigStorage;
 import net.caffeinemc.sodium.gui.config.ControlValueFormatter;
 import net.caffeinemc.sodium.gui.config.CyclingControl;
@@ -291,7 +287,9 @@ public class UserConfigCategories {
 
     public static OptionPage advanced() {
         List<OptionGroup> groups = new ArrayList<>();
-    
+
+        OptionGroupControl gpuBackendOptionGroupControl = new OptionGroupControl();
+
         groups.add(OptionGroup.createBuilder()
                 .add(OptionImpl.createBuilder(UserConfig.ChunkRendererBackend.class, sodiumOpts)
                          .setName(Text.translatable("sodium.options.chunk_renderer_backend.name"))
@@ -304,8 +302,11 @@ public class UserConfigCategories {
                                  )
                          ))
                          .setImpact(OptionImpact.VARIES)
-                         .setBinding((opts, value) -> opts.advanced.chunkRendererBackend = value, opts -> opts.advanced.chunkRendererBackend)
-                         .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)
+                         .setBinding((opts, value) -> {
+                             opts.advanced.chunkRendererBackend = value;
+                             gpuBackendOptionGroupControl.setDisplay(value == UserConfig.ChunkRendererBackend.GPU_DRIVEN);
+                         }, opts -> opts.advanced.chunkRendererBackend)
+                         .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD, OptionFlag.REDRAW_UI)
                          .build()
                 )
                 .build());
@@ -331,14 +332,27 @@ public class UserConfigCategories {
                         .build()
                 )
                 .add(OptionImpl.createBuilder(boolean.class, sodiumOpts)
-                         .setName(Text.translatable("sodium.options.enable_api_debug.name"))
-                         .setTooltip(Text.translatable("sodium.options.enable_api_debug.tooltip"))
-                         .setControl(TickBoxControl::new)
-                         .setImpact(OptionImpact.LOW)
-                         .setBinding((opts, value) -> opts.advanced.enableApiDebug = value, opts -> opts.advanced.enableApiDebug)
-                         .setFlags(OptionFlag.REQUIRES_GAME_RESTART)
-                         .build()
+                        .setName(Text.translatable("sodium.options.enable_api_debug.name"))
+                        .setTooltip(Text.translatable("sodium.options.enable_api_debug.tooltip"))
+                        .setControl(TickBoxControl::new)
+                        .setImpact(OptionImpact.LOW)
+                        .setBinding((opts, value) -> opts.advanced.enableApiDebug = value, opts -> opts.advanced.enableApiDebug)
+                        .setFlags(OptionFlag.REQUIRES_GAME_RESTART)
+                        .build()
                 )
+                .build());
+
+        groups.add(OptionGroup.createBuilder()
+                .add(OptionImpl.createBuilder(boolean.class, sodiumOpts)
+                        .setName(Text.translatable("sodium.options.gpu_occlusion.name"))
+                        .setTooltip(Text.translatable("sodium.options.gpu_occlusion.tooltip"))
+                        .setControl(TickBoxControl::new)
+                        .setImpact(OptionImpact.VARIES)
+                        .setBinding((opts, value) -> {}, opts -> true)
+                        .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)
+                        .build()
+                )
+                .addControl(gpuBackendOptionGroupControl)
                 .build());
 
         return new OptionPage(Text.translatable("sodium.options.pages.advanced"), ImmutableList.copyOf(groups));

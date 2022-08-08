@@ -31,7 +31,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.lwjgl.system.MemoryUtil;
 
-public class MdiChunkRenderer extends AbstractMdChunkRenderer<MdiChunkRenderer.MdiChunkRenderBatch> {
+public class MdiChunkRenderer extends AbstractBatchedMdChunkRenderer<MdiChunkRenderer.MdiChunkRenderBatch> {
     public static final int COMMAND_STRUCT_STRIDE = 5 * Integer.BYTES;
 
     protected final StreamingBuffer commandBuffer;

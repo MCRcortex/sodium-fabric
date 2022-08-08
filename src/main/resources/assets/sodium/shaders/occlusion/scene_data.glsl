@@ -1,4 +1,4 @@
-layout(std430, binding = 0) restrict readonly buffer SceneData {
+layout(std140, binding = 0) uniform SceneData {
     mat4 MVP;
     mat4 MV;
     vec4 camera;

@@ -1,6 +1,7 @@
 package net.caffeinemc.sodium.render.chunk.region;
 
 
+import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
 import net.caffeinemc.gfx.api.buffer.ImmutableBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
@@ -70,6 +71,10 @@ public class GlobalSingleBufferProvider implements IVertexBufferProvider {
     @Override
     public void prune(float prunePercentModifier) {
         bufferPool.prune(prunePercentModifier);
+    }
+
+    public Buffer getGlobalBuffer() {
+        return buffer.getBufferObject();
     }
 }
 

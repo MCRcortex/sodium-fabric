@@ -85,6 +85,7 @@ public class OptionImpl<S, T> implements Option<T> {
     public void reset() {
         this.value = this.binding.getValue(this.storage.getData());
         this.modifiedValue = this.value;
+        this.binding.setValue(this.storage.getData(), this.modifiedValue);
     }
 
     @Override

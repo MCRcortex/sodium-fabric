@@ -28,20 +28,9 @@ uint SECTION_ID;
 vec3 half_size;
 vec3 relative_center;
 
-void main() {
-    if (REGION.sectionCount >= gl_GlobalInvocationID.y) {
-        return;
-    }
-    SECTION_ID = REGION.sectionStart + gl_GlobalInvocationID.y;
+#import <sodium:occlusion/compute/global_command_writer.comp>
 
-    //TODO: find whats faster to do first
-    if (SECTION.id != SECTION_ID) {
-        return;
-    }
-
-    if (visibility[gl_GlobalInvocationID.x*REGION_SECTION_MAX_SIZE + gl_GlobalInvocationID.y] != frameId) {
-        return;
-    }
+void writeBackfaceCulledCommands() {
     half_size = SECTION.aabb.size.xyz/2;
     relative_center = SECTION.aabb.offset.xyz + half_size - camera.xyz;
 
@@ -53,5 +42,51 @@ void main() {
     msk &= relative_center.z<half_size.z ? 0xFFFFFFFFu : 4025479151u;
     msk &= relative_center.z>-half_size.z? 0xFFFFFFFFu : 3755991007u;
 
+    if (msk == 0)
+        return;
 
+
+    //TODO: optimize all this shit
+    uint instanceId = writeInstancedData(SECTION.sectionPos.xyz - camera.xyz);
+
+
+    uint skipmsk = msk|(msk>>16);
+    skipmsk |= skipmsk>>8;
+    skipmsk &= 255u;
+
+    //TODO: THIS
+    bool wasNotVisibleLastFrame = false;
+
+    int idx = 0;
+    while (skipmsk != 0) {
+        int localOffset = findLSB(skipmsk);
+        skipmsk >>= localOffset;
+        int localLength = findLSB(~skipmsk) + 1;
+        skipmsk >>= localLength;
+        idx += localOffset;
+        writeFaceRenderCommand(msk, idx, localLength, instanceId, wasNotVisibleLastFrame);
+        idx += localLength;
+    }
+}
+
+void main() {
+    if (REGION.sectionCount <= gl_GlobalInvocationID.y) {
+        return;
+    }
+    SECTION_ID = REGION.sectionStart + gl_GlobalInvocationID.y;
+
+
+    //TODO: find whats faster to do first
+    if (SECTION.id != gl_GlobalInvocationID.y) {
+        return;
+    }
+
+    if (visibility[gl_GlobalInvocationID.x*REGION_SECTION_MAX_SIZE + gl_GlobalInvocationID.y] != frameId) {
+        return;
+    }
+
+    //TODO: Need to make this all optional too do, given that this is only for back face culling
+
+    //atomicAdd(instanceCounter, 1);
+    writeBackfaceCulledCommands();
 }

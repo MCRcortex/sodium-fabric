@@ -4,6 +4,7 @@ import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.api.pipeline.ComputePipeline;
 import net.caffeinemc.gfx.api.shader.*;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
@@ -21,12 +22,19 @@ public class CreateTerrainCommandsComputeShader {
         public final BufferBlock regionMeta;
         public final BufferBlock sectionVisBuff;
         public final BufferBlock sectionMeta;
+        public final BufferBlock commandCounterBuffer;
+        public final BufferBlock instancedDataBuffer;
+        public final BufferBlock commandOutputBuffer;
+
         public ComputeInterface(ShaderBindingContext context) {
-            scene = context.bindBufferBlock(BufferBlockType.STORAGE, 0);
+            scene = context.bindBufferBlock(BufferBlockType.UNIFORM, 0);
             regionArray = context.bindBufferBlock(BufferBlockType.STORAGE, 1);
             regionMeta = context.bindBufferBlock(BufferBlockType.STORAGE, 2);
             sectionVisBuff = context.bindBufferBlock(BufferBlockType.STORAGE, 3);
             sectionMeta = context.bindBufferBlock(BufferBlockType.STORAGE, 4);
+            commandCounterBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 5);
+            instancedDataBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 6);
+            commandOutputBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 7);
         }
     }
 
@@ -38,6 +46,7 @@ public class CreateTerrainCommandsComputeShader {
         ShaderConstants constants = ShaderConstants.builder()
                 .add("LOCAL_SIZE_Y", Integer.toString(LOCAL_SIZE_Y))
                 .add("REGION_SECTION_MAX_SIZE", Integer.toString(RenderRegion.REGION_SIZE))
+                .add("MAX_COMMAND_COUNT_PER_LAYER", Integer.toString(OcclusionEngine.MAX_RENDER_COMMANDS_PER_LAYER))
                 .build();
         this.computeProgram = this.device.createProgram(ShaderDescription.builder()
                 .addShaderSource(ShaderType.COMPUTE,
@@ -49,13 +58,16 @@ public class CreateTerrainCommandsComputeShader {
     }
 
     //
-    public void execute(Buffer scene, Buffer dispatchCompute, Buffer regionArray, Buffer regionMeta, Buffer sectionMeta, Buffer sectionVisBuffer) {
+    public void execute(Buffer scene, Buffer dispatchCompute, Buffer regionArray, Buffer regionMeta, Buffer sectionMeta, Buffer sectionVisBuffer, Buffer commandCounter, Buffer instancedDataBuffer, Buffer commandOutputBuffer) {
         this.device.useComputePipeline(pipeline, (cmd, programInterface, state) -> {
             state.bindBufferBlock(programInterface.scene, scene);
             state.bindBufferBlock(programInterface.regionArray, regionArray);
             state.bindBufferBlock(programInterface.regionMeta, regionMeta);
             state.bindBufferBlock(programInterface.sectionVisBuff, sectionVisBuffer);
             state.bindBufferBlock(programInterface.sectionMeta, sectionMeta);
+            state.bindBufferBlock(programInterface.commandCounterBuffer, commandCounter);
+            state.bindBufferBlock(programInterface.instancedDataBuffer, instancedDataBuffer);
+            state.bindBufferBlock(programInterface.commandOutputBuffer, commandOutputBuffer);
 
 
             cmd.bindDispatchIndirectBuffer(dispatchCompute);

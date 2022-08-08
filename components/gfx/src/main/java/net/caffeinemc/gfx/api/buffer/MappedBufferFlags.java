@@ -4,5 +4,6 @@ public enum MappedBufferFlags {
     READ,
     WRITE,
     EXPLICIT_FLUSH,
+    COHERENT,
     CLIENT_STORAGE
 }

@@ -12,6 +12,7 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 
+import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.util.buffer.streaming.SectionedStreamingBuffer;
@@ -22,6 +23,7 @@ import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
 import net.caffeinemc.sodium.render.buffer.arena.PendingUpload;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.util.IntPool;
@@ -175,6 +177,10 @@ public class RenderRegionManager {
 
     public Collection<RenderRegion> getRegions() {
         return regions.values();
+    }
+
+    public Buffer getGlobalVertexBufferTHISISTEMPORARY() {
+        return (((GlobalSingleBufferProvider)bufferProvider).getGlobalBuffer());
     }
 
     public interface RenderUpdateCallback {
