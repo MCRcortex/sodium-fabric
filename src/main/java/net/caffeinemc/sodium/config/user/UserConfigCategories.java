@@ -359,6 +359,15 @@ public class UserConfigCategories {
                         .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)
                         .build()
                 )
+                .add(OptionImpl.createBuilder(boolean.class, sodiumOpts)
+                        .setName(Text.translatable("sodium.options.gpu_occlusion.pre_region_cull.name"))
+                        .setTooltip(Text.translatable("sodium.options.gpu_occlusion.pre_region_cull.tooltip"))
+                        .setControl(TickBoxControl::new)
+                        .setImpact(OptionImpact.VARIES)
+                        .setBinding((opts, value) -> {}, opts -> true)
+                        .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)
+                        .build()
+                )
                 .addControl(gpuBackendOptionGroupControl)
                 .build());
 
