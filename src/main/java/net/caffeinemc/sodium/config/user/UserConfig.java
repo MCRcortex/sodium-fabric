@@ -52,6 +52,7 @@ public class UserConfig {
         public boolean enableApiDebug = false;
         
         public ChunkRendererBackend chunkRendererBackend = ChunkRendererBackend.DEFAULT;
+        public RegionDataStore regionDataStore = RegionDataStore.DEFAULT;
     }
 
     public static class QualitySettings {
@@ -100,9 +101,9 @@ public class UserConfig {
 
     public enum RegionDataStore implements TextProvider {
         DEFAULT("options.gamma.default", p -> true),
-        SPARSE_GLOBAL("sodium.options.gpu_occlusion.region_store.sparse_global", p -> true),
-        SINGLE_GLOBAL("sodium.options.gpu_occlusion.region_store.single_global", p -> true),
-        REGION_SPECIFIC("sodium.options.gpu_occlusion.region_store.region_specific", p -> true);
+        SPARSE("sodium.options.gpu_occlusion.region_store.sparse", p -> true),
+        SINGLE("sodium.options.gpu_occlusion.region_store.single", p -> true),
+        DISTINCT("sodium.options.gpu_occlusion.region_store.distinct", p -> true);
 
         private final Text name;
         private final Predicate<RenderDeviceProperties> supportedSupplier;

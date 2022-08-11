@@ -18,12 +18,16 @@ import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.util.buffer.streaming.SectionedStreamingBuffer;
 import net.caffeinemc.gfx.util.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
+import net.caffeinemc.sodium.config.user.UserConfig;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
 import net.caffeinemc.sodium.render.buffer.arena.PendingUpload;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
+import net.caffeinemc.sodium.render.chunk.draw.GPUMdicChunkRenderer;
+import net.caffeinemc.sodium.render.chunk.draw.MdbvChunkRenderer;
+import net.caffeinemc.sodium.render.chunk.draw.MdiChunkRenderer;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
@@ -65,10 +69,7 @@ public class RenderRegionManager {
         );
 
 
-        //TODO: make it an option of which system its using
-        bufferProvider = new GlobalSparseAsyncBufferProvider(device, stagingBuffer, vertexType, 3000000000L);//3GB max size
-        //bufferProvider = new DistinctRecycledBufferProvider(device, stagingBuffer, vertexType);
-        //bufferProvider = new GlobalSingleBufferProvider(device, stagingBuffer, vertexType);
+        bufferProvider = createDataStoreProvider();
     }
 
     public RenderRegion getRegion(long regionId) {
@@ -296,5 +297,24 @@ public class RenderRegionManager {
     
     public long getDeviceAllocatedMemory() {
         return this.getDeviceAllocatedMemoryActive() + this.bufferProvider.getDeviceAllocatedMemory();
+    }
+
+    private IVertexBufferProvider createDataStoreProvider() {
+        return createDataStoreProvider(SodiumClientMod.options().advanced.regionDataStore);
+    }
+    private IVertexBufferProvider createDataStoreProvider(UserConfig.RegionDataStore store) {
+        return switch (store) {
+            case DEFAULT -> device.properties().capabilities.sparseBuffers
+                    ? createDataStoreProvider(UserConfig.RegionDataStore.SPARSE)
+                    : (SodiumClientMod.options().advanced.chunkRendererBackend == UserConfig.ChunkRendererBackend.GPU_DRIVEN?
+                        createDataStoreProvider(UserConfig.RegionDataStore.SINGLE)
+                        :createDataStoreProvider(UserConfig.RegionDataStore.DISTINCT));
+
+            case SPARSE -> new GlobalSparseAsyncBufferProvider(device, stagingBuffer, vertexType, 3000000000L);//3GB max size
+
+            case SINGLE -> new GlobalSingleBufferProvider(device, stagingBuffer, vertexType);
+
+            case DISTINCT -> new DistinctRecycledBufferProvider(device, stagingBuffer, vertexType);
+        };
     }
 }

@@ -354,8 +354,8 @@ public class UserConfigCategories {
                                 )
                         ))
                         .setImpact(OptionImpact.VARIES)
-                        .setBinding((opts, value) -> {
-                        }, opts -> UserConfig.RegionDataStore.DEFAULT)
+                        .setBinding((opts, value) -> opts.advanced.regionDataStore = value
+                        , opts -> opts.advanced.regionDataStore)
                         .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)
                         .build()
                 )
