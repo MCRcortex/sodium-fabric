@@ -71,8 +71,10 @@ public class OcclusionEngine {
         //TODO:FIXME: This is here cause else stuff like frameid gets overriden while shader is running causing ALOT of flickering
         //glFinish();
 
+        //TODO: NEED TO DO THE 3 buffer frame id rotate thing with frustum viewable region ids!!!!!!!!! this will fix region flicker i believe
         viewport.visible_regions.clear();
         int regionCount = 0;
+        glFinish();
         {
             long addrFrustumRegion = MemoryUtil.memAddress(viewport.frustumRegionArray.view());
             for (RenderRegion region : regions) {
@@ -125,7 +127,6 @@ public class OcclusionEngine {
             viewport.scene.write(new MappedBufferWriter(viewport.sceneBuffer, viewport.sceneOffset));
             viewport.sceneBuffer.flush(viewport.sceneOffset, viewport.SCENE_STRUCT_ALIGNMENT);
         }
-        //glFinish();
     }
 
     public void doOcclusion() {
@@ -136,6 +137,8 @@ public class OcclusionEngine {
                     GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
         }
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);
+        //TODO: see if i can remove one of these
+        glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT|GL_SHADER_STORAGE_BARRIER_BIT);
         int regionCount = viewport.visible_regions.size();
         rasterRegion.execute(
                 regionCount,
