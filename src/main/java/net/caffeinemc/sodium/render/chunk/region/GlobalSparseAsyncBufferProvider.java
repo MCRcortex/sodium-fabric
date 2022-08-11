@@ -39,16 +39,26 @@ public class GlobalSparseAsyncBufferProvider implements IVertexBufferProvider {
 
     @Override
     public long getDeviceAllocatedMemory() {
-        return 0;
+        return globalBuffer.getDeviceAllocatedMemory();
+    }
+
+    @Override
+    public long getDeviceUsedMemory() {
+        return globalBuffer.getDeviceUsedMemory();
     }
 
     @Override
     public int getDeviceBufferObjects() {
-        return 0;
+        return 1;
     }
 
     @Override
     public void prune(float prunePercentModifier) {
 
+    }
+
+    @Override
+    public String getName() {
+        return "Sparse";
     }
 }

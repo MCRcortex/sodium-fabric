@@ -412,4 +412,8 @@ public class SodiumWorldRenderer {
     public Buffer getGlobalVertexBufferTHISISTEMPORARY() {
         return terrainRenderManager.regionManager.getGlobalVertexBufferTHISISTEMPORARY();
     }
+
+    public TerrainRenderManager getTerrainRenderer() {
+        return terrainRenderManager;
+    }
 }

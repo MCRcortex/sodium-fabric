@@ -18,6 +18,7 @@ import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.util.buffer.streaming.SectionedStreamingBuffer;
 import net.caffeinemc.gfx.util.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
+import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
 import net.caffeinemc.sodium.render.buffer.arena.PendingUpload;
@@ -65,9 +66,9 @@ public class RenderRegionManager {
 
 
         //TODO: make it an option of which system its using
-        //bufferProvider = new GlobalSparseAsyncBufferProvider(device, stagingBuffer, vertexType, 5000000000L);//5GB max size
+        bufferProvider = new GlobalSparseAsyncBufferProvider(device, stagingBuffer, vertexType, 3000000000L);//3GB max size
         //bufferProvider = new DistinctRecycledBufferProvider(device, stagingBuffer, vertexType);
-        bufferProvider = new GlobalSingleBufferProvider(device, stagingBuffer, vertexType);
+        //bufferProvider = new GlobalSingleBufferProvider(device, stagingBuffer, vertexType);
     }
 
     public RenderRegion getRegion(long regionId) {
@@ -183,6 +184,10 @@ public class RenderRegionManager {
         return (bufferProvider.provide().getBufferObject());
     }
 
+    public IVertexBufferProvider getProvider() {
+        return bufferProvider;
+    }
+
     public interface RenderUpdateCallback {
         void accept(RenderSection section, ChunkRenderData prev, ChunkRenderData next);
     }
@@ -274,6 +279,8 @@ public class RenderRegionManager {
     }
     
     public int getDeviceBufferObjects() {
+        if (SodiumWorldRenderer.instance().getTerrainRenderer().isGlobalAllocation())
+            return this.bufferProvider.getDeviceBufferObjects();
         return this.regions.size() + this.bufferProvider.getDeviceBufferObjects();
     }
     
@@ -284,7 +291,7 @@ public class RenderRegionManager {
             long deviceUsedMemory = region.getDeviceUsedMemory();
             sum += deviceUsedMemory;
         }
-        return sum;
+        return sum + this.bufferProvider.getDeviceUsedMemory();
     }
     
     public long getDeviceAllocatedMemory() {

@@ -61,6 +61,11 @@ public class DistinctRecycledBufferProvider implements IVertexBufferProvider {
     }
 
     @Override
+    public long getDeviceUsedMemory() {
+        return 0;
+    }
+
+    @Override
     public int getDeviceBufferObjects() {
         return bufferPool.getDeviceBufferObjects();
     }
@@ -68,5 +73,10 @@ public class DistinctRecycledBufferProvider implements IVertexBufferProvider {
     @Override
     public void prune(float prunePercentModifier) {
         bufferPool.prune(prunePercentModifier);
+    }
+
+    @Override
+    public String getName() {
+        return "Distinct";
     }
 }

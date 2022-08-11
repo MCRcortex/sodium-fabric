@@ -2,7 +2,6 @@ package net.caffeinemc.sodium.render.buffer.arena.sparse.v2;
 
 import it.unimi.dsi.fastutil.longs.*;
 import net.caffeinemc.gfx.api.buffer.Buffer;
-import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
 import net.caffeinemc.gfx.api.buffer.ImmutableSparseBuffer;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.util.buffer.streaming.StreamingBuffer;
@@ -40,6 +39,8 @@ public class AsyncSparseArenaBuffer implements ArenaBuffer {
     private int used;
 
     private final int stride;
+
+    private int committedPageCount;
 
 
     //HACKS TODO/FIX: CLEANUP
@@ -81,7 +82,8 @@ public class AsyncSparseArenaBuffer implements ArenaBuffer {
 
     @Override
     public long getDeviceAllocatedMemory() {
-        return this.toBytes(this.capacity);
+        //return this.toBytes(this.capacity);
+        return (long) committedPageCount *pageSize;
     }
 
     private void markUsed(long start, long size) {
@@ -90,8 +92,9 @@ public class AsyncSparseArenaBuffer implements ArenaBuffer {
         for (long page = startPage; page <= endPage; page++) {
             if (!pageUsageCount.containsKey(page)) {
                 pageUsageCount.put(page,1);
-                //TODO: optimize this
+                //TODO: optimize this, i.e. batch commit
                 device.commitPages(arenaBuffer, page, 1);
+                committedPageCount++;
             } else {
                 pageUsageCount.put(page, pageUsageCount.get(page)+1);
             }
@@ -107,8 +110,9 @@ public class AsyncSparseArenaBuffer implements ArenaBuffer {
             }
             if (pageUsageCount.get(page)==1) {
                 pageUsageCount.remove(page);
-                //TODO: optimize this
+                //TODO: optimize this, i.e. batch uncommit
                 device.uncommitPages(arenaBuffer, page, 1);
+                committedPageCount--;
             } else {
                 pageUsageCount.put(page, pageUsageCount.get(page)-1);
             }

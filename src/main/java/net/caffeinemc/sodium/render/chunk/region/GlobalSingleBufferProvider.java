@@ -60,17 +60,27 @@ public class GlobalSingleBufferProvider implements IVertexBufferProvider {
 
     @Override
     public long getDeviceAllocatedMemory() {
-        return buffer.getDeviceAllocatedMemory();
+        return buffer.getDeviceAllocatedMemory() + bufferPool.getDeviceAllocatedMemory();
+    }
+
+    @Override
+    public long getDeviceUsedMemory() {
+        return buffer.getDeviceUsedMemory();
     }
 
     @Override
     public int getDeviceBufferObjects() {
-        return bufferPool.getDeviceBufferObjects();
+        return bufferPool.getDeviceBufferObjects() + 1;
     }
 
     @Override
     public void prune(float prunePercentModifier) {
         bufferPool.prune(prunePercentModifier);
+    }
+
+    @Override
+    public String getName() {
+        return "Single";
     }
 }
 

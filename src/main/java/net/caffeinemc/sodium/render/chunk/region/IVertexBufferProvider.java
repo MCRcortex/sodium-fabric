@@ -11,7 +11,11 @@ public interface IVertexBufferProvider {
 
     long getDeviceAllocatedMemory();
 
+    long getDeviceUsedMemory();
+
     int getDeviceBufferObjects();
 
     void prune(float prunePercentModifier);
+
+    String getName();
 }

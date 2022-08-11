@@ -113,10 +113,14 @@ public class RenderRegion {
     }
 
     public long getDeviceUsedMemory() {
+        if (SodiumWorldRenderer.instance().getTerrainRenderer().isGlobalAllocation())
+            return 0;
         return this.vertexBuffer.getDeviceUsedMemory();
     }
 
     public long getDeviceAllocatedMemory() {
+        if (SodiumWorldRenderer.instance().getTerrainRenderer().isGlobalAllocation())
+            return 0;
         return this.vertexBuffer.getDeviceAllocatedMemory();
     }
 

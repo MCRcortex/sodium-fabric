@@ -84,6 +84,6 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
 
     @Override
     public String getDebugName() {
-        return null;
+        return "GPU Occlusion";
     }
 }

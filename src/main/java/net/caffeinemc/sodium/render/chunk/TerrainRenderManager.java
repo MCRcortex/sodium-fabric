@@ -24,6 +24,9 @@ import net.caffeinemc.sodium.render.chunk.occlusion.ChunkTree;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
+import net.caffeinemc.sodium.render.chunk.region.GlobalSingleBufferProvider;
+import net.caffeinemc.sodium.render.chunk.region.GlobalSparseAsyncBufferProvider;
+import net.caffeinemc.sodium.render.chunk.region.IVertexBufferProvider;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegionManager;
 import net.caffeinemc.sodium.render.chunk.sort.ChunkGeometrySorter;
 import net.caffeinemc.sodium.render.chunk.state.ChunkPassModel;
@@ -513,6 +516,7 @@ public class TerrainRenderManager {
 
         List<String> strings = new ArrayList<>();
         strings.add(String.format("Chunk Renderer: %s", this.chunkRenderer.getDebugName()));
+        strings.add(String.format("Vertex Store: %s", this.regionManager.getProvider().getName()));
         strings.add(String.format("Device buffer objects: %d", count));
         strings.add(String.format("Device memory: %d MiB used/%d MiB alloc", MathUtil.toMib(deviceUsed), MathUtil.toMib(deviceAllocated)));
 
@@ -537,4 +541,8 @@ public class TerrainRenderManager {
         return SodiumClientMod.options().performance.useCompactVertexFormat ? TerrainVertexFormats.COMPACT : TerrainVertexFormats.STANDARD;
     }
 
+    public boolean isGlobalAllocation() {
+        IVertexBufferProvider provider = regionManager.getProvider();
+        return provider instanceof GlobalSingleBufferProvider || provider instanceof GlobalSparseAsyncBufferProvider;
+    }
 }
