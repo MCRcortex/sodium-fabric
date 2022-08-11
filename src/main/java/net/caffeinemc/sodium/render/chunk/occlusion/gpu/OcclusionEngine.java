@@ -2,6 +2,7 @@ package net.caffeinemc.sodium.render.chunk.occlusion.gpu;
 
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
+import net.caffeinemc.gfx.opengl.buffer.GlMappedBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
@@ -19,8 +20,7 @@ import org.lwjgl.system.MemoryUtil;
 import java.util.Collection;
 import java.util.Set;
 
-import static org.lwjgl.opengl.ARBDirectStateAccess.glClearNamedBufferData;
-import static org.lwjgl.opengl.ARBDirectStateAccess.glClearNamedBufferSubData;
+import static org.lwjgl.opengl.ARBDirectStateAccess.*;
 import static org.lwjgl.opengl.GL11C.GL_RED;
 import static org.lwjgl.opengl.GL11C.GL_UNSIGNED_INT;
 import static org.lwjgl.opengl.GL30C.GL_R32UI;
@@ -100,11 +100,10 @@ public class OcclusionEngine {
             //TODO: put into gfx
             //TODO: FIXME: need to set the first 2 ints too 0 and the last one too 1
             glClearNamedBufferData(GlBuffer.getHandle(viewport.computeDispatchCommandBuffer),
-                    GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
+                    GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, new int[]{0});
             //ULTRA HACK FIX
             glClearNamedBufferSubData(GlBuffer.getHandle(viewport.computeDispatchCommandBuffer),
-                    GL_R32UI, 8, 4,GL_RED, GL_UNSIGNED_INT, new int[]{1});
-
+                    GL_R32UI, 8, 4,GL_RED_INTEGER, GL_UNSIGNED_INT, new int[]{1});
 
             //Copy the counts from gpu to cpu buffers
             device.copyBuffer(viewport.commandBufferCounter, viewport.cpuCommandBufferCounter,
@@ -126,6 +125,7 @@ public class OcclusionEngine {
             viewport.scene.write(new MappedBufferWriter(viewport.sceneBuffer, viewport.sceneOffset));
             viewport.sceneBuffer.flush(viewport.sceneOffset, viewport.SCENE_STRUCT_ALIGNMENT);
         }
+        //glFinish();
     }
 
     public void doOcclusion() {
@@ -169,7 +169,6 @@ public class OcclusionEngine {
                 viewport.sectionVisibilityBuffer
         );
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);
-
         createTerrainCommands.execute(
                 viewport.sceneBuffer,
                 viewport.sceneOffset,

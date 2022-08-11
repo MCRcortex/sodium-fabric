@@ -8,8 +8,8 @@ layout(std430, binding = 1) restrict readonly buffer RegionArrayData {
     int regionArray[MAX_REGIONS];
 };
 
-layout(std430, binding = 2) restrict readonly buffer RegionMetaData {
-    RegionMeta[] regions;
+layout(std140, binding = 2) uniform RegionMetaData {
+    RegionMeta regions[MAX_REGIONS];
 };
 uint REGION_ID;
 #define REGION regions[REGION_ID]
@@ -110,7 +110,7 @@ void writeBackfaceCulledCommands() {
     uint idx = 0;
     while (skipmsk != 0) {
         //this is done to try keep all the instructions in relativly similar warp
-        barrier();
+        //barrier();
         uint localOffset = findLSB(skipmsk)+1;
         skipmsk >>= localOffset;
         idx += localOffset;
@@ -119,13 +119,12 @@ void writeBackfaceCulledCommands() {
 }
 
 void main() {
-    //Doing this first cause its probably the fastest
-    if (visibility[gl_GlobalInvocationID.x*REGION_SECTION_MAX_SIZE + gl_GlobalInvocationID.y] != frameId) {
-        return;
-    }
-
+    //Since its in uniforms it should be fast
     REGION_ID = regionArray[gl_GlobalInvocationID.x];
     if (REGION.sectionCount <= gl_GlobalInvocationID.y) {
+        return;
+    }
+    if (visibility[gl_GlobalInvocationID.x*REGION_SECTION_MAX_SIZE + gl_GlobalInvocationID.y] != frameId) {
         return;
     }
     SECTION_ID = REGION.sectionStart + gl_GlobalInvocationID.y;

@@ -92,6 +92,7 @@ public class ViewportedData {
         commandOutputBuffer = device.createBuffer((OcclusionEngine.MAX_RENDER_COMMANDS_PER_LAYER+OcclusionEngine.MAX_TEMPORAL_COMMANDS_PER_LAYER)*OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE*3,Set.of());//3 layers
 
         //NOTE: can probably just use a slot in SectionMeta or some shiz
+        //TODO:FIXME: THIS IS NOT CORRECT this needs to be  the size of max regions in the world * max number of sections in regions
         temporalSectionData = device.createBuffer(OcclusionEngine.MAX_REGIONS*OcclusionEngine.MAX_VISIBLE_SECTIONS*4,Set.of());//3 layers
     }
 }

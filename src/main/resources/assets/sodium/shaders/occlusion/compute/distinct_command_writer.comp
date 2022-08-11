@@ -1,0 +1,110 @@
+struct CommandCountBlock {
+    uint cmdBuff0Count;
+    uint cmdBuff1Count;
+    uint cmdBuff2Count;
+    uint PAD;
+};
+
+layout(std430, binding = 6) restrict buffer CommandCountBuffer {
+    uint instanceCounter;
+    uint PAD1;
+    uint PAD2;
+    uint PAD3;
+    CommandCountBlock[] counts;
+};
+
+layout(std430, binding = 7) restrict writeonly buffer InstanceDataBuffer {
+    vec3[] instanceData;
+};
+
+layout(std430, binding = 8) restrict writeonly buffer MDRenderCommandBuffer {
+    DrawElementsIndirectCommand[] drawCommands;
+};
+
+#define COMMAND_INDEX_OFFSET(x) (x * MAX_COMMAND_COUNT_PER_LAYER)
+
+uint writeInstancedData(vec3 position) {
+    uint instanceId = atomicAdd(instanceCounter, 1);
+    instanceData[instanceId] = position;
+    return instanceId;
+}
+
+void writeFaceRenderCommand(uint msk, uint faceIndex, uint consecutiveFaces, uint instanceId, bool writeTemporal) {
+    if ((msk&((1u)<<faceIndex)) != 0) { //Layer 0
+        //TODO: compile this into a LUT so its O(1) and doesnt do very very bad branch divergence
+        uint count = SECTION.RANGES[0][faceIndex].count;
+        uint start = SECTION.RANGES[0][faceIndex].start;
+        //for (uint i = faceIndex+1; i < faceIndex + consecutiveFaces; i++) {
+        //    count += SECTION.RANGES[0][i].count;
+        //}
+        {
+            uint cmdIdx = atomicAdd(cmdBuff0Count, 1) + COMMAND_INDEX_OFFSET(0);
+
+            drawCommands[cmdIdx].count = count;
+            drawCommands[cmdIdx].instanceCount = 1;
+            drawCommands[cmdIdx].baseVertex = start;
+            drawCommands[cmdIdx].baseInstance = instanceId;
+        }
+
+        if (writeTemporal) {
+            uint cmdIdx = atomicAdd(tempCmdBuff0Count, 1) + COMMAND_INDEX_OFFSET(3) + 0 * MAX_TEMPORAL_COMMANDS;
+
+            drawCommands[cmdIdx].count = count;
+            drawCommands[cmdIdx].instanceCount = 1;
+            drawCommands[cmdIdx].baseVertex = start;
+            drawCommands[cmdIdx].baseInstance = instanceId;
+        }
+    }
+
+
+    if ((msk&((1u<<8)<<faceIndex)) != 0) {//Layer 1
+        uint count = SECTION.RANGES[1][faceIndex].count;
+        uint start = SECTION.RANGES[1][faceIndex].start;
+        //for (uint i = faceIndex+1; i < faceIndex + consecutiveFaces; i++) {
+        //    count += SECTION.RANGES[1][i].count;
+        //}
+        {
+            uint cmdIdx = atomicAdd(cmdBuff1Count, 1) + COMMAND_INDEX_OFFSET(1);
+
+            drawCommands[cmdIdx].count = count;
+            drawCommands[cmdIdx].instanceCount = 1;
+            drawCommands[cmdIdx].baseVertex = start;
+            drawCommands[cmdIdx].baseInstance = instanceId;
+        }
+
+        if (writeTemporal) {
+            uint cmdIdx = atomicAdd(tempCmdBuff1Count, 1) + COMMAND_INDEX_OFFSET(3) + 1 * MAX_TEMPORAL_COMMANDS;
+
+            drawCommands[cmdIdx].count = count;
+            drawCommands[cmdIdx].instanceCount = 1;
+            drawCommands[cmdIdx].baseVertex = start;
+            drawCommands[cmdIdx].baseInstance = instanceId;
+        }
+    }
+
+
+    if ((msk&((1u<<16)<<faceIndex)) != 0) {//Layer 2
+        uint count = SECTION.RANGES[2][faceIndex].count;
+        uint start = SECTION.RANGES[2][faceIndex].start;
+        //for (uint i = faceIndex+1; i < faceIndex + consecutiveFaces; i++) {
+        //    count += SECTION.RANGES[2][i].count;
+        //}
+        {
+            uint cmdIdx = atomicAdd(cmdBuff2Count, 1) + COMMAND_INDEX_OFFSET(2);
+
+            drawCommands[cmdIdx].count = count;
+            drawCommands[cmdIdx].instanceCount = 1;
+            drawCommands[cmdIdx].baseVertex = start;
+            drawCommands[cmdIdx].baseInstance = instanceId;
+        }
+
+        if (writeTemporal) {
+            uint cmdIdx = atomicAdd(tempCmdBuff2Count, 1) + COMMAND_INDEX_OFFSET(3) + 2 * MAX_TEMPORAL_COMMANDS;
+
+            drawCommands[cmdIdx].count = count;
+            drawCommands[cmdIdx].instanceCount = 1;
+            drawCommands[cmdIdx].baseVertex = start;
+            drawCommands[cmdIdx].baseInstance = instanceId;
+        }
+    }
+}

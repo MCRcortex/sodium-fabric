@@ -335,7 +335,7 @@ public class GlRenderDevice implements RenderDevice {
         //// Do the synchronization for the buffer ourselves
         // TODO: add a memory barrier function to RenderDevice
         // do we need GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT?
-        GL45C.glMemoryBarrier(GL45C.GL_BUFFER_UPDATE_BARRIER_BIT);
+        GL45C.glMemoryBarrier(GL45C.GL_BUFFER_UPDATE_BARRIER_BIT | GL44C.GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
         this.createFence().sync(true);
 
         // If we were to use GL_MAP_INVALIDATE_BIT on this, it would invalidate all the stuff we just wrote to it.

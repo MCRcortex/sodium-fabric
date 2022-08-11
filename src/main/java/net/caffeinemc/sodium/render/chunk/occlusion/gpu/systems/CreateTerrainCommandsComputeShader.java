@@ -4,6 +4,7 @@ import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.api.pipeline.ComputePipeline;
 import net.caffeinemc.gfx.api.shader.*;
+import net.caffeinemc.gfx.opengl.buffer.GlMappedBuffer;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.ViewportedData;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
@@ -11,6 +12,8 @@ import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
 import net.caffeinemc.sodium.render.shader.ShaderParser;
 import net.minecraft.util.Identifier;
+
+import java.nio.ByteOrder;
 
 //TODO: maybe do via dispatch indirect or something that is set via the RasterSection compute shader
 // simply add 1 to x dim and atomic max the y dim
@@ -33,7 +36,7 @@ public class CreateTerrainCommandsComputeShader {
         public ComputeInterface(ShaderBindingContext context) {
             scene = context.bindBufferBlock(BufferBlockType.UNIFORM, 0);
             regionArray = context.bindBufferBlock(BufferBlockType.STORAGE, 1);
-            regionMeta = context.bindBufferBlock(BufferBlockType.STORAGE, 2);
+            regionMeta = context.bindBufferBlock(BufferBlockType.UNIFORM, 2);
             sectionVisBuff = context.bindBufferBlock(BufferBlockType.STORAGE, 3);
             sectionMeta = context.bindBufferBlock(BufferBlockType.STORAGE, 4);
             temporalDataBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 5);

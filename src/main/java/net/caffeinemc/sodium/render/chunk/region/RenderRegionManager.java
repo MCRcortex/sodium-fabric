@@ -65,9 +65,9 @@ public class RenderRegionManager {
 
 
         //TODO: make it an option of which system its using
-        bufferProvider = new GlobalSparseAsyncBufferProvider(device, stagingBuffer, vertexType, 5000000000L);//5GB max size
+        //bufferProvider = new GlobalSparseAsyncBufferProvider(device, stagingBuffer, vertexType, 5000000000L);//5GB max size
         //bufferProvider = new DistinctRecycledBufferProvider(device, stagingBuffer, vertexType);
-        //bufferProvider = new GlobalSingleBufferProvider(device, stagingBuffer, vertexType);
+        bufferProvider = new GlobalSingleBufferProvider(device, stagingBuffer, vertexType);
     }
 
     public RenderRegion getRegion(long regionId) {

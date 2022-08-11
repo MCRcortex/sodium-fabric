@@ -27,5 +27,5 @@ void main() {
     vec4 frag_light = _sample_lightmap(tex_light, vs_out.tex_light_coord);
     vec4 frag_mixed = vec4((frag_diffuse.rgb * frag_light.rgb) * vs_out.color * vs_out.shade, frag_diffuse.a);
 
-    frag_final = _apply_fog(frag_mixed, vs_out.fog_depth, fog_color, fog_start, fog_end);
+    frag_final = frag_mixed+0.0001*_apply_fog(frag_mixed, vs_out.fog_depth, fog_color, fog_start, fog_end);
 }

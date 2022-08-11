@@ -67,6 +67,8 @@ public class MdbvChunkRenderer extends AbstractBatchedMdChunkRenderer<MdbvChunkR
     @Override
     protected ShaderConstants.Builder addAdditionalShaderConstants(ShaderConstants.Builder constants) {
         constants.add("MAX_BATCH_SIZE", String.valueOf(RenderRegion.REGION_SIZE * ChunkMeshFace.COUNT));
+        //TODO: NEED TO MAKE THIS DEPENDENT ON REGION STORAGE
+        constants.add("SSBO_MODEL_TRANSFORM", "");
         return constants;
     }
     
