@@ -490,6 +490,10 @@ public class TerrainRenderManager {
         this.needsUpdate = true;
     }
 
+    public RenderSection getSection(int x, int y, int z) {
+        return this.tree.getSection(x, y, z);
+    }
+
     public boolean isBlockUpdatePrioritized(RenderSection render) {
         var camera = this.camera;
 

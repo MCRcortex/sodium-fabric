@@ -5,6 +5,8 @@ import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.gfx.opengl.buffer.GlMappedBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
+import net.caffeinemc.sodium.render.SodiumWorldRenderer;
+import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.buffers.RegionMetaManager;
@@ -74,7 +76,7 @@ public class OcclusionEngine {
         //TODO: NEED TO DO THE 3 buffer frame id rotate thing with frustum viewable region ids!!!!!!!!! this will fix region flicker i believe
         viewport.visible_regions.clear();
         int regionCount = 0;
-        glFinish();
+        //glFinish();
         {
             long addrFrustumRegion = MemoryUtil.memAddress(viewport.frustumRegionArray.view());
             for (RenderRegion region : regions) {
@@ -92,8 +94,26 @@ public class OcclusionEngine {
                 viewport.visible_regions.add(region);
                 //TODO: NEED TO ONLY DO THIS AFTER ALL REGIONS ARE DONE SO THAT ITS BASED ON THE sorted distance
                 MemoryUtil.memPutInt(addrFrustumRegion + regionCount* 4L, region.meta.id);
-                regionCount++;
+
                 //TODO: Region on vis tick
+
+                //This is a hack too inject visibility for region and section the camera is in
+                if (region.meta.aabb.isInside(cam.blockX, cam.blockY, cam.blockZ)) {
+                    glClearNamedBufferSubData(GlBuffer.getHandle(viewport.regionVisibilityArray),
+                            GL_R32UI, regionCount*4L, 4,
+                            GL_RED_INTEGER, GL_UNSIGNED_INT, new int[]{renderId});
+                    /*
+                    RenderSection section = SodiumWorldRenderer.instance().getTerrainRenderer()
+                            .getSection(cam.blockX>>4, cam.blockY>>4, cam.blockZ>>4);
+                    if (section != null && section.meta != null) {
+                        glClearNamedBufferSubData(GlBuffer.getHandle(viewport.sectionVisibilityBuffer),
+                                GL_R32UI, (section.meta.id + (long) region.meta.id * RenderRegion.REGION_SIZE)*4L, 4,
+                                GL_RED_INTEGER, GL_UNSIGNED_INT, new int[]{renderId});
+                    }*/
+                }
+
+
+                regionCount++;
             }
             viewport.frustumRegionArray.flush(0, regionCount * 4L);
         }

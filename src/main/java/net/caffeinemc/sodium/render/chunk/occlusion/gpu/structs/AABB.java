@@ -25,6 +25,12 @@ public class AABB {
         throw new IllegalStateException();
     }
 
+    public boolean isInside(float x, float y, float z) {
+        return offset.x <= x && x <= offset.x + size.x &&
+               offset.y <= y && y <= offset.y + size.y &&
+               offset.z <= z && z <= offset.z + size.z;
+    }
+
     public boolean isOnInsideBoarder(AABB other) {
         throw new IllegalStateException();
     }
