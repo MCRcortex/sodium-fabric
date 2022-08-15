@@ -139,6 +139,17 @@ public class UserConfigScreen extends Screen {
         int x = 6;
         int y = 28;
 
+        int maxWidth = 200;
+        for (OptionGroup group : this.currentPage.getGroups()) {
+            if (group.getControl() != null) {
+                if (!group.getControl().shouldDisplay()) {
+                    continue;
+                }
+            }
+            for (Option<?> option : group.getOptions()) {
+                maxWidth = Math.max(maxWidth, option.getControl().getMaxWidth()+MinecraftClient.getInstance().textRenderer.getWidth(option.getName()));
+            }
+        }
         for (OptionGroup group : this.currentPage.getGroups()) {
             if (group.getControl() != null) {
                 if (!group.getControl().shouldDisplay()) {
@@ -148,7 +159,7 @@ public class UserConfigScreen extends Screen {
             // Add each option's control element
             for (Option<?> option : group.getOptions()) {
                 Control<?> control = option.getControl();
-                ControlElement<?> element = control.createElement(new Dim2i(x, y, 200, 18));
+                ControlElement<?> element = control.createElement(new Dim2i(x, y, maxWidth, 18));
 
                 this.addDrawableChild(element);
 

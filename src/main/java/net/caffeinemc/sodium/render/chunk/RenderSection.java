@@ -61,6 +61,7 @@ public class RenderSection {
         if (this.rebuildTask != null) {
             this.rebuildTask.cancel(false);
             this.rebuildTask = null;
+            this.pendingUpdate = null;
         }
     }
 
@@ -155,7 +156,8 @@ public class RenderSection {
         if (uploadedGeometrySegment != BufferSegment.INVALID) {
             this.region.removeSection(this);
             this.uploadedGeometrySegment = BufferSegment.INVALID;
-            this.region = null;
+            //Dont need to clear the region as the region cant chance (i think???)
+            //this.region = null;
         }
     }
 
@@ -242,6 +244,8 @@ public class RenderSection {
         if (uploadedGeometrySegment == BufferSegment.INVALID)
             return false;
         if (data == ChunkRenderData.EMPTY || data == ChunkRenderData.ABSENT)
+            return false;
+        if (data.models == null)
             return false;
         return true;
     }

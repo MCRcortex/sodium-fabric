@@ -32,6 +32,7 @@ public class CreateTerrainCommandsComputeShader {
         public final BufferBlock instancedDataBuffer;
         public final BufferBlock commandOutputBuffer;
         public final BufferBlock temporalDataBuffer;
+        public final BufferBlock cpuVisibilityBuffer;
 
         public ComputeInterface(ShaderBindingContext context) {
             scene = context.bindBufferBlock(BufferBlockType.UNIFORM, 0);
@@ -39,10 +40,11 @@ public class CreateTerrainCommandsComputeShader {
             regionMeta = context.bindBufferBlock(BufferBlockType.UNIFORM, 2);
             sectionVisBuff = context.bindBufferBlock(BufferBlockType.STORAGE, 3);
             sectionMeta = context.bindBufferBlock(BufferBlockType.STORAGE, 4);
-            temporalDataBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 5);
-            commandCounterBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 6);
-            instancedDataBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 7);
-            commandOutputBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 8);
+            cpuVisibilityBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 5);
+            temporalDataBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 6);
+            commandCounterBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 7);
+            instancedDataBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 8);
+            commandOutputBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 9);
         }
     }
 
@@ -68,7 +70,8 @@ public class CreateTerrainCommandsComputeShader {
     }
 
     //
-    public void execute(Buffer scene, int offset, Buffer dispatchCompute, Buffer regionArray, Buffer regionMeta, Buffer sectionMeta, Buffer sectionVisBuffer, Buffer commandCounter, Buffer instancedDataBuffer, Buffer commandOutputBuffer, Buffer temporalDataBuffer) {
+    public void execute(Buffer scene, int offset, Buffer dispatchCompute, Buffer regionArray, Buffer regionMeta, Buffer sectionMeta, Buffer sectionVisBuffer, Buffer commandCounter, Buffer instancedDataBuffer, Buffer commandOutputBuffer, Buffer temporalDataBuffer,
+                        Buffer cpuVisibilityBuffer) {
         this.device.useComputePipeline(pipeline, (cmd, programInterface, state) -> {
             state.bindBufferBlock(programInterface.scene, scene, offset, ViewportedData.SCENE_STRUCT_ALIGNMENT);
             state.bindBufferBlock(programInterface.regionArray, regionArray);
@@ -79,6 +82,7 @@ public class CreateTerrainCommandsComputeShader {
             state.bindBufferBlock(programInterface.commandCounterBuffer, commandCounter);
             state.bindBufferBlock(programInterface.instancedDataBuffer, instancedDataBuffer);
             state.bindBufferBlock(programInterface.commandOutputBuffer, commandOutputBuffer);
+            state.bindBufferBlock(programInterface.cpuVisibilityBuffer, cpuVisibilityBuffer);
 
 
             cmd.bindDispatchIndirectBuffer(dispatchCompute);

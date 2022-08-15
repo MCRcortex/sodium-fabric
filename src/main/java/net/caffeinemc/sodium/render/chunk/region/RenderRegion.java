@@ -1,23 +1,24 @@
 package net.caffeinemc.sodium.render.chunk.region;
 
+import it.unimi.dsi.fastutil.PriorityQueue;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntAVLTreeSet;
+import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
+import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
-import java.util.Deque;
 import java.util.List;
 import java.util.Set;
 
 import net.caffeinemc.gfx.api.device.RenderDevice;
-import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.PendingUpload;
+import net.caffeinemc.sodium.render.chunk.ChunkUpdateType;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.RegionMeta;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderBounds;
-import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.caffeinemc.sodium.util.MathUtil;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.apache.commons.lang3.Validate;
@@ -109,7 +110,7 @@ public class RenderRegion {
     }
 
     public boolean isEmpty() {
-        return this.vertexBuffer.isEmpty();
+        return this.vertexBuffer.isEmpty() && initialBuilds.isEmpty();
     }
 
     public long getDeviceUsedMemory() {
@@ -243,5 +244,55 @@ public class RenderRegion {
         meta.sectionCount = sectionCount;
         meta.sectionStart = meta.id * REGION_SIZE;
         SodiumWorldRenderer.instance().getOcclusionEngine().regionMeta.update(this);
+    }
+
+
+    private ObjectLinkedOpenHashSet<RenderSection> initialBuilds = new ObjectLinkedOpenHashSet<>();
+    public void tickInitialBuilds() {
+        //TODO: maybe scale count with distance to camera
+        for (int i = 0; i < Math.min((meta != null?20:4), initialBuilds.size()); i++) {
+            //TODO: do inital builds via event based
+            // e.g. when section next to it becomes flagged enqueu surrounding etc
+            // this.tracker.hasMergedFlags(section.getChunkX(), section.getChunkZ(), ChunkStatus.FLAG_ALL)
+
+            //NOTE: its done like this to cycle the render sections in the list (dw its O(1))
+            RenderSection section = initialBuilds.removeFirst();
+            if (section.getPendingUpdate() == ChunkUpdateType.INITIAL_BUILD) {
+                SodiumWorldRenderer.instance().getTerrainRenderer().schedulePendingUpdates(section);
+                initialBuilds.addAndMoveToLast(section);
+            }
+        }
+    }
+
+    public void sectionInitialBuild(RenderSection section) {
+        initialBuilds.addAndMoveToLast(section);
+    }
+
+    private ObjectLinkedOpenHashSet<RenderSection> importantBuilds = new ObjectLinkedOpenHashSet<>();
+    private ObjectLinkedOpenHashSet<RenderSection> updateBuilds = new ObjectLinkedOpenHashSet<>();
+
+    public void tickEnqueuedBuilds() {
+        for (int i = 0; i < Math.min(32, importantBuilds.size()); i++) {
+            RenderSection section = importantBuilds.removeFirst();
+            if (section.getPendingUpdate() == ChunkUpdateType.IMPORTANT_REBUILD) {
+                SodiumWorldRenderer.instance().getTerrainRenderer().schedulePendingUpdates(section);
+                importantBuilds.addAndMoveToLast(section);
+            }
+        }
+        for (int i = 0; i < Math.min(16, updateBuilds.size()); i++) {
+            RenderSection section = updateBuilds.removeFirst();
+            if (section.getPendingUpdate() == ChunkUpdateType.REBUILD) {
+                SodiumWorldRenderer.instance().getTerrainRenderer().schedulePendingUpdates(section);
+                updateBuilds.addAndMoveToLast(section);
+            }
+        }
+    }
+
+    public void scheduleSectionUpdate(RenderSection section) {
+        if (section.getPendingUpdate() == ChunkUpdateType.IMPORTANT_REBUILD) {
+            importantBuilds.addAndMoveToLast(section);
+        } else {
+            updateBuilds.addAndMoveToLast(section);
+        }
     }
 }

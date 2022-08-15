@@ -17,12 +17,14 @@ public final class RegionMetaManager {
     private final RenderDevice device;
     private final MappedBuffer buffer;
     private final MappedBufferWriter writer;
+    public final MappedBuffer cpuRegionVisibility;
 
     public RegionMetaManager(RenderDevice device) {
         this.device = device;
         buffer = device.createMappedBuffer(RegionMeta.SIZE * OcclusionEngine.MAX_REGIONS,
                 Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));
         writer = new MappedBufferWriter(buffer);
+        cpuRegionVisibility = device.createMappedBuffer(4 * OcclusionEngine.MAX_REGIONS, Set.of(MappedBufferFlags.READ));
     }
 
     public void update(RenderRegion region) {

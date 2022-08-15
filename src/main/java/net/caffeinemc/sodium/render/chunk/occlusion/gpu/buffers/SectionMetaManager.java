@@ -16,12 +16,14 @@ public final class SectionMetaManager {
     private final RenderDevice device;
     private final MappedBuffer buffer;
     private final MappedBufferWriter writer;
+    public final MappedBuffer cpuSectionVisibility;
 
     public SectionMetaManager(RenderDevice device) {
         this.device = device;
-        buffer = device.createMappedBuffer(SectionMeta.SIZE * RenderRegion.REGION_SIZE * OcclusionEngine.MAX_REGIONS,
+        buffer = device.createMappedBuffer((long) SectionMeta.SIZE * RenderRegion.REGION_SIZE * OcclusionEngine.MAX_REGIONS,
                 Set.of(MappedBufferFlags.WRITE, MappedBufferFlags.EXPLICIT_FLUSH));
         writer = new MappedBufferWriter(buffer);
+        cpuSectionVisibility = device.createMappedBuffer((long) 4 * RenderRegion.REGION_SIZE * OcclusionEngine.MAX_REGIONS, Set.of(MappedBufferFlags.READ));
     }
 
     public void update(RenderSection section) {

@@ -449,7 +449,7 @@ public class MdiChunkRenderer extends AbstractBatchedMdChunkRenderer<MdiChunkRen
         );
     
         pipelineState.bindBufferBlock(
-                programInterface.uniformChunkTransforms,
+                programInterface.uniformChunkTransforms,//TODO: MAKE THIS DYNAMICLY CHOOSE BETWEEN UNIFORM AND SSBO
                 this.uniformBufferChunkTransforms.getBufferObject(),
                 batch.getTransformsBufferOffset(),
                 RenderRegion.REGION_SIZE * TRANSFORM_STRUCT_STRIDE // the spec requires that the entire part of the UBO is filled completely, so lets just make the range the right size

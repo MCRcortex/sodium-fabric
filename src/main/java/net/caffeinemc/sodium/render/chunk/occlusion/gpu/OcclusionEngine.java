@@ -2,11 +2,8 @@ package net.caffeinemc.sodium.render.chunk.occlusion.gpu;
 
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
-import net.caffeinemc.gfx.opengl.buffer.GlMappedBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
-import net.caffeinemc.sodium.render.SodiumWorldRenderer;
-import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.buffers.RegionMetaManager;
@@ -17,10 +14,10 @@ import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.CreateTerrainCom
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.RasterRegionShader;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.RasterSectionShader;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
+import net.minecraft.client.MinecraftClient;
 import org.lwjgl.system.MemoryUtil;
 
 import java.util.Collection;
-import java.util.Set;
 
 import static org.lwjgl.opengl.ARBDirectStateAccess.*;
 import static org.lwjgl.opengl.GL11C.GL_RED;
@@ -28,7 +25,6 @@ import static org.lwjgl.opengl.GL11C.GL_UNSIGNED_INT;
 import static org.lwjgl.opengl.GL30C.GL_R32UI;
 import static org.lwjgl.opengl.GL42C.*;
 import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BARRIER_BIT;
-import static org.lwjgl.opengl.GL43C.glInvalidateBufferData;
 
 
 //FIXME: The region the camera is in will get culled,
@@ -77,9 +73,12 @@ public class OcclusionEngine {
         viewport.visible_regions.clear();
         int regionCount = 0;
         //glFinish();
+        MinecraftClient.getInstance().getProfiler().push("region_loop");
         {
             long addrFrustumRegion = MemoryUtil.memAddress(viewport.frustumRegionArray.view());
             for (RenderRegion region : regions) {
+
+                region.tickInitialBuilds();
                 if (region.isEmpty() || region.meta == null) {
                     continue;
                 }
@@ -94,7 +93,6 @@ public class OcclusionEngine {
                 viewport.visible_regions.add(region);
                 //TODO: NEED TO ONLY DO THIS AFTER ALL REGIONS ARE DONE SO THAT ITS BASED ON THE sorted distance
                 MemoryUtil.memPutInt(addrFrustumRegion + regionCount* 4L, region.meta.id);
-
                 //TODO: Region on vis tick
 
                 //This is a hack too inject visibility for region and section the camera is in
@@ -117,6 +115,16 @@ public class OcclusionEngine {
             }
             viewport.frustumRegionArray.flush(0, regionCount * 4L);
         }
+
+        {
+            MinecraftClient.getInstance().getProfiler().swap("region_tick");
+            for (RenderRegion region : viewport.visible_regions) {
+                //region.tickInitialBuilds();
+                region.tickEnqueuedBuilds();
+            }
+        }
+
+        MinecraftClient.getInstance().getProfiler().swap("scene stuff");
         //TODO: need to somehow add a delta for the render for position from last frame to the current frame camera position
         {
             //TODO: put into gfx
@@ -147,6 +155,7 @@ public class OcclusionEngine {
             viewport.scene.write(new MappedBufferWriter(viewport.sceneBuffer, viewport.sceneOffset));
             viewport.sceneBuffer.flush(viewport.sceneOffset, viewport.SCENE_STRUCT_ALIGNMENT);
         }
+        MinecraftClient.getInstance().getProfiler().pop();
     }
 
     public void doOcclusion() {
@@ -178,7 +187,8 @@ public class OcclusionEngine {
                 viewport.regionVisibilityArray,
                 viewport.sectionCommandBuffer,
                 viewport.computeDispatchCommandBuffer,
-                viewport.visibleRegionArray
+                viewport.visibleRegionArray,
+                regionMeta.cpuRegionVisibility
         );
 
         glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
@@ -203,11 +213,25 @@ public class OcclusionEngine {
                 viewport.commandBufferCounter,
                 viewport.chunkInstancedDataBuffer,
                 viewport.commandOutputBuffer,
-                viewport.temporalSectionData
+                viewport.temporalSectionData,
+                sectionMeta.cpuSectionVisibility
         );
 
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);
         glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
+
+
+        //Note for temporal rendering, can maybe make the max number of temporal commands equal to the max
+        // number of visible chunk sections within the view frustum
+
+
+        //TODO:!!!!!!!!!!!!!!!!!!
+        // for translucency, use 3D chunk manhatten distance into buckets of each integer chunk distance
+        // e.g.
+        // uint bucketId = sum(abs(SECTION.pos-camera))
+        // uint cmdIdx   = atomicAdd(bucketCounts[bucketId], 1)
+        // write the command to cmdIdx
+        // then too render everything, do MDIC over all buckets or something
     }
 
     public void delete() {

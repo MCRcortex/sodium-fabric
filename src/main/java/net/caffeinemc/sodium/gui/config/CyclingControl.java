@@ -3,6 +3,7 @@ package net.caffeinemc.sodium.gui.config;
 import net.caffeinemc.sodium.config.user.options.Option;
 import net.caffeinemc.sodium.config.user.options.TextProvider;
 import net.caffeinemc.sodium.interop.vanilla.math.vector.Dim2i;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
@@ -13,6 +14,7 @@ public class CyclingControl<T extends Enum<T>> implements Control<T> {
     private final Option<T> option;
     private final T[] allowedValues;
     private final Text[] names;
+    private final int maxWidth;
 
     public CyclingControl(Option<T> option, Class<T> enumType) {
         this(option, enumType, enumType.getEnumConstants());
@@ -27,6 +29,7 @@ public class CyclingControl<T extends Enum<T>> implements Control<T> {
         this.option = option;
         this.allowedValues = universe;
         this.names = names;
+        maxWidth = 70;
     }
 
     public CyclingControl(Option<T> option, Class<T> enumType, T[] allowedValues) {
@@ -35,7 +38,7 @@ public class CyclingControl<T extends Enum<T>> implements Control<T> {
         this.option = option;
         this.allowedValues = allowedValues;
         this.names = new Text[universe.length];
-
+        int width = 0;
         for (int i = 0; i < this.names.length; i++) {
             Text name;
             T value = universe[i];
@@ -47,9 +50,11 @@ public class CyclingControl<T extends Enum<T>> implements Control<T> {
             } else {
                 name = Text.literal(value.name());
             }
+            width = Math.max(width,  MinecraftClient.getInstance().textRenderer.getWidth(name));
 
             this.names[i] = name;
         }
+        maxWidth = width;
     }
 
     @Override
@@ -64,7 +69,7 @@ public class CyclingControl<T extends Enum<T>> implements Control<T> {
 
     @Override
     public int getMaxWidth() {
-        return 70;
+        return maxWidth;
     }
 
     private static class CyclingControlElement<T extends Enum<T>> extends ControlElement<T> {

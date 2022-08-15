@@ -22,8 +22,13 @@ layout(std430, binding = 4) restrict readonly buffer SectionMetaData {
     SectionMeta sections[];
 };
 
+//TODO: could make this and CpuSectionVisibilityData the same buffer it might/would probably be faster
 layout(std430, binding = 5) restrict buffer TemporalData {
-    uint sectionSeen[];
+    uint gpuSectionSeenFrame[];
+};
+
+layout(std430, binding = 6) restrict buffer CpuSectionVisibilityData {
+    uint cpuVisibilityData[];
 };
 
 uint SECTION_ID;
@@ -92,8 +97,9 @@ void writeBackfaceCulledCommands() {
     skipmsk &= 255u;
 
     //TODO: THIS
-    bool wasNotVisibleLastFrame = sectionSeen[SECTION_ID] == frameId;
-    sectionSeen[SECTION_ID] = frameId;
+    bool wasNotVisibleLastFrame = gpuSectionSeenFrame[SECTION_ID] == frameId;
+    gpuSectionSeenFrame[SECTION_ID] = frameId;
+    cpuVisibilityData[SECTION_ID] = frameId;
 
     /*
     int idx = 0;

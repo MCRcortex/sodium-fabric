@@ -368,6 +368,15 @@ public class UserConfigCategories {
                         .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)
                         .build()
                 )
+                .add(OptionImpl.createBuilder(boolean.class, sodiumOpts)
+                        .setName(Text.translatable("sodium.options.gpu_occlusion.temporal_rendering.name"))
+                        .setTooltip(Text.translatable("sodium.options.gpu_occlusion.temporal_rendering.tooltip"))
+                        .setControl(TickBoxControl::new)
+                        .setImpact(OptionImpact.MEDIUM)
+                        .setBinding((opts, value) -> {}, opts -> true)
+                        .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)
+                        .build()
+                )
                 .addControl(gpuBackendOptionGroupControl)
                 .build());
 

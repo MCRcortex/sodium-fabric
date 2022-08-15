@@ -6,11 +6,11 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 
-import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.sodium.SodiumClientMod;
+import net.caffeinemc.sodium.config.user.UserConfig;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.chunk.compile.ChunkBuilder;
@@ -53,12 +53,6 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.profiler.Profiler;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
-import org.lwjgl.PointerBuffer;
-import org.lwjgl.opengl.GL20C;
-import org.lwjgl.system.MemoryStack;
-import org.lwjgl.system.MemoryUtil;
-
-import static org.lwjgl.opengl.GL11C.glFinish;
 
 public class TerrainRenderManager {
     /**
@@ -151,7 +145,11 @@ public class TerrainRenderManager {
         }
 
         //TODO: need to clean up the old OcclusionEngine data when removing
-        occlusionEngine = new OcclusionEngine(SodiumClientMod.DEVICE);
+
+        if (SodiumClientMod.options().advanced.chunkRendererBackend == UserConfig.ChunkRendererBackend.GPU_DRIVEN)
+            occlusionEngine = new OcclusionEngine(SodiumClientMod.DEVICE);
+        else
+            occlusionEngine = null;
     }
 
     public void reloadChunks(ChunkTracker tracker) {
@@ -168,31 +166,31 @@ public class TerrainRenderManager {
 
         this.camera = camera;
         this.frustum = frustum;
+        if (SodiumClientMod.options().advanced.chunkRendererBackend != UserConfig.ChunkRendererBackend.GPU_DRIVEN) {
+            profiler.swap("chunk_graph_rebuild");
+            BlockPos origin = camera.getBlockPos();
+            var useOcclusionCulling = MinecraftClient.getInstance().chunkCullingEnabled &&
+                    (!spectator || !this.world.getBlockState(origin).isOpaqueFullCube(this.world, origin));
 
-        profiler.swap("chunk_graph_rebuild");
-        BlockPos origin = camera.getBlockPos();
-        var useOcclusionCulling = MinecraftClient.getInstance().chunkCullingEnabled &&
-                (!spectator || !this.world.getBlockState(origin).isOpaqueFullCube(this.world, origin));
+            profiler.push("calculate_visible_sections");
+            var visibleSections = ChunkOcclusion.calculateVisibleSections(this.tree, frustum, this.world, origin, this.chunkViewDistance, useOcclusionCulling);
+            profiler.swap("update_visible_sections");
+            this.updateVisibilityLists(visibleSections, camera);
+            profiler.pop();
 
-        profiler.push("calculate_visible_sections");
-        var visibleSections = ChunkOcclusion.calculateVisibleSections(this.tree, frustum, this.world, origin, this.chunkViewDistance, useOcclusionCulling);
-        profiler.swap("update_visible_sections");
-        this.updateVisibilityLists(visibleSections, camera);
-        profiler.pop();
+            if (this.chunkGeometrySorter != null) {
+                profiler.swap("translucency_sort");
+                this.chunkGeometrySorter.sortGeometry(this.visibleMeshedSections, camera);
+            }
 
-        if (this.chunkGeometrySorter != null) {
-            profiler.swap("translucency_sort");
-            this.chunkGeometrySorter.sortGeometry(this.visibleMeshedSections, camera);
+            profiler.swap("update_render_list_burg");
+            this.sortedTerrainLists.update(this.visibleMeshedSections, camera);
+            //profiler.swap("update_render_list_cortex");
+            //this.generatingCommandSet.update(this.visibleMeshedSectionsPasses, camera, frameIndex);
+            profiler.swap("create_render_lists");
+            this.chunkRenderer.createRenderLists(this.sortedTerrainLists, camera, this.frameIndex);
+            //((MdiChunkRenderer)this.chunkRenderer).createRenderLists(generatingCommandSet, this.frameIndex);
         }
-
-        profiler.swap("update_render_list_burg");
-        this.sortedTerrainLists.update(this.visibleMeshedSections, camera);
-        //profiler.swap("update_render_list_cortex");
-        //this.generatingCommandSet.update(this.visibleMeshedSectionsPasses, camera, frameIndex);
-        profiler.swap("create_render_lists");
-        this.chunkRenderer.createRenderLists(this.sortedTerrainLists, camera, this.frameIndex);
-        //((MdiChunkRenderer)this.chunkRenderer).createRenderLists(generatingCommandSet, this.frameIndex);
-
         this.needsUpdate = false;
     }
 
@@ -255,7 +253,7 @@ public class TerrainRenderManager {
     }
 
 
-    private void schedulePendingUpdates(RenderSection section) {
+    public void schedulePendingUpdates(RenderSection section) {
         PriorityQueue<RenderSection> queue = this.rebuildQueues.get(section.getPendingUpdate());
 
         if (queue.size() < 32 && this.tracker.hasMergedFlags(section.getChunkX(), section.getChunkZ(), ChunkStatus.FLAG_ALL)) {
@@ -298,6 +296,9 @@ public class TerrainRenderManager {
         }
 
         this.onChunkDataChanged(render, ChunkRenderData.ABSENT, render.getData());
+        if (render.getPendingUpdate() != null) {
+            regionManager.getOrMakeRegionSectionPos(x, y, z).sectionInitialBuild(render);
+        }
 
         return true;
     }
@@ -317,16 +318,20 @@ public class TerrainRenderManager {
     }
 
     public void prepTerrainRender(ChunkRenderMatrices matrices) {
+        if (SodiumClientMod.options().advanced.chunkRendererBackend != UserConfig.ChunkRendererBackend.GPU_DRIVEN)
+            return;
         MinecraftClient.getInstance().getProfiler().push("occlusion_update");
-        if (!MinecraftClient.getInstance().player.isSneaking())
+        //if (!MinecraftClient.getInstance().player.isSneaking())
             occlusionEngine.prepRender(regionManager.getRegions(), frameIndex, matrices, camera, frustum);
         MinecraftClient.getInstance().getProfiler().pop();
     }
 
     public void doTerrainOcclusion() {
+        if (SodiumClientMod.options().advanced.chunkRendererBackend != UserConfig.ChunkRendererBackend.GPU_DRIVEN)
+            return;
         //glFinish();
         MinecraftClient.getInstance().getProfiler().push("occlusion_engine_culling");
-        if (!MinecraftClient.getInstance().player.isSneaking())
+        //if (!MinecraftClient.getInstance().player.isSneaking())
             occlusionEngine.doOcclusion();
         //glFinish();
         MinecraftClient.getInstance().getProfiler().pop();
@@ -478,15 +483,14 @@ public class TerrainRenderManager {
         this.sectionCache.invalidate(x, y, z);
 
         RenderSection section = this.tree.getSection(x, y, z);
-
         if (section != null && section.isBuilt()) {
             if (!this.alwaysDeferChunkUpdates && (important || this.isBlockUpdatePrioritized(section))) {
                 section.markForUpdate(ChunkUpdateType.IMPORTANT_REBUILD);
             } else {
                 section.markForUpdate(ChunkUpdateType.REBUILD);
             }
+            regionManager.getOrMakeRegionSectionPos(x, y, z).scheduleSectionUpdate(section);
         }
-
         this.needsUpdate = true;
     }
 
