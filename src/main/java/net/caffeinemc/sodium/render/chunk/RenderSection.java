@@ -3,6 +3,7 @@ package net.caffeinemc.sodium.render.chunk;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
+import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.RenderPassRanges;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.SectionMeta;
@@ -79,9 +80,10 @@ public class RenderSection {
         this.cancelRebuildTask();
         this.ensureGeometryDeleted();
         this.disposed = true;
-        if (region != null) {
+        if (region == null)
+            region = SodiumWorldRenderer.instance().getTerrainRenderer().regionManager.getRegion(chunkX, chunkY, chunkZ);
+        if (region != null)
             region.deletedSection(this);
-        }
         updateMeta(region, data, data);
     }
 

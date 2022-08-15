@@ -41,6 +41,13 @@ public final class SectionMetaManager {
     public void remove(RenderSection section) {
         if (section.meta == null)
             return;
+        if (section.getRegion().meta.id == -1)
+            throw new IllegalStateException();
+        long offset = ((long) section.meta.id * SectionMeta.SIZE) + ((long) section.getRegion().meta.id * RenderRegion.REGION_SIZE * SectionMeta.SIZE);
+        writer.setOffset(offset);
+        section.meta.id = -1;
+        section.meta.write(writer);
+        buffer.flush(offset, SectionMeta.SIZE);
         //TODO: just sets the id to -1 or something of the mapped buffer
     }
 

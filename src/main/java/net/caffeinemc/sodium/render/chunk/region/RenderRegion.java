@@ -270,6 +270,13 @@ public class RenderRegion {
     }
 
     public void sectionInitialBuild(RenderSection section) {
+        /*
+        if (section.isDisposed()) {
+            initialBuilds.remove(section);
+            importantBuilds.remove(section);
+            updateBuilds.remove(section);
+            return;
+        }*/
         initialBuilds.addAndMoveToLast(section);
     }
 
@@ -294,6 +301,14 @@ public class RenderRegion {
     }
 
     public void scheduleSectionUpdate(RenderSection section) {
+        /*
+        if (section.isDisposed()) {
+            initialBuilds.remove(section);
+            importantBuilds.remove(section);
+            updateBuilds.remove(section);
+            return;
+        }*/
+
         if (section.getPendingUpdate() == ChunkUpdateType.IMPORTANT_REBUILD) {
             importantBuilds.addAndMoveToLast(section);
         } else {

@@ -296,7 +296,9 @@ public class TerrainRenderManager {
         }
 
         this.onChunkDataChanged(render, ChunkRenderData.ABSENT, render.getData());
-        regionManager.getOrMakeRegionSectionPos(x, y, z).sectionInitialBuild(render);
+        if (render.getPendingUpdate() == ChunkUpdateType.INITIAL_BUILD) {
+            regionManager.getOrMakeRegionSectionPos(x, y, z).sectionInitialBuild(render);
+        }
 
         return true;
     }

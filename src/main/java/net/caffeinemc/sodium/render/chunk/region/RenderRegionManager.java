@@ -76,6 +76,10 @@ public class RenderRegionManager {
         return this.regions.get(regionId);
     }
 
+    public RenderRegion getRegion(int x, int y, int z) {
+        return this.regions.get(RenderRegion.getRegionCoord(x, y, z));
+    }
+
     public RenderRegion getOrMakeRegionSectionPos(int x, int y, int z) {
         long regionKey = RenderRegion.getRegionCoord(x, y, z);
         return this.regions.computeIfAbsent(regionKey, key -> new RenderRegion(
