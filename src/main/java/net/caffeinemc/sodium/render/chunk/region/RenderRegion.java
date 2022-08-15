@@ -17,6 +17,7 @@ import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.PendingUpload;
 import net.caffeinemc.sodium.render.chunk.ChunkUpdateType;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.RegionMeta;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderBounds;
 import net.caffeinemc.sodium.util.MathUtil;
@@ -71,6 +72,9 @@ public class RenderRegion {
         this.vertexBuffer = provider.provide();
         vbm = provider;
         this.id = id;
+        if (this.id >= OcclusionEngine.MAX_REGIONS) {
+            throw new IllegalStateException();
+        }
         ChunkSectionPos pos  = ChunkSectionPos.from(packedPosition);
         regionX = pos.getX();
         regionY = pos.getY();
@@ -110,7 +114,8 @@ public class RenderRegion {
     }
 
     public boolean isEmpty() {
-        return this.vertexBuffer.isEmpty() && initialBuilds.isEmpty();
+        //return this.vertexBuffer.isEmpty();
+        return this.importantBuilds.isEmpty() && this.updateBuilds.isEmpty() && initialBuilds.isEmpty() && pos2id.isEmpty() && sections.isEmpty();
     }
 
     public long getDeviceUsedMemory() {
@@ -250,14 +255,14 @@ public class RenderRegion {
     private ObjectLinkedOpenHashSet<RenderSection> initialBuilds = new ObjectLinkedOpenHashSet<>();
     public void tickInitialBuilds() {
         //TODO: maybe scale count with distance to camera
-        for (int i = 0; i < Math.min((meta != null?20:4), initialBuilds.size()); i++) {
+        for (int i = 0; i < Math.min((meta != null?20:10), initialBuilds.size()); i++) {
             //TODO: do inital builds via event based
             // e.g. when section next to it becomes flagged enqueu surrounding etc
             // this.tracker.hasMergedFlags(section.getChunkX(), section.getChunkZ(), ChunkStatus.FLAG_ALL)
 
             //NOTE: its done like this to cycle the render sections in the list (dw its O(1))
             RenderSection section = initialBuilds.removeFirst();
-            if (section.getPendingUpdate() == ChunkUpdateType.INITIAL_BUILD) {
+            if (section.getPendingUpdate() == ChunkUpdateType.INITIAL_BUILD && !section.isDisposed()) {
                 SodiumWorldRenderer.instance().getTerrainRenderer().schedulePendingUpdates(section);
                 initialBuilds.addAndMoveToLast(section);
             }
@@ -274,14 +279,14 @@ public class RenderRegion {
     public void tickEnqueuedBuilds() {
         for (int i = 0; i < Math.min(32, importantBuilds.size()); i++) {
             RenderSection section = importantBuilds.removeFirst();
-            if (section.getPendingUpdate() == ChunkUpdateType.IMPORTANT_REBUILD) {
+            if (section.getPendingUpdate() == ChunkUpdateType.IMPORTANT_REBUILD && !section.isDisposed()) {
                 SodiumWorldRenderer.instance().getTerrainRenderer().schedulePendingUpdates(section);
                 importantBuilds.addAndMoveToLast(section);
             }
         }
         for (int i = 0; i < Math.min(16, updateBuilds.size()); i++) {
             RenderSection section = updateBuilds.removeFirst();
-            if (section.getPendingUpdate() == ChunkUpdateType.REBUILD) {
+            if (section.getPendingUpdate() == ChunkUpdateType.REBUILD && !section.isDisposed()) {
                 SodiumWorldRenderer.instance().getTerrainRenderer().schedulePendingUpdates(section);
                 updateBuilds.addAndMoveToLast(section);
             }
@@ -292,7 +297,16 @@ public class RenderRegion {
         if (section.getPendingUpdate() == ChunkUpdateType.IMPORTANT_REBUILD) {
             importantBuilds.addAndMoveToLast(section);
         } else {
+            if (section.getPendingUpdate() != ChunkUpdateType.REBUILD) {
+                throw new IllegalStateException();
+            }
             updateBuilds.addAndMoveToLast(section);
         }
+    }
+
+    public void deletedSection(RenderSection section) {
+        initialBuilds.remove(section);
+        importantBuilds.remove(section);
+        updateBuilds.remove(section);
     }
 }

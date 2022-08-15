@@ -78,8 +78,8 @@ public class OcclusionEngine {
             long addrFrustumRegion = MemoryUtil.memAddress(viewport.frustumRegionArray.view());
             for (RenderRegion region : regions) {
 
-                region.tickInitialBuilds();
                 if (region.isEmpty() || region.meta == null) {
+                    region.tickInitialBuilds();
                     continue;
                 }
 
@@ -87,9 +87,9 @@ public class OcclusionEngine {
                     continue;
                 }
 
-                region.regionSortDistance = Math.pow(region.regionCenterBlockX-cam.posX, 2)+
+                region.regionSortDistance = (Math.pow(region.regionCenterBlockX-cam.posX, 2)+
                         Math.pow(region.regionCenterBlockY-cam.posY, 2)+
-                        Math.pow(region.regionCenterBlockZ-cam.posZ, 2);
+                        Math.pow(region.regionCenterBlockZ-cam.posZ, 2));
                 viewport.visible_regions.add(region);
                 //TODO: NEED TO ONLY DO THIS AFTER ALL REGIONS ARE DONE SO THAT ITS BASED ON THE sorted distance
                 MemoryUtil.memPutInt(addrFrustumRegion + regionCount* 4L, region.meta.id);
@@ -119,7 +119,7 @@ public class OcclusionEngine {
         {
             MinecraftClient.getInstance().getProfiler().swap("region_tick");
             for (RenderRegion region : viewport.visible_regions) {
-                //region.tickInitialBuilds();
+                region.tickInitialBuilds();
                 region.tickEnqueuedBuilds();
             }
         }

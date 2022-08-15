@@ -3,6 +3,7 @@ package net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs;
 import net.caffeinemc.gfx.api.buffer.MappedBuffer;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
+import org.joml.Vector4i;
 import org.lwjgl.system.MemoryUtil;
 
 public final class MappedBufferWriter implements IStructWriter {
@@ -28,6 +29,12 @@ public final class MappedBufferWriter implements IStructWriter {
 
     @Override
     public void write(Vector4f vec) {
+        vec.getToAddress(addr+offset);
+        offset += 4*4;
+    }
+
+    @Override
+    public void write(Vector4i vec) {
         vec.getToAddress(addr+offset);
         offset += 4*4;
     }

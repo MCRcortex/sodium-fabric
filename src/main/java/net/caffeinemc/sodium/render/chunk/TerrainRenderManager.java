@@ -296,9 +296,7 @@ public class TerrainRenderManager {
         }
 
         this.onChunkDataChanged(render, ChunkRenderData.ABSENT, render.getData());
-        if (render.getPendingUpdate() != null) {
-            regionManager.getOrMakeRegionSectionPos(x, y, z).sectionInitialBuild(render);
-        }
+        regionManager.getOrMakeRegionSectionPos(x, y, z).sectionInitialBuild(render);
 
         return true;
     }
@@ -484,7 +482,7 @@ public class TerrainRenderManager {
 
         RenderSection section = this.tree.getSection(x, y, z);
         if (section != null && section.isBuilt()) {
-            if (!this.alwaysDeferChunkUpdates && (important || this.isBlockUpdatePrioritized(section))) {
+            if ((!this.alwaysDeferChunkUpdates) && (important || this.isBlockUpdatePrioritized(section))) {
                 section.markForUpdate(ChunkUpdateType.IMPORTANT_REBUILD);
             } else {
                 section.markForUpdate(ChunkUpdateType.REBUILD);

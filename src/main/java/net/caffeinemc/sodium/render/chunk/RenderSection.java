@@ -79,6 +79,9 @@ public class RenderSection {
         this.cancelRebuildTask();
         this.ensureGeometryDeleted();
         this.disposed = true;
+        if (region != null) {
+            region.deletedSection(this);
+        }
         updateMeta(region, data, data);
     }
 

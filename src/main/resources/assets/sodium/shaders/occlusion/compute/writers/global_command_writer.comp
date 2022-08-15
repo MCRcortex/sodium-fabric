@@ -104,3 +104,6 @@ void writeFaceRenderCommand(uint msk, uint faceIndex, uint consecutiveFaces, uin
         }
     }
 }
+
+
+

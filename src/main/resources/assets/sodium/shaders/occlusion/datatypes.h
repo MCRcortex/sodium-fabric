@@ -29,7 +29,7 @@ struct SectionMeta {
     uint ALIGNMENT_PADDING;
 
     //Offset to chunk section corner in world space
-    vec4 sectionPos;
+    ivec4 sectionPos;
 
     //AABB in world space
     AABB aabb;

@@ -1,0 +1,8 @@
+uint computeBucket() {
+
+}
+
+void writeTranslucent(uint instanceId) {
+    uint bucketId = computeBucket();
+
+}

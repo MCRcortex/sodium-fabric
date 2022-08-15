@@ -38,7 +38,8 @@ uint SECTION_ID;
 vec3 half_size;
 vec3 relative_center;
 
-#import <sodium:occlusion/compute/global_command_writer.comp>
+#import <sodium:occlusion/compute/writers/global_command_writer.comp>
+//#import <sodium:occlusion/compute/writers/global_translucent_writer.comp>
 
 void writeBackfaceCulledCommands() {
     half_size = SECTION.aabb.size.xyz/2;

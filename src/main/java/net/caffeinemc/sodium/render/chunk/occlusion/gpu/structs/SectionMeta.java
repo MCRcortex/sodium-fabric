@@ -2,6 +2,7 @@ package net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs;
 
 import net.caffeinemc.sodium.util.MathUtil;
 import org.joml.Vector4f;
+import org.joml.Vector4i;
 
 public class SectionMeta {
     public static final int SIZE = MathUtil.align(4+4+4*2+4*4+AABB.SIZE + 3*RenderPassRanges.SIZE, 16);
@@ -9,7 +10,7 @@ public class SectionMeta {
     public int id;
     public int regionId;
     public int visbitmask;
-    public Vector4f sectionPos = new Vector4f();
+    public Vector4i sectionPos = new Vector4i();
     public AABB aabb = new AABB();
 
     public RenderPassRanges[] ranges = new RenderPassRanges[3];
