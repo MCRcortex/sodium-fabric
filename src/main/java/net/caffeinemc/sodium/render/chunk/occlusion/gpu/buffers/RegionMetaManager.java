@@ -4,6 +4,7 @@ import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.buffer.MappedBuffer;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
+import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.gfx.util.buffer.streaming.SectionedStreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.MappedBufferWriter;
@@ -12,6 +13,11 @@ import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.SectionMeta;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 
 import java.util.Set;
+
+import static org.lwjgl.opengl.ARBDirectStateAccess.glClearNamedBufferSubData;
+import static org.lwjgl.opengl.GL11C.GL_UNSIGNED_INT;
+import static org.lwjgl.opengl.GL30C.GL_R32UI;
+import static org.lwjgl.opengl.GL30C.GL_RED_INTEGER;
 
 public final class RegionMetaManager {
     private final RenderDevice device;
@@ -30,6 +36,8 @@ public final class RegionMetaManager {
     public void update(RenderRegion region) {
         if (region.meta == null)
             return;
+        if (region.meta.id == -1)
+            throw new IllegalStateException();
         writer.setOffset((long) region.meta.id * RegionMeta.SIZE);
         region.meta.write(writer);
         buffer.flush((long) region.meta.id * RegionMeta.SIZE, RegionMeta.SIZE);
@@ -38,7 +46,12 @@ public final class RegionMetaManager {
     public void remove(RenderRegion region) {
         if (region.meta == null)
             return;
-        //TODO: just sets the id to -1 or something of the mapped buffer
+        if (region.meta.id == -1)
+            throw new IllegalStateException();
+        glClearNamedBufferSubData(GlBuffer.getHandle(buffer),
+                GL_R32UI, (long) region.meta.id * RegionMeta.SIZE, 4,
+                GL_RED_INTEGER, GL_UNSIGNED_INT, new int[]{-1});
+        region.meta.id = -1;
     }
 
     public Buffer getBuffer() {

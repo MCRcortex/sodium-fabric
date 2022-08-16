@@ -40,10 +40,21 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
 
         indexBuffer.ensureCapacity(100000);
         this.device.useRenderPipeline(renderPipeline, (commandList, programInterface, pipelineState) -> {
+            var viewport = ViewportedData.DATA.get();
             this.setupTextures(renderPass, pipelineState);
+            ChunkCameraContext c = new ChunkCameraContext((viewport.frameDeltaX),
+                    (viewport.frameDeltaY),
+                    (viewport.frameDeltaZ));
+            float dx = (float) (c.deltaX+c.blockX);
+            float dy = (float) (c.deltaY+c.blockY);
+            float dz = (float) (c.deltaZ+c.blockZ);
+            matrices.modelView().translate(dx,
+                    dy,
+                    dz
+            );
+
             this.setupUniforms(matrices, programInterface, pipelineState, frameIndex);
 
-            var viewport = ViewportedData.DATA.get();
             commandList.bindVertexBuffer(
                     BufferTarget.VERTICES,
                     SodiumWorldRenderer.instance().getGlobalVertexBufferTHISISTEMPORARY(),

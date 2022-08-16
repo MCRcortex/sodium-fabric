@@ -78,8 +78,8 @@ public class OcclusionEngine {
             long addrFrustumRegion = MemoryUtil.memAddress(viewport.frustumRegionArray.view());
             for (RenderRegion region : regions) {
 
+                region.tickInitialBuilds();
                 if (region.isEmpty() || region.meta == null) {
-                    region.tickInitialBuilds();
                     continue;
                 }
 
@@ -147,6 +147,7 @@ public class OcclusionEngine {
                     .translate((float) -(cam.posX), (float) -(cam.posY),(float) -(cam.posZ));
             viewport.scene.MV.set(matrices.modelView());
             viewport.scene.camera.set(cam.blockX + cam.deltaX, cam.blockY + cam.deltaY, cam.blockZ + cam.deltaZ);
+            viewport.scene.cameraSection.set(cam.blockX >> 4, cam.blockY >> 4, cam.blockZ >> 4, 0);
             viewport.scene.regionCount = regionCount;
             viewport.scene.frameId = renderId;
 
@@ -154,6 +155,15 @@ public class OcclusionEngine {
             viewport.sceneOffset = viewport.SCENE_STRUCT_ALIGNMENT * (renderId%maxInFlightFrames);
             viewport.scene.write(new MappedBufferWriter(viewport.sceneBuffer, viewport.sceneOffset));
             viewport.sceneBuffer.flush(viewport.sceneOffset, viewport.SCENE_STRUCT_ALIGNMENT);
+
+
+
+            viewport.frameDeltaX    = viewport.currentCameraX - cam.posX;
+            viewport.frameDeltaY    = viewport.currentCameraY - cam.posY;
+            viewport.frameDeltaZ    = viewport.currentCameraZ - cam.posZ;
+            viewport.currentCameraX = cam.posX;
+            viewport.currentCameraY = cam.posY;
+            viewport.currentCameraZ = cam.posZ;
         }
         MinecraftClient.getInstance().getProfiler().pop();
     }
@@ -163,7 +173,7 @@ public class OcclusionEngine {
         {
             //Clear the commandCountBuffer, NOTE: this must be done here cause else the commandBufferCounter is 0 when drawing
             glClearNamedBufferData(GlBuffer.getHandle(viewport.commandBufferCounter),
-                    GL_R32UI,GL_RED, GL_UNSIGNED_INT, new int[]{0});
+                    GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, new int[]{0});
         }
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);
         //TODO: see if i can remove one of these

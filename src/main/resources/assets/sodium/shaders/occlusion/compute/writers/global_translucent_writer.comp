@@ -1,8 +1,9 @@
 uint computeBucket() {
-
+    ivec4 a = abs((SECTION.sectionPos>>4) - cameraSection);
+    return a.x+a.y+a.z;
 }
 
-void writeTranslucent(uint instanceId) {
+void writeTranslucent(uint msk, uint instanceId) {
     uint bucketId = computeBucket();
 
 }

@@ -39,7 +39,7 @@ vec3 half_size;
 vec3 relative_center;
 
 #import <sodium:occlusion/compute/writers/global_command_writer.comp>
-//#import <sodium:occlusion/compute/writers/global_translucent_writer.comp>
+#import <sodium:occlusion/compute/writers/global_translucent_writer.comp>
 
 void writeBackfaceCulledCommands() {
     half_size = SECTION.aabb.size.xyz/2;
@@ -83,7 +83,6 @@ void writeBackfaceCulledCommands() {
     msk += A.y;
     msk += A.z;*/
 
-
     msk &= SECTION.bitvismsk;
     if (msk == 0)
         return;
@@ -93,6 +92,8 @@ void writeBackfaceCulledCommands() {
     uint instanceId = writeInstancedData(SECTION.sectionPos.xyz - camera.xyz);
 
 
+    uint translucencyMsk = msk>>14;
+    msk &= 0xFFFFFFu;
     uint skipmsk = msk|(msk>>16);
     skipmsk |= skipmsk>>8;
     skipmsk &= 255u;
@@ -123,6 +124,9 @@ void writeBackfaceCulledCommands() {
         idx += localOffset;
         writeFaceRenderCommand(msk, idx-1, 1, instanceId, wasNotVisibleLastFrame);
     }
+    if (translucencyMsk  != 0) {
+        writeTranslucent(translucencyMsk, instanceId);
+    }
 }
 
 void main() {
@@ -142,7 +146,5 @@ void main() {
 
 
     //TODO: Need to make this all optional too do, given that this is only for back face culling
-
-    //atomicAdd(instanceCounter, 1);
     writeBackfaceCulledCommands();
 }

@@ -51,7 +51,13 @@ public class ViewportedData {
 
     public final Buffer temporalSectionData;
 
+    public double currentCameraX;
+    public double currentCameraY;
+    public double currentCameraZ;
 
+    public double frameDeltaX;
+    public double frameDeltaY;
+    public double frameDeltaZ;
 
 
     //TODO: FIGURE OUT A MORE compact and efficent WAY TO DO sectionVisibilityBuffer rather than having
