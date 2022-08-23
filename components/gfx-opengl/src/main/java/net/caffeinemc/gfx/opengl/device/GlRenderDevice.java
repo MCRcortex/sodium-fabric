@@ -445,6 +445,10 @@ public class GlRenderDevice implements RenderDevice {
     
         @Override
         public void bindDispatchIndirectBuffer(Buffer buffer) {
+            if (buffer == null) {
+                GL45C.glBindBuffer(GL45C.GL_DISPATCH_INDIRECT_BUFFER, 0);
+                this.dispatchIndirectBuffer = null;
+            }
             if (RenderConfiguration.API_CHECKS) {
                 Validate.notNull(buffer, "Buffer must be non-null");
             }

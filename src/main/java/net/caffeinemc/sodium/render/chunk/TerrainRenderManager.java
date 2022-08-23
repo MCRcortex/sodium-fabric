@@ -321,7 +321,7 @@ public class TerrainRenderManager {
         if (SodiumClientMod.options().advanced.chunkRendererBackend != UserConfig.ChunkRendererBackend.GPU_DRIVEN)
             return;
         MinecraftClient.getInstance().getProfiler().push("occlusion_update");
-        //if (!MinecraftClient.getInstance().player.isSneaking())
+        if (!MinecraftClient.getInstance().player.isSneaking())
             occlusionEngine.prepRender(regionManager.getRegions(), frameIndex, matrices, camera, frustum);
         MinecraftClient.getInstance().getProfiler().pop();
     }
@@ -331,7 +331,7 @@ public class TerrainRenderManager {
             return;
         //glFinish();
         MinecraftClient.getInstance().getProfiler().push("occlusion_engine_culling");
-        //if (!MinecraftClient.getInstance().player.isSneaking())
+        if (!MinecraftClient.getInstance().player.isSneaking())
             occlusionEngine.doOcclusion();
         //glFinish();
         MinecraftClient.getInstance().getProfiler().pop();

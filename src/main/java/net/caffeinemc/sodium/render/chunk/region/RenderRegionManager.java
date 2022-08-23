@@ -161,7 +161,7 @@ public class RenderRegionManager {
             }
             
             ArenaBuffer arenaBuffer = region.getVertexBuffer();
-            if (arenaBuffer.getFragmentation() >= DEFRAG_THRESHOLD) {
+            if (arenaBuffer.getFragmentation() >= DEFRAG_THRESHOLD && SodiumClientMod.options().advanced.chunkRendererBackend != UserConfig.ChunkRendererBackend.GPU_DRIVEN) {
                 LongSortedSet removedSegments = arenaBuffer.compact();
             
                 if (removedSegments == null) {
@@ -324,7 +324,7 @@ public class RenderRegionManager {
                         createDataStoreProvider(UserConfig.RegionDataStore.SINGLE)
                         :createDataStoreProvider(UserConfig.RegionDataStore.DISTINCT));
 
-            case SPARSE -> new GlobalSparseAsyncBufferProvider(device, stagingBuffer, vertexType, 3000000000L);//3GB max size
+            case SPARSE -> new GlobalSparseAsyncBufferProvider(device, stagingBuffer, vertexType, 3000000000L);//2GB max size
 
             case SINGLE -> new GlobalSingleBufferProvider(device, stagingBuffer, vertexType);
 

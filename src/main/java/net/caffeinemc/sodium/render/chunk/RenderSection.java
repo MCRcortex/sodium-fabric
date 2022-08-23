@@ -2,6 +2,9 @@ package net.caffeinemc.sodium.render.chunk;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+
+import net.caffeinemc.sodium.SodiumClientMod;
+import net.caffeinemc.sodium.config.user.UserConfig;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
@@ -84,7 +87,8 @@ public class RenderSection {
             region = SodiumWorldRenderer.instance().getTerrainRenderer().regionManager.getRegion(chunkX, chunkY, chunkZ);
         if (region != null)
             region.deletedSection(this);
-        updateMeta(region, data, data);
+        if (SodiumClientMod.options().advanced.chunkRendererBackend == UserConfig.ChunkRendererBackend.GPU_DRIVEN)
+            updateMeta(region, data, data);
     }
 
     public void setData(ChunkRenderData data) {
@@ -94,7 +98,8 @@ public class RenderSection {
         ChunkRenderData old = this.data;
         this.data = data;
         this.flags = data.getFlags();
-        updateMeta(region, old, data);
+        if (SodiumClientMod.options().advanced.chunkRendererBackend == UserConfig.ChunkRendererBackend.GPU_DRIVEN)
+            updateMeta(region, old, data);
     }
 
     /**
@@ -172,8 +177,8 @@ public class RenderSection {
     public void setGeometry(RenderRegion region, long bufferSegment) {
         this.setBufferSegment(bufferSegment);
         this.region = region;
-        this.uploadedGeometrySegment = bufferSegment;
-        updateMeta(region, data, data);
+        if (SodiumClientMod.options().advanced.chunkRendererBackend == UserConfig.ChunkRendererBackend.GPU_DRIVEN)
+            updateMeta(region, data, data);
     }
     
     public void setBufferSegment(long bufferSegment) {
@@ -292,10 +297,25 @@ public class RenderSection {
             meta.visbitmask |= (pass.getVisibilityBits()&0xFF) << (i*8);
             RenderPassRanges ranges = meta.ranges[i];
             for (int j = 0; j < 7; j++) {
+                if ((pass.getVisibilityBits()&(1<<j)) == 0)
+                    continue;
                 var range = ranges.ranges[j];
                 range.start = BufferSegment.getOffset(pass.getModelPartSegments()[j]) + BufferSegment.getOffset(uploadedGeometrySegment);
                 range.count = 6*(BufferSegment.getLength(pass.getModelPartSegments()[j])>>2);//Convert to correct format
             }
+        }
+        if (data.models[3] != null) {
+            var pass = data.models[3];
+            meta.visbitmask |= (pass.getVisibilityBits()&0xFF) << (24);
+            int start = Integer.MAX_VALUE;
+            meta.translucency.count = 0;
+            for (int i = 0; i < 7; i++) {
+                if ((pass.getVisibilityBits()&(1<<i)) == 0)
+                    continue;
+                start = Math.min(start, BufferSegment.getOffset(pass.getModelPartSegments()[i]));
+                meta.translucency.count += 6*(BufferSegment.getLength(pass.getModelPartSegments()[i])>>2);
+            }
+            meta.translucency.start = start + BufferSegment.getOffset(uploadedGeometrySegment);
         }
 
         region.enqueueSectionMetaUpdate(this);

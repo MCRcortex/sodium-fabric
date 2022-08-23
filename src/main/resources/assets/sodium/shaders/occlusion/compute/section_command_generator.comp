@@ -44,7 +44,8 @@ void main() {
 
     //TODO: pre set the constants or some shit
     rasterCommands[gl_GlobalInvocationID.x].firstIndex   = 0;
-    if (visibility[gl_GlobalInvocationID.x] == frameId) {//The region is visible so must raster tests
+    if (frameId == visibility[gl_GlobalInvocationID.x]) {//The region is visible so must raster tests
+    //if (frameId - visibility[gl_GlobalInvocationID.x] < 9) {//The region is visible so must raster tests
         int rid = regionArray[gl_GlobalInvocationID.x];
         cpuVisibility[rid] = frameId;
         rasterCommands[gl_GlobalInvocationID.x].count = 3*2*6;

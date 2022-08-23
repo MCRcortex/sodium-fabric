@@ -17,6 +17,10 @@ import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.render.terrain.format.compact.CompactTerrainVertexType;
 import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.util.math.Matrix4f;
+
+import static org.lwjgl.opengl.GL11.glFinish;
 
 public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
     public GPUMdicChunkRenderer(RenderDevice device, ChunkRenderPassManager renderPassManager, TerrainVertexType vertexType) {
@@ -35,24 +39,32 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
             return;
         }
         RenderPipeline<ChunkShaderInterface, BufferTarget> renderPipeline = this.renderPipelines[passId];
-        if (passId>2)
+        if (passId>3)
             return;
 
         indexBuffer.ensureCapacity(100000);
         this.device.useRenderPipeline(renderPipeline, (commandList, programInterface, pipelineState) -> {
             var viewport = ViewportedData.DATA.get();
             this.setupTextures(renderPass, pipelineState);
-            ChunkCameraContext c = new ChunkCameraContext((viewport.frameDeltaX),
-                    (viewport.frameDeltaY),
-                    (viewport.frameDeltaZ));
-            float dx = (float) (c.deltaX+c.blockX);
-            float dy = (float) (c.deltaY+c.blockY);
-            float dz = (float) (c.deltaZ+c.blockZ);
+
+            //TODO:FIXME: fix this ugly af hacks
+            ChunkCameraContext c;
+            if (renderPass.isTranslucent()) {
+                c = new ChunkCameraContext((-viewport.frameDeltaX),
+                        (-viewport.frameDeltaY),
+                        (-viewport.frameDeltaZ));
+            } else {
+                c = new ChunkCameraContext((viewport.frameDeltaX),
+                        (viewport.frameDeltaY),
+                        (viewport.frameDeltaZ));
+            }
+            float dx = (float) (c.deltaX + c.blockX);
+            float dy = (float) (c.deltaY + c.blockY);
+            float dz = (float) (c.deltaZ + c.blockZ);
             matrices.modelView().translate(dx,
                     dy,
                     dz
             );
-
             this.setupUniforms(matrices, programInterface, pipelineState, frameIndex);
 
             commandList.bindVertexBuffer(
@@ -67,20 +79,38 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
                     viewport.chunkInstancedDataBuffer
             );
 
-            commandList.bindCommandBuffer(viewport.commandOutputBuffer);
-            commandList.bindParameterBuffer(viewport.commandBufferCounter);
             commandList.bindElementBuffer(this.indexBuffer.getBuffer());
-            int count = viewport.cpuCommandBufferCounter.view().getInt(passId*4+4);
-            if (count <= 0 || count > 100000)
-                return;
-            commandList.multiDrawElementsIndirectCount(
-                    PrimitiveType.TRIANGLES,
-                    ElementFormat.UNSIGNED_INT,
-                    OcclusionEngine.MAX_RENDER_COMMANDS_PER_LAYER*passId*OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE,
-                    4+passId*4,
-                    //100000,
-                    (int)(count*1.5),
-                    20);
+            if (!renderPass.isTranslucent()) {
+                int count = viewport.cpuCommandBufferCounter.view().getInt(passId * 4 + 4);
+                if (count <= 0 || count > 100000)
+                    return;
+                commandList.bindCommandBuffer(viewport.commandOutputBuffer);
+                commandList.bindParameterBuffer(viewport.commandBufferCounter);
+                commandList.multiDrawElementsIndirectCount(
+                        PrimitiveType.TRIANGLES,
+                        ElementFormat.UNSIGNED_INT,
+                        OcclusionEngine.MAX_RENDER_COMMANDS_PER_LAYER * passId * OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE,
+                        4 + passId * 4,
+                        //100000,
+                        (int) (count * viewport.countMultiplier),
+                        (int) OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE);
+            } else {
+                commandList.bindCommandBuffer(viewport.translucencyCommandBuffer);
+                commandList.bindParameterBuffer(viewport.translucencyCountBuffer);
+                for (int i = 49; i >= 0; i--) {
+                    //FIXME: count should be the max of +-2 of the current i index
+                    int count = viewport.cpuTranslucencyCountBuffer.view().getInt(i*4);
+                    if (count <= 0 || count > 100)
+                        continue;
+                    commandList.multiDrawElementsIndirectCount(
+                            PrimitiveType.TRIANGLES,
+                            ElementFormat.UNSIGNED_INT,
+                            i*100*OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE,
+                            i*4L,
+                            (int) (count*viewport.countMultiplier),
+                            (int) OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE);
+                }
+            }
         });
     }
 

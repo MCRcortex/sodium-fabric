@@ -41,6 +41,7 @@ struct SectionMeta {
     //TODO: merge soild and cuttout into 1 call thing
     //SOLID, CUTOUT_MIPPED, CUTOUT
     Range RANGES[3][7];
+    Range TRANSLUCENCY;
 };
 
 struct DrawElementsIndirectCommand {
@@ -48,6 +49,11 @@ struct DrawElementsIndirectCommand {
     uint  instanceCount;
     uint  firstIndex;
     uint  baseVertex;
+    uint  baseInstance;
+};
+
+struct DrawElementsIndirectCommandCompact {
+    uvec4 first;
     uint  baseInstance;
 };
 

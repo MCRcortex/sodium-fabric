@@ -44,12 +44,12 @@ public class AsyncSparseArenaBuffer implements ArenaBuffer {
 
 
     //HACKS TODO/FIX: CLEANUP
-    static int gcd(int a, int b) {
+    static long gcd(long a, long b) {
         if (a == 0)
             return b;
         return gcd(b % a, a);
     }
-    static int lcm(int a, int b) {
+    static long lcm(long a, long b) {
         return (a / gcd(a, b)) * b;
     }
 
@@ -62,7 +62,7 @@ public class AsyncSparseArenaBuffer implements ArenaBuffer {
         this.device = device;
         this.stagingBuffer = stagingBuffer;
         this.stride = stride;
-        int mul = lcm(stride, device.sparsePageSize());
+        long mul = lcm(stride, device.sparsePageSize());
         maxCapacityBytes = maxCapacityBytes + (maxCapacityBytes%mul);
         this.pageSize = device.sparsePageSize();
         this.setBuffer(device.createSparseBuffer(maxCapacityBytes, Set.of()));
@@ -369,7 +369,7 @@ public class AsyncSparseArenaBuffer implements ArenaBuffer {
         Validate.isTrue(this.position - this.used == used, "arena.used is invalid");
         Validate.isTrue(this.freedSegmentsByLength.size() == this.freedSegmentsByOffset.size(),
                         "freedSegmentsByLength.size != freedSegmentsByOffset.size, mismatched add/remove");
-        Validate.isTrue(this.arenaBuffer.capacity() == this.toBytes(this.capacity),
+        Validate.isTrue(this.toBytes(this.toElements(this.arenaBuffer.capacity())) == this.toBytes(this.capacity),
                         "this.capacity != buffer.capacity, failure to track");
     }
 

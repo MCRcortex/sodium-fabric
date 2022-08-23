@@ -5,7 +5,7 @@ import org.joml.Vector4f;
 import org.joml.Vector4i;
 
 public class SectionMeta {
-    public static final int SIZE = MathUtil.align(4+4+4*2+4*4+AABB.SIZE + 3*RenderPassRanges.SIZE, 16);
+    public static final int SIZE = MathUtil.align(4+4+4*2+4*4+AABB.SIZE + 3*RenderPassRanges.SIZE+Range.SIZE, 16);
 
     public int id;
     public int regionId;
@@ -14,6 +14,7 @@ public class SectionMeta {
     public AABB aabb = new AABB();
 
     public RenderPassRanges[] ranges = new RenderPassRanges[3];
+    public Range translucency = new Range();
 
     public SectionMeta() {
         for (int i = 0; i < ranges.length; i++) {
@@ -34,5 +35,6 @@ public class SectionMeta {
         for (var passRange : ranges) {
             passRange.write(writer);
         }
+        translucency.write(writer);
     }
 }

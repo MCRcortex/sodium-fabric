@@ -1,3 +1,11 @@
+layout(std430, binding = 10) restrict buffer TranslucencyCounterArray {
+    uint translucencyCounts[];
+};
+
+layout(std430, binding = 11) restrict writeonly buffer TranslucencyCommandBuffer {
+    DrawElementsIndirectCommandCompact translucencyCommands[];
+};
+
 uint computeBucket() {
     ivec4 a = abs((SECTION.sectionPos>>4) - cameraSection);
     return a.x+a.y+a.z;
@@ -5,5 +13,10 @@ uint computeBucket() {
 
 void writeTranslucent(uint msk, uint instanceId) {
     uint bucketId = computeBucket();
-
+    uint cmdIdx = atomicAdd(translucencyCounts[bucketId], 1)+bucketId*100;
+    uint count = SECTION.TRANSLUCENCY.count;
+    uint start = SECTION.TRANSLUCENCY.start;
+    uvec4 first = uvec4(count, 1, 0, start);
+    translucencyCommands[cmdIdx].first = first;
+    translucencyCommands[cmdIdx].baseInstance = instanceId;
 }

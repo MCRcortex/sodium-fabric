@@ -14,7 +14,7 @@ layout(std430, binding = 8) restrict writeonly buffer InstanceDataBuffer {
 };
 
 layout(std430, binding = 9) restrict writeonly buffer MDRenderCommandBuffer {
-    DrawElementsIndirectCommand[] drawCommands;
+    DrawElementsIndirectCommandCompact[] drawCommands;
 };
 
 #define COMMAND_INDEX_OFFSET(x) (x * MAX_COMMAND_COUNT_PER_LAYER)
@@ -35,19 +35,15 @@ void writeFaceRenderCommand(uint msk, uint faceIndex, uint consecutiveFaces, uin
         //}
         {
             uint cmdIdx = atomicAdd(cmdBuff0Count, 1) + COMMAND_INDEX_OFFSET(0);
-
-            drawCommands[cmdIdx].count = count;
-            drawCommands[cmdIdx].instanceCount = 1;
-            drawCommands[cmdIdx].baseVertex = start;
+            uvec4 first = uvec4(count, 1, 0, start);
+            drawCommands[cmdIdx].first = first;
             drawCommands[cmdIdx].baseInstance = instanceId;
         }
 
         if (writeTemporal) {
             uint cmdIdx = atomicAdd(tempCmdBuff0Count, 1) + COMMAND_INDEX_OFFSET(3) + 0 * MAX_TEMPORAL_COMMANDS;
-
-            drawCommands[cmdIdx].count = count;
-            drawCommands[cmdIdx].instanceCount = 1;
-            drawCommands[cmdIdx].baseVertex = start;
+            uvec4 first = uvec4(count, 1, 0, start);
+            drawCommands[cmdIdx].first = first;
             drawCommands[cmdIdx].baseInstance = instanceId;
         }
     }
@@ -61,19 +57,15 @@ void writeFaceRenderCommand(uint msk, uint faceIndex, uint consecutiveFaces, uin
         //}
         {
             uint cmdIdx = atomicAdd(cmdBuff1Count, 1) + COMMAND_INDEX_OFFSET(1);
-
-            drawCommands[cmdIdx].count = count;
-            drawCommands[cmdIdx].instanceCount = 1;
-            drawCommands[cmdIdx].baseVertex = start;
+            uvec4 first = uvec4(count, 1, 0, start);
+            drawCommands[cmdIdx].first = first;
             drawCommands[cmdIdx].baseInstance = instanceId;
         }
 
         if (writeTemporal) {
             uint cmdIdx = atomicAdd(tempCmdBuff1Count, 1) + COMMAND_INDEX_OFFSET(3) + 1 * MAX_TEMPORAL_COMMANDS;
-
-            drawCommands[cmdIdx].count = count;
-            drawCommands[cmdIdx].instanceCount = 1;
-            drawCommands[cmdIdx].baseVertex = start;
+            uvec4 first = uvec4(count, 1, 0, start);
+            drawCommands[cmdIdx].first = first;
             drawCommands[cmdIdx].baseInstance = instanceId;
         }
     }
@@ -87,19 +79,15 @@ void writeFaceRenderCommand(uint msk, uint faceIndex, uint consecutiveFaces, uin
         //}
         {
             uint cmdIdx = atomicAdd(cmdBuff2Count, 1) + COMMAND_INDEX_OFFSET(2);
-
-            drawCommands[cmdIdx].count = count;
-            drawCommands[cmdIdx].instanceCount = 1;
-            drawCommands[cmdIdx].baseVertex = start;
+            uvec4 first = uvec4(count, 1, 0, start);
+            drawCommands[cmdIdx].first = first;
             drawCommands[cmdIdx].baseInstance = instanceId;
         }
 
         if (writeTemporal) {
             uint cmdIdx = atomicAdd(tempCmdBuff2Count, 1) + COMMAND_INDEX_OFFSET(3) + 2 * MAX_TEMPORAL_COMMANDS;
-
-            drawCommands[cmdIdx].count = count;
-            drawCommands[cmdIdx].instanceCount = 1;
-            drawCommands[cmdIdx].baseVertex = start;
+            uvec4 first = uvec4(count, 1, 0, start);
+            drawCommands[cmdIdx].first = first;
             drawCommands[cmdIdx].baseInstance = instanceId;
         }
     }

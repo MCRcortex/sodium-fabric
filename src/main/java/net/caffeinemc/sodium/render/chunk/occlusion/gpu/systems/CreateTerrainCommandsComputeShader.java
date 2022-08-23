@@ -4,6 +4,7 @@ import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.api.pipeline.ComputePipeline;
 import net.caffeinemc.gfx.api.shader.*;
+import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.gfx.opengl.buffer.GlMappedBuffer;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.ViewportedData;
@@ -12,8 +13,15 @@ import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
 import net.caffeinemc.sodium.render.shader.ShaderParser;
 import net.minecraft.util.Identifier;
+import org.lwjgl.opengl.GL45C;
 
 import java.nio.ByteOrder;
+
+import static org.lwjgl.opengl.ARBDirectStateAccess.glClearNamedBufferData;
+import static org.lwjgl.opengl.GL11C.GL_UNSIGNED_INT;
+import static org.lwjgl.opengl.GL11C.glFinish;
+import static org.lwjgl.opengl.GL30C.GL_R32UI;
+import static org.lwjgl.opengl.GL30C.GL_RED_INTEGER;
 
 //TODO: maybe do via dispatch indirect or something that is set via the RasterSection compute shader
 // simply add 1 to x dim and atomic max the y dim
@@ -33,6 +41,8 @@ public class CreateTerrainCommandsComputeShader {
         public final BufferBlock commandOutputBuffer;
         public final BufferBlock temporalDataBuffer;
         public final BufferBlock cpuVisibilityBuffer;
+        public final BufferBlock translucencyCountBuffer;
+        public final BufferBlock translucencyCommandBuffer;
 
         public ComputeInterface(ShaderBindingContext context) {
             scene = context.bindBufferBlock(BufferBlockType.UNIFORM, 0);
@@ -45,6 +55,8 @@ public class CreateTerrainCommandsComputeShader {
             commandCounterBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 7);
             instancedDataBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 8);
             commandOutputBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 9);
+            translucencyCountBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 10);
+            translucencyCommandBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 11);
         }
     }
 
@@ -71,7 +83,7 @@ public class CreateTerrainCommandsComputeShader {
 
     //
     public void execute(Buffer scene, int offset, Buffer dispatchCompute, Buffer regionArray, Buffer regionMeta, Buffer sectionMeta, Buffer sectionVisBuffer, Buffer commandCounter, Buffer instancedDataBuffer, Buffer commandOutputBuffer, Buffer temporalDataBuffer,
-                        Buffer cpuVisibilityBuffer) {
+                        Buffer cpuVisibilityBuffer, Buffer translucencyCountBuffer, Buffer translucencyCommandBuffer) {
         this.device.useComputePipeline(pipeline, (cmd, programInterface, state) -> {
             state.bindBufferBlock(programInterface.scene, scene, offset, ViewportedData.SCENE_STRUCT_ALIGNMENT);
             state.bindBufferBlock(programInterface.regionArray, regionArray);
@@ -83,10 +95,12 @@ public class CreateTerrainCommandsComputeShader {
             state.bindBufferBlock(programInterface.instancedDataBuffer, instancedDataBuffer);
             state.bindBufferBlock(programInterface.commandOutputBuffer, commandOutputBuffer);
             state.bindBufferBlock(programInterface.cpuVisibilityBuffer, cpuVisibilityBuffer);
-
+            state.bindBufferBlock(programInterface.translucencyCountBuffer, translucencyCountBuffer);
+            state.bindBufferBlock(programInterface.translucencyCommandBuffer, translucencyCommandBuffer);
 
             cmd.bindDispatchIndirectBuffer(dispatchCompute);
             cmd.dispatchComputeIndirect(0);
+            cmd.bindDispatchIndirectBuffer(null);
         });
     }
 
