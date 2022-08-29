@@ -5,4 +5,7 @@ layout(std140, binding = 0) uniform SceneData {
     ivec4 cameraSection;
     uint frameId;
     uint regionCount;
+
+    uint regionCurrentlyIn;
+    uint sectionInIndex;
 };

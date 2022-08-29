@@ -6,6 +6,7 @@ import net.caffeinemc.gfx.util.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
+import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.buffers.RegionMetaManager;
@@ -83,6 +84,8 @@ public class OcclusionEngine {
         int regionCount = 0;
 
         MinecraftClient.getInstance().getProfiler().push("region_loop");
+        RenderRegion regionIn = null;
+        RenderSection sectionIn = null;
         //TODO: OPTIMIZE THIS
         {
 
@@ -117,9 +120,13 @@ public class OcclusionEngine {
 
                 //This is a hack too inject visibility for region and section the camera is in
                 if (region.meta.aabb.isInside(cam.blockX, cam.blockY, cam.blockZ)) {
+                    //Could technically move this to the CreateSectionRenderCommands shader
                     glClearNamedBufferSubData(GlBuffer.getHandle(viewport.regionVisibilityArray),
                             GL_R32UI, regionCount*4L, 4,
                             GL_RED_INTEGER, GL_UNSIGNED_INT, new int[]{renderId});
+                    sectionIn = SodiumWorldRenderer.instance().getTerrainRenderer().getSection(cam.blockX>>4, cam.blockY>>4, cam.blockZ>>4);
+                    regionIn = region;
+
                     /*
                     RenderSection section = SodiumWorldRenderer.instance().getTerrainRenderer()
                             .getSection(cam.blockX>>4, cam.blockY>>4, cam.blockZ>>4);
@@ -177,6 +184,13 @@ public class OcclusionEngine {
             viewport.scene.cameraSection.set(cam.blockX >> 4, cam.blockY >> 4, cam.blockZ >> 4, 0);
             viewport.scene.regionCount = regionCount;
             viewport.scene.frameId = renderId;
+            if (sectionIn != null && sectionIn.meta != null) {
+                viewport.scene.regionInId = regionIn.meta.id;
+                viewport.scene.sectionInIndex = sectionIn.meta.id;
+            } else {
+                viewport.scene.regionInId = -1;
+                viewport.scene.sectionInIndex = -1;
+            }
 
 
             StreamingBuffer.WritableSection sceneSection = viewport.sceneBuffer.getSection(
@@ -256,7 +270,8 @@ public class OcclusionEngine {
                 viewport.sectionCommandBuffer,
                 viewport.computeDispatchCommandBuffer,
                 viewport.visibleRegionArray,
-                regionMeta.cpuRegionVisibility
+                regionMeta.cpuRegionVisibility,
+                viewport.sectionVisibilityBuffer
         );
         //glFinish();
         glMemoryBarrier(GL_COMMAND_BARRIER_BIT);

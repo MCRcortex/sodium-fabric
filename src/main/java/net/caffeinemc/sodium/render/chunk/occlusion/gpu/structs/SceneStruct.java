@@ -6,7 +6,7 @@ import org.joml.Vector4f;
 import org.joml.Vector4i;
 
 public class SceneStruct {
-    public static final int SIZE = MathUtil.align(4*4*4*2+4*4*2+2*4, 16);
+    public static final int SIZE = MathUtil.align(4*4*4*2+4*4*2+2*4+2*4, 16);
 
     public Matrix4f MVP = new Matrix4f();
     public Matrix4f MV = new Matrix4f();
@@ -14,6 +14,8 @@ public class SceneStruct {
     public Vector4i cameraSection = new Vector4i();
     public int frameId;
     public int regionCount;
+    public int regionInId;
+    public int sectionInIndex;
 
     public void write(IStructWriter writer) {
         writer.write(MVP);
@@ -22,5 +24,7 @@ public class SceneStruct {
         writer.write(cameraSection);
         writer.write(frameId);
         writer.write(regionCount);
+        writer.write(regionInId);
+        writer.write(sectionInIndex);
     }
 }

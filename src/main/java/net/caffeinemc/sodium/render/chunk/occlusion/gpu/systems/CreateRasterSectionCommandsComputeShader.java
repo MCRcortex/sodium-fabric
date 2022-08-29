@@ -29,6 +29,7 @@ public class CreateRasterSectionCommandsComputeShader {
         public final BufferBlock dispatchCompute;
         public final BufferBlock regionArrayOut;
         public final BufferBlock cpuVisibilityBuffer;
+        public final BufferBlock sectionVisibilityBuff;
         public ComputeInterface(ShaderBindingContext context) {
             scene = context.bindBufferBlock(BufferBlockType.UNIFORM, 0);
             regionArray = context.bindBufferBlock(BufferBlockType.STORAGE, 1);
@@ -38,6 +39,7 @@ public class CreateRasterSectionCommandsComputeShader {
             dispatchCompute = context.bindBufferBlock(BufferBlockType.STORAGE, 5);
             regionArrayOut = context.bindBufferBlock(BufferBlockType.STORAGE, 6);
             cpuVisibilityBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 7);
+            sectionVisibilityBuff = context.bindBufferBlock(BufferBlockType.STORAGE, 8);
         }
     }
 
@@ -63,7 +65,7 @@ public class CreateRasterSectionCommandsComputeShader {
     }
 
     public void execute(int regionCount, Buffer scene, int offset, Buffer regionMeta, Buffer regionArray, Buffer regionVisArray, Buffer sectionCommandBuff, Buffer dispatchComputeBuffer, Buffer regionArrayOut,
-                        Buffer cpuVisibilityBuffer) {
+                        Buffer cpuVisibilityBuffer, Buffer sectionVisibilityBuff) {
         this.device.useComputePipeline(pipeline, (cmd, programInterface, state) -> {
             state.bindBufferBlock(programInterface.scene, scene, offset, ViewportedData.SCENE_STRUCT_ALIGNMENT);
             state.bindBufferBlock(programInterface.regionArray, regionArray);
@@ -73,6 +75,7 @@ public class CreateRasterSectionCommandsComputeShader {
             state.bindBufferBlock(programInterface.dispatchCompute, dispatchComputeBuffer);
             state.bindBufferBlock(programInterface.regionArrayOut, regionArrayOut);
             state.bindBufferBlock(programInterface.cpuVisibilityBuffer, cpuVisibilityBuffer);
+            state.bindBufferBlock(programInterface.sectionVisibilityBuff, sectionVisibilityBuff);
             cmd.dispatchCompute((int)(Math.ceil((double) regionCount/LOCAL_SIZE_X)),1,1);
         });
     }
