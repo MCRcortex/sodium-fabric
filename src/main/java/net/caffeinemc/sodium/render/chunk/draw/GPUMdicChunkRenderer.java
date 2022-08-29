@@ -16,6 +16,7 @@ import net.caffeinemc.sodium.render.chunk.shader.ChunkShaderInterface;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.render.terrain.format.compact.CompactTerrainVertexType;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.Matrix4f;
@@ -34,6 +35,8 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
 
     @Override
     public void render(ChunkRenderPass renderPass, ChunkRenderMatrices matrices, int frameIndex) {
+        //if (MinecraftClient.getInstance().player.isSneaking())
+        //    return;
         int passId = renderPass.getId();
         if (passId < 0) {
             return;
@@ -82,6 +85,8 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
             commandList.bindElementBuffer(this.indexBuffer.getBuffer());
             if (!renderPass.isTranslucent()) {
                 int count = viewport.cpuCommandBufferCounter.view().getInt(passId * 4 + 4);
+                //if (passId == 0)
+                //    System.out.println(count);
                 if (count <= 0 || count > 100000)
                     return;
                 commandList.bindCommandBuffer(viewport.commandOutputBuffer);
@@ -98,6 +103,8 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
                 commandList.bindCommandBuffer(viewport.translucencyCommandBuffer);
                 commandList.bindParameterBuffer(viewport.translucencyCountBuffer);
                 for (int i = 49; i >= 0; i--) {
+                    //if (true)
+                    //    continue;
                     //FIXME: count should be the max of +-2 of the current i index
                     int count = viewport.cpuTranslucencyCountBuffer.view().getInt(i*4);
                     if (count <= 0 || count > 100)

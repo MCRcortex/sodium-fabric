@@ -34,6 +34,10 @@ layout(std430, binding = 7) restrict writeonly buffer CpuFrameVisData {
     uint[] cpuVisibility;
 };
 
+layout(std430, binding = 8) restrict writeonly buffer SectionVisibilityData {
+    uint[] sectionVisibility;
+};
+
 void main() {
     if (gl_GlobalInvocationID.x >= regionCount) {
         return;
@@ -60,8 +64,11 @@ void main() {
 
 
             rasterCommands[gl_GlobalInvocationID.x].baseInstance = offset * REGION_SECTION_MAX_SIZE;
-        }
 
+            if (rid == regionCurrentlyIn) {
+                sectionVisibility[offset * REGION_SECTION_MAX_SIZE + sectionInIndex] = frameId;
+            }
+        }
     } else {//The region isnt visible so dont test anything
         rasterCommands[gl_GlobalInvocationID.x].count = 0;
         rasterCommands[gl_GlobalInvocationID.x].instanceCount = 0;
