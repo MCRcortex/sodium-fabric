@@ -103,11 +103,9 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
                 commandList.bindCommandBuffer(viewport.translucencyCommandBuffer);
                 commandList.bindParameterBuffer(viewport.translucencyCountBuffer);
                 for (int i = 49; i >= 0; i--) {
-                    //if (true)
-                    //    continue;
                     //FIXME: count should be the max of +-2 of the current i index
                     int count = viewport.cpuTranslucencyCountBuffer.view().getInt(i*4);
-                    if (count <= 0 || count > 100)
+                    if (count <= 0 || count >= 100)
                         continue;
                     commandList.multiDrawElementsIndirectCount(
                             PrimitiveType.TRIANGLES,
