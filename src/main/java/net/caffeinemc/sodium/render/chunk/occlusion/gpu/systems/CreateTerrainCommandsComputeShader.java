@@ -97,10 +97,12 @@ public class CreateTerrainCommandsComputeShader {
             state.bindBufferBlock(programInterface.cpuVisibilityBuffer, cpuVisibilityBuffer);
             state.bindBufferBlock(programInterface.translucencyCountBuffer, translucencyCountBuffer);
             state.bindBufferBlock(programInterface.translucencyCommandBuffer, translucencyCommandBuffer);
-
-            cmd.bindDispatchIndirectBuffer(dispatchCompute);
-            cmd.dispatchComputeIndirect(0);
-            cmd.bindDispatchIndirectBuffer(null);
+            if (true) {
+                cmd.bindDispatchIndirectBuffer(dispatchCompute);
+                cmd.dispatchComputeIndirect(0);
+                cmd.bindDispatchIndirectBuffer(null);
+            }
+            //cmd.dispatchCompute(30,250,1);
         });
     }
 

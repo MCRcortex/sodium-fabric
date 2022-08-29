@@ -102,7 +102,7 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
             } else {
                 commandList.bindCommandBuffer(viewport.translucencyCommandBuffer);
                 commandList.bindParameterBuffer(viewport.translucencyCountBuffer);
-                for (int i = 49; i >= 0; i--) {
+                for (int i = 48; i >= 0; i--) {
                     //FIXME: count should be the max of +-2 of the current i index
                     int count = viewport.cpuTranslucencyCountBuffer.view().getInt(i*4);
                     if (count <= 0 || count >= 100)

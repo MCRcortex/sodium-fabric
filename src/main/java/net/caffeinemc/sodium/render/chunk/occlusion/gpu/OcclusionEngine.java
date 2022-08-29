@@ -221,6 +221,7 @@ public class OcclusionEngine {
         //System.out.println(viewport.visible_regions.size());
 
         viewport.renderMatrices = matrices;
+        //System.out.println(regionCount);
     }
 
     public void doOcclusion() {
