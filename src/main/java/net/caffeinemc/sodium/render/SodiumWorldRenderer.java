@@ -55,7 +55,7 @@ public class SodiumWorldRenderer {
     private boolean useEntityCulling;
 
     private TerrainRenderManager terrainRenderManager;
-    private ChunkRenderPassManager renderPassManager;
+    public ChunkRenderPassManager renderPassManager;
     private ChunkTracker chunkTracker;
 
     /**

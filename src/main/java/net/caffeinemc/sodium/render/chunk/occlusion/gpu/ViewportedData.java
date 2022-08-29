@@ -9,6 +9,7 @@ import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.gfx.util.buffer.streaming.DualStreamingBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.render.chunk.ViewportInstancedData;
+import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.SceneStruct;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.util.MathUtil;
@@ -59,11 +60,14 @@ public class ViewportedData {
     public final Buffer chunkInstancedDataBuffer;
     public final Buffer commandOutputBuffer;
 
+    public boolean isRenderingTemporal;
     public final Buffer temporalSectionData;
 
     public final Buffer translucencyCountBuffer;
     public final MappedBuffer cpuTranslucencyCountBuffer;
     public final Buffer translucencyCommandBuffer;
+
+    public ChunkRenderMatrices renderMatrices;
 
     public double currentCameraX;
     public double currentCameraY;

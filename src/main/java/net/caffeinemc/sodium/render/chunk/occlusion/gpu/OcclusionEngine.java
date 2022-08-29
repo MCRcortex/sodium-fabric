@@ -5,6 +5,7 @@ import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.gfx.util.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
+import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.buffers.RegionMetaManager;
@@ -15,6 +16,7 @@ import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.CreateRasterSect
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.CreateTerrainCommandsComputeShader;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.RasterRegionShader;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.RasterSectionShader;
+import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.minecraft.client.MinecraftClient;
 import org.lwjgl.system.MemoryUtil;
@@ -203,6 +205,8 @@ public class OcclusionEngine {
         //FIXME: THIS IS HERE CAUSE OF GOD AWFUL SYNCING PAIN IN THE ASS
         //SodiumClientMod.DEVICE.createFence().sync(true);
         //System.out.println(viewport.visible_regions.size());
+
+        viewport.renderMatrices = matrices;
     }
 
     public void doOcclusion() {
@@ -302,6 +306,16 @@ public class OcclusionEngine {
         // uint cmdIdx   = atomicAdd(bucketCounts[bucketId], 1)
         // write the command to cmdIdx
         // then too render everything, do MDIC over all buckets or something
+
+        viewport.isRenderingTemporal = true;
+        //viewport.frameDeltaX = 0;
+        //viewport.frameDeltaY = 0;
+        //viewport.frameDeltaZ = 0;
+        //SodiumWorldRenderer.instance().getTerrainRenderer().chunkRenderer.render(SodiumWorldRenderer.instance().renderPassManager.getRenderPassForId(0), viewport.renderMatrices, 0);
+        //SodiumWorldRenderer.instance().getTerrainRenderer().chunkRenderer.render(SodiumWorldRenderer.instance().renderPassManager.getRenderPassForId(1), viewport.renderMatrices, 0);
+        //SodiumWorldRenderer.instance().getTerrainRenderer().chunkRenderer.render(SodiumWorldRenderer.instance().renderPassManager.getRenderPassForId(2), viewport.renderMatrices, 0);
+        viewport.isRenderingTemporal = false;
+
     }
 
     public void delete() {

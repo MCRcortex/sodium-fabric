@@ -77,7 +77,7 @@ public class TerrainRenderManager {
 
     private final Map<ChunkUpdateType, PriorityQueue<RenderSection>> rebuildQueues = new EnumMap<>(ChunkUpdateType.class);
 
-    private final ChunkRenderer chunkRenderer;
+    public final ChunkRenderer chunkRenderer;
 
     private final ClientWorld world;
 
