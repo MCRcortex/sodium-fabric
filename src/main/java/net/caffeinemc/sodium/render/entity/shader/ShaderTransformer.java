@@ -24,6 +24,7 @@ import java.util.Set;
 
 // TODO: maybe make this an interface with static constants?
 public class ShaderTransformer {
+
     public static final TransformationManager<EntityParameters> ENTITY = createEntityTransformationManager();
 
     private static final String PREFIX = "sodium_";

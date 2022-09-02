@@ -3,6 +3,9 @@ package net.caffeinemc.sodium.world.slice.cloned;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectMap;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectMaps;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import net.caffeinemc.sodium.interop.vanilla.mixin.PalettedContainerAccessor;
 import net.caffeinemc.sodium.world.slice.cloned.palette.ClonedPalette;
 import net.caffeinemc.sodium.world.slice.cloned.palette.ClonedPaletteFallback;
@@ -21,10 +24,6 @@ import net.minecraft.world.LightType;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.*;
-
-import java.util.Arrays;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ClonedChunkSection {
     private static final LightType[] LIGHT_TYPES = LightType.values();

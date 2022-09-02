@@ -32,7 +32,7 @@ import net.caffeinemc.sodium.render.shader.ShaderLoader;
 import net.caffeinemc.sodium.render.shader.ShaderParser;
 import net.caffeinemc.sodium.render.terrain.format.TerrainMeshAttribute;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
-import net.caffeinemc.sodium.util.MathUtil;
+import net.caffeinemc.gfx.util.misc.MathUtil;
 import net.caffeinemc.sodium.util.TextureUtil;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
@@ -55,10 +55,11 @@ public abstract class AbstractMdChunkRenderer extends AbstractChunkRenderer {
 
     public AbstractMdChunkRenderer(
             RenderDevice device,
+            ChunkCameraContext camera,
             ChunkRenderPassManager renderPassManager,
             TerrainVertexType vertexType
     ) {
-        super(device);
+        super(device, camera);
         
         this.renderPassManager = renderPassManager;
     
@@ -248,8 +249,8 @@ public abstract class AbstractMdChunkRenderer extends AbstractChunkRenderer {
         return faces;
     }
     
-    protected static float getCameraTranslation(int chunkBlockPos, int cameraBlockPos, float cameraPos) {
-        return (chunkBlockPos - cameraBlockPos) - cameraPos;
+    protected static float getCameraTranslation(int chunkBlockPos, int cameraBlockPos, float cameraDeltaPos) {
+        return (chunkBlockPos - cameraBlockPos) - cameraDeltaPos;
     }
     
     //// OVERRIDABLE BUFFER INFO

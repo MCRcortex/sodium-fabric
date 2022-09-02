@@ -78,7 +78,6 @@ public class GlRenderDevice implements RenderDevice {
 
         int maxCombinedTextureImageUnits = GL45C.glGetInteger(GL45C.GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS);
 
-
         String vendorName = GL45C.glGetString(GL45C.GL_VENDOR);
         String deviceName = GL45C.glGetString(GL45C.GL_RENDERER);
         String apiVersion = GL45C.glGetString(GL45C.GL_VERSION);
@@ -131,7 +130,7 @@ public class GlRenderDevice implements RenderDevice {
     }
 
     private void copyBuffer0(GlBuffer srcBuffer, GlBuffer dstBuffer, long srcOffset, long dstOffset, long length) {
-        if (RenderConfiguration.API_CHECKS) {
+        if (RenderConfiguration.DEBUG_CHECKS) {
             Validate.isTrue(srcOffset >= 0, "Source offset must be greater than or equal to zero");
             Validate.isTrue(dstOffset >= 0, "Destination offset must be greater than or equal to zero");
 
@@ -297,7 +296,7 @@ public class GlRenderDevice implements RenderDevice {
 
     @Override
     public MappedBuffer createMappedBuffer(long capacity, Set<MappedBufferFlags> flags) {
-        if (RenderConfiguration.API_CHECKS) {
+        if (RenderConfiguration.DEBUG_CHECKS) {
             Validate.isTrue(flags.contains(MappedBufferFlags.READ) || flags.contains(MappedBufferFlags.WRITE),
                     "Read-only, write-only, or read-write flags must be specified");
         }
@@ -319,7 +318,7 @@ public class GlRenderDevice implements RenderDevice {
 
     @Override
     public MappedBuffer createMappedBuffer(long capacity, Consumer<Buffer> preMapConsumer, Set<MappedBufferFlags> flags) {
-        if (RenderConfiguration.API_CHECKS) {
+        if (RenderConfiguration.DEBUG_CHECKS) {
             Validate.isTrue(flags.contains(MappedBufferFlags.READ) || flags.contains(MappedBufferFlags.WRITE),
                     "Read-only, write-only, or read-write flags must be specified");
         }
@@ -335,7 +334,7 @@ public class GlRenderDevice implements RenderDevice {
         //// Do the synchronization for the buffer ourselves
         // TODO: add a memory barrier function to RenderDevice
         // do we need GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT?
-        GL45C.glMemoryBarrier(GL45C.GL_BUFFER_UPDATE_BARRIER_BIT | GL44C.GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
+        GL45C.glMemoryBarrier(GL45C.GL_BUFFER_UPDATE_BARRIER_BIT | GL45C.GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
         this.createFence().sync(true);
 
         // If we were to use GL_MAP_INVALIDATE_BIT on this, it would invalidate all the stuff we just wrote to it.
@@ -383,7 +382,7 @@ public class GlRenderDevice implements RenderDevice {
     
     @Override
     public void updateBuffer(DynamicBuffer buffer, int offset, ByteBuffer data) {
-        if (RenderConfiguration.API_CHECKS) {
+        if (RenderConfiguration.DEBUG_CHECKS) {
             Validate.isTrue(offset >= 0, "Offset must be greater than or equal to zero");
             Validate.isTrue(data != null && data.remaining() > 0, "Data must not be null");
             Validate.isTrue(offset + data.remaining() > buffer.capacity(), "Range is out of bounds");
@@ -436,7 +435,7 @@ public class GlRenderDevice implements RenderDevice {
     
         @Override
         public void dispatchCompute(int numGroupsX, int numGroupsY, int numGroupsZ) {
-            if (RenderConfiguration.API_CHECKS) {
+            if (RenderConfiguration.DEBUG_CHECKS) {
                 Validate.isTrue(numGroupsX * numGroupsY * numGroupsZ > 0, "Total groups must be greater than 0");
             }
             
@@ -449,7 +448,7 @@ public class GlRenderDevice implements RenderDevice {
                 GL45C.glBindBuffer(GL45C.GL_DISPATCH_INDIRECT_BUFFER, 0);
                 this.dispatchIndirectBuffer = null;
             }
-            if (RenderConfiguration.API_CHECKS) {
+            if (RenderConfiguration.DEBUG_CHECKS) {
                 Validate.notNull(buffer, "Buffer must be non-null");
             }
         
@@ -462,7 +461,7 @@ public class GlRenderDevice implements RenderDevice {
     
         @Override
         public void dispatchComputeIndirect(long indirectOffset) {
-            if (RenderConfiguration.API_CHECKS) {
+            if (RenderConfiguration.DEBUG_CHECKS) {
                 Validate.isTrue(indirectOffset >= 0, "Indirect offset must be greater than or equal to zero");
                 Validate.isTrue(indirectOffset % 4 == 0, "Indirect offset must be a multiple of 4");
             }
@@ -487,7 +486,7 @@ public class GlRenderDevice implements RenderDevice {
 
         @Override
         public void bindElementBuffer(Buffer buffer) {
-            if (RenderConfiguration.API_CHECKS) {
+            if (RenderConfiguration.DEBUG_CHECKS) {
                 Validate.notNull(buffer, "Buffer must be non-null");
             }
 
@@ -500,7 +499,7 @@ public class GlRenderDevice implements RenderDevice {
 
         @Override
         public void bindVertexBuffer(T target, Buffer buffer, int offset, int stride) {
-            if (RenderConfiguration.API_CHECKS) {
+            if (RenderConfiguration.DEBUG_CHECKS) {
                 Validate.notNull(buffer, "Buffer must be non-null");
                 Validate.isTrue(offset >= 0, "Buffer offset must be greater than or equal to zero");
                 Validate.isTrue(stride > 0, "Buffer stride must be must be positive");
@@ -520,7 +519,7 @@ public class GlRenderDevice implements RenderDevice {
 
         @Override
         public void bindCommandBuffer(Buffer buffer) {
-            if (RenderConfiguration.API_CHECKS) {
+            if (RenderConfiguration.DEBUG_CHECKS) {
                 Validate.notNull(buffer, "Buffer must be non-null");
             }
 
@@ -533,7 +532,7 @@ public class GlRenderDevice implements RenderDevice {
 
         @Override
         public void bindParameterBuffer(Buffer buffer) {
-            if (RenderConfiguration.API_CHECKS) {
+            if (RenderConfiguration.DEBUG_CHECKS) {
                 Validate.notNull(buffer, "Buffer must be non-null");
             }
 
@@ -546,7 +545,7 @@ public class GlRenderDevice implements RenderDevice {
         
         @Override
         public void multiDrawElementsBaseVertex(PrimitiveType primitiveType, ElementFormat elementType, int drawCount, long indexCountsPtr, long indexOffsetsPtr, long baseVerticesPtr) {
-            if (RenderConfiguration.API_CHECKS) {
+            if (RenderConfiguration.DEBUG_CHECKS) {
                 Validate.notNull(this.elementBuffer, "Element buffer target not bound");
                 Validate.noNullElements(this.vertexBuffers, "One or more vertex buffer targets are not bound");
                 Validate.isTrue(drawCount >= 0, "Draw count must be equal to or greater than 0");
@@ -567,7 +566,7 @@ public class GlRenderDevice implements RenderDevice {
 
         @Override
         public void multiDrawElementsIndirect(PrimitiveType primitiveType, ElementFormat elementType, long indirectOffset, int indirectCount, int stride) {
-            if (RenderConfiguration.API_CHECKS) {
+            if (RenderConfiguration.DEBUG_CHECKS) {
                 Validate.notNull(this.elementBuffer, "Element buffer target not bound");
                 Validate.notNull(this.commandBuffer, "Command buffer target not bound");
                 Validate.noNullElements(this.vertexBuffers, "One or more vertex buffer targets are not bound");
@@ -596,7 +595,7 @@ public class GlRenderDevice implements RenderDevice {
 
         @Override
         public void multiDrawElementsIndirectCount(PrimitiveType primitiveType, ElementFormat elementType, long indirectOffset, long countOffset, int maxCount, int stride) {
-            if (RenderConfiguration.API_CHECKS) {
+            if (RenderConfiguration.DEBUG_CHECKS) {
                 Validate.notNull(this.elementBuffer, "Element buffer target not bound");
                 Validate.notNull(this.commandBuffer, "Command buffer target not bound");
                 Validate.notNull(this.parameterBuffer, "Parameter buffer target not bound");
