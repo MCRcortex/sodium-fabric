@@ -5,7 +5,8 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.caffeinemc.sodium.render.ViewportInterface;
 
 //TODO: need to have a global list of data that can all be reset, e.g. render distance changes
-public class ViewportInstancedData <DATA> {
+public class ViewportInstancedData <DATA extends IViewportData> {
+
     public interface IViewportFactory <DATA> { DATA create(int viewport); }
 
     private final IViewportFactory<DATA> factory;
@@ -24,5 +25,14 @@ public class ViewportInstancedData <DATA> {
             currentViewport = viewportIndex;
         }
         return current;
+    }
+
+    public void deleteAll() {
+        for (DATA data : viewports.values()) {
+            data.delete();
+        }
+        viewports.clear();
+        current = null;
+        currentViewport = -1;
     }
 }

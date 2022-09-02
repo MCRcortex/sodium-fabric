@@ -51,7 +51,8 @@ public class UserConfig {
         public boolean enableMemoryTracing = false;
         public boolean enableApiDebug = false;
         
-        public ChunkRendererBackend chunkRendererBackend = ChunkRendererBackend.DEFAULT;
+        //public ChunkRendererBackend chunkRendererBackend = ChunkRendererBackend.DEFAULT;
+        public ChunkRendererBackend chunkRendererBackend = ChunkRendererBackend.GPU_DRIVEN;
         public RegionDataStore regionDataStore = RegionDataStore.DEFAULT;
     }
 
@@ -69,9 +70,9 @@ public class UserConfig {
     }
 
     public enum ChunkRendererBackend implements TextProvider {
-        DEFAULT("options.gamma.default", p -> true),
-        BASEVERTEX("sodium.options.chunk_renderer_backend.base_vertex", p -> true),
-        INDIRECT("sodium.options.chunk_renderer_backend.indirect", p -> true),
+        //DEFAULT("options.gamma.default", p -> true),
+        //BASEVERTEX("sodium.options.chunk_renderer_backend.base_vertex", p -> true),
+        //INDIRECT("sodium.options.chunk_renderer_backend.indirect", p -> true),
         GPU_DRIVEN("sodium.options.chunk_renderer_backend.gpu", p -> true);
 
         private final Text name;

@@ -8,6 +8,7 @@ import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.gfx.util.buffer.streaming.DualStreamingBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
+import net.caffeinemc.sodium.render.chunk.IViewportData;
 import net.caffeinemc.sodium.render.chunk.ViewportInstancedData;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.SceneStruct;
@@ -24,7 +25,7 @@ import static org.lwjgl.opengl.GL11C.GL_UNSIGNED_INT;
 import static org.lwjgl.opengl.GL30C.GL_R32UI;
 import static org.lwjgl.opengl.GL30C.GL_RED_INTEGER;
 
-public class ViewportedData {
+public class ViewportedData implements IViewportData {
     public static final ViewportInstancedData<ViewportedData> DATA = new ViewportInstancedData<>(ViewportedData::new);
 
     private final RenderDevice device;
@@ -166,5 +167,24 @@ public class ViewportedData {
     private static void clearBuff(Buffer buffer) {
         glClearNamedBufferData(GlBuffer.getHandle(buffer),
                 GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, new int[]{0});
+    }
+
+
+    @Override
+    public void delete() {
+        frustumRegionArray.delete();
+        device.deleteBuffer(visibleRegionArray);
+        device.deleteBuffer(regionVisibilityArray);
+        device.deleteBuffer(sectionCommandBuffer);
+        device.deleteBuffer(computeDispatchCommandBuffer);
+        device.deleteBuffer(sectionVisibilityBuffer);
+        device.deleteBuffer(commandBufferCounter);
+        device.deleteBuffer(cpuCommandBufferCounter);
+        device.deleteBuffer(chunkInstancedDataBuffer);
+        device.deleteBuffer(commandOutputBuffer);
+        device.deleteBuffer(temporalSectionData);
+        device.deleteBuffer(translucencyCountBuffer);
+        device.deleteBuffer(cpuTranslucencyCountBuffer);
+        device.deleteBuffer(translucencyCommandBuffer);
     }
 }

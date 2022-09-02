@@ -324,7 +324,7 @@ public class RenderRegionManager {
                         createDataStoreProvider(UserConfig.RegionDataStore.SINGLE)
                         :createDataStoreProvider(UserConfig.RegionDataStore.DISTINCT));
 
-            case SPARSE -> new GlobalSparseAsyncBufferProvider(device, stagingBuffer, vertexType, 3000000000L);//2GB max size
+            case SPARSE -> new GlobalSparseAsyncBufferProvider(device, stagingBuffer, vertexType, 5000000000L);//2GB max size
 
             case SINGLE -> new GlobalSingleBufferProvider(device, stagingBuffer, vertexType);
 

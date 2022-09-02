@@ -84,7 +84,8 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
 
             commandList.bindElementBuffer(this.indexBuffer.getBuffer());
             if (!renderPass.isTranslucent()) {
-                int count = viewport.cpuCommandBufferCounter.view().getInt(passId * 4 + 4);
+                int countOffset = passId * 4 + 4 + (viewport.isRenderingTemporal?3*4+4:0);
+                int count = viewport.cpuCommandBufferCounter.view().getInt(countOffset);
                 //if (passId == 0)
                 //    System.out.println(count);
                 if (count <= 0 || count > 100000)
@@ -94,10 +95,10 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
                 commandList.multiDrawElementsIndirectCount(
                         PrimitiveType.TRIANGLES,
                         ElementFormat.UNSIGNED_INT,
-                        OcclusionEngine.MAX_RENDER_COMMANDS_PER_LAYER * passId * OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE,
-                        4 + passId * 4,
+                        OcclusionEngine.MAX_RENDER_COMMANDS_PER_LAYER * passId * OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE ,//+ (viewport.isRenderingTemporal?OcclusionEngine.MAX_RENDER_COMMANDS_PER_LAYER * OcclusionEngine.MAX_REGIONS * OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE:0)
+                        countOffset,
                         //100000,
-                        (int) (count * viewport.countMultiplier),
+                        Math.max((int) (count * viewport.countMultiplier), 1000),
                         (int) OcclusionEngine.MULTI_DRAW_INDIRECT_COMMAND_SIZE);
             } else {
                 commandList.bindCommandBuffer(viewport.translucencyCommandBuffer);

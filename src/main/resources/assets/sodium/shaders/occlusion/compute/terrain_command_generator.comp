@@ -99,7 +99,7 @@ void writeBackfaceCulledCommands() {
     skipmsk &= 255u;
 
     //TODO: THIS
-    bool wasNotVisibleLastFrame = gpuSectionSeenFrame[SECTION_ID] == frameId;
+    bool wasNotVisibleLastFrame = false;// cpuVisibilityData[SECTION_ID] != frameId;
     gpuSectionSeenFrame[SECTION_ID] = frameId;
     cpuVisibilityData[SECTION_ID] = frameId;
 

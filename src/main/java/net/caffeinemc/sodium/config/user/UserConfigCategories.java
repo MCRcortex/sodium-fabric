@@ -287,7 +287,6 @@ public class UserConfigCategories {
 
     public static OptionPage advanced() {
         List<OptionGroup> groups = new ArrayList<>();
-
         OptionGroupControl gpuBackendOptionGroupControl = new OptionGroupControl();
 
         groups.add(OptionGroup.createBuilder()
@@ -358,7 +357,7 @@ public class UserConfigCategories {
                         , opts -> opts.advanced.regionDataStore)
                         .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)
                         .build()
-                )
+                )/*
                 .add(OptionImpl.createBuilder(boolean.class, sodiumOpts)
                         .setName(Text.translatable("sodium.options.gpu_occlusion.pre_region_cull.name"))
                         .setTooltip(Text.translatable("sodium.options.gpu_occlusion.pre_region_cull.tooltip"))
@@ -376,7 +375,7 @@ public class UserConfigCategories {
                         .setBinding((opts, value) -> {}, opts -> true)
                         .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)
                         .build()
-                )
+                )*/
                 .addControl(gpuBackendOptionGroupControl)
                 .build());
 

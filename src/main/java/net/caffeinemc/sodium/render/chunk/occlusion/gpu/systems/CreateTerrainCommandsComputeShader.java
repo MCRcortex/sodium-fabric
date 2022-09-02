@@ -50,8 +50,8 @@ public class CreateTerrainCommandsComputeShader {
             regionMeta = context.bindBufferBlock(BufferBlockType.UNIFORM, 2);
             sectionVisBuff = context.bindBufferBlock(BufferBlockType.STORAGE, 3);
             sectionMeta = context.bindBufferBlock(BufferBlockType.STORAGE, 4);
-            cpuVisibilityBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 5);
-            temporalDataBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 6);
+            temporalDataBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 5);
+            cpuVisibilityBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 6);
             commandCounterBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 7);
             instancedDataBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 8);
             commandOutputBuffer = context.bindBufferBlock(BufferBlockType.STORAGE, 9);

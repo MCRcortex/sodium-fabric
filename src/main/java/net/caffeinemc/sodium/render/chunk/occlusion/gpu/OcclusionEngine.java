@@ -13,6 +13,7 @@ import net.caffeinemc.sodium.render.chunk.occlusion.gpu.buffers.RegionMetaManage
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.buffers.SectionMetaManager;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.MappedBufferWriter;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.PointerBufferWriter;
+import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.SectionMeta;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.CreateRasterSectionCommandsComputeShader;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.CreateTerrainCommandsComputeShader;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.RasterRegionShader;
@@ -84,8 +85,6 @@ public class OcclusionEngine {
         int regionCount = 0;
 
         MinecraftClient.getInstance().getProfiler().push("region_loop");
-        RenderRegion regionIn = null;
-        RenderSection sectionIn = null;
         //TODO: OPTIMIZE THIS
         {
 
@@ -124,8 +123,6 @@ public class OcclusionEngine {
                     glClearNamedBufferSubData(GlBuffer.getHandle(viewport.regionVisibilityArray),
                             GL_R32UI, regionCount*4L, 4,
                             GL_RED_INTEGER, GL_UNSIGNED_INT, new int[]{renderId});
-                    sectionIn = SodiumWorldRenderer.instance().getTerrainRenderer().getSection(cam.blockX>>4, cam.blockY>>4, cam.blockZ>>4);
-                    regionIn = region;
 
                     /*
                     RenderSection section = SodiumWorldRenderer.instance().getTerrainRenderer()
@@ -153,7 +150,7 @@ public class OcclusionEngine {
         //glFinish();
         MinecraftClient.getInstance().getProfiler().swap("scene stuff");
         //TODO: need to somehow add a delta for the render for position from last frame to the current frame camera position
-        if (!MinecraftClient.getInstance().player.isSneaking()) {
+        if (true) {
             //TODO: put into gfx
             //TODO: FIXME: need to set the first 2 ints too 0 and the last one too 1
              glClearNamedBufferData(GlBuffer.getHandle(viewport.computeDispatchCommandBuffer),
@@ -184,8 +181,10 @@ public class OcclusionEngine {
             viewport.scene.cameraSection.set(cam.blockX >> 4, cam.blockY >> 4, cam.blockZ >> 4, 0);
             viewport.scene.regionCount = regionCount;
             viewport.scene.frameId = renderId;
+
+            RenderSection sectionIn = SodiumWorldRenderer.instance().getTerrainRenderer().getSection(cam.blockX>>4, cam.blockY>>4, cam.blockZ>>4);
             if (sectionIn != null && sectionIn.meta != null) {
-                viewport.scene.regionInId = regionIn.meta.id;
+                viewport.scene.regionInId = sectionIn.getRegion().meta.id;
                 viewport.scene.sectionInIndex = sectionIn.meta.id;
             } else {
                 viewport.scene.regionInId = -1;
@@ -324,9 +323,9 @@ public class OcclusionEngine {
         // then too render everything, do MDIC over all buckets or something
 
         viewport.isRenderingTemporal = true;
-        //viewport.frameDeltaX = 0;
-        //viewport.frameDeltaY = 0;
-        //viewport.frameDeltaZ = 0;
+        viewport.frameDeltaX = 0;
+        viewport.frameDeltaY = 0;
+        viewport.frameDeltaZ = 0;
         //SodiumWorldRenderer.instance().getTerrainRenderer().chunkRenderer.render(SodiumWorldRenderer.instance().renderPassManager.getRenderPassForId(0), viewport.renderMatrices, 0);
         //SodiumWorldRenderer.instance().getTerrainRenderer().chunkRenderer.render(SodiumWorldRenderer.instance().renderPassManager.getRenderPassForId(1), viewport.renderMatrices, 0);
         //SodiumWorldRenderer.instance().getTerrainRenderer().chunkRenderer.render(SodiumWorldRenderer.instance().renderPassManager.getRenderPassForId(2), viewport.renderMatrices, 0);
@@ -341,5 +340,6 @@ public class OcclusionEngine {
         createRasterSectionCommands.delete();
         rasterSection.delete();
         createTerrainCommands.delete();
+        ViewportedData.DATA.deleteAll();
     }
 }
