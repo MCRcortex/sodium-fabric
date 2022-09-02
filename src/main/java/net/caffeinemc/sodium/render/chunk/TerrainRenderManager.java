@@ -533,14 +533,14 @@ public class TerrainRenderManager {
 
     private static ChunkRenderer createChunkRenderer(RenderDevice device, ChunkRenderPassManager renderPassManager, TerrainVertexType vertexType) {
         return switch (SodiumClientMod.options().advanced.chunkRendererBackend) {
-            /*
+
             case DEFAULT -> device.properties().preferences.directRendering
                             ? new MdbvChunkRenderer(device, renderPassManager, vertexType)
                             : new MdiChunkRenderer(device, renderPassManager, vertexType);
             
             case BASEVERTEX -> new MdbvChunkRenderer(device, renderPassManager, vertexType);
             
-            case INDIRECT -> new MdiChunkRenderer(device, renderPassManager, vertexType);*/
+            case INDIRECT -> new MdiChunkRenderer(device, renderPassManager, vertexType);
 
             case GPU_DRIVEN -> new GPUMdicChunkRenderer(device, renderPassManager, vertexType);
         };
