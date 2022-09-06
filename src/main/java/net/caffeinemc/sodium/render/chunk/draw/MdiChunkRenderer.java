@@ -27,7 +27,6 @@ import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.chunk.shader.ChunkShaderInterface;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
-import net.caffeinemc.sodium.util.MathUtil;
 import net.minecraft.client.MinecraftClient;
 import net.caffeinemc.gfx.util.misc.MathUtil;
 import net.minecraft.util.math.BlockPos;
@@ -80,81 +79,6 @@ public class MdiChunkRenderer extends AbstractBatchedMdChunkRenderer<MdiChunkRen
     public long getDeviceAllocatedMemory() {
         return super.getDeviceAllocatedMemory() +
                this.commandBuffer.getDeviceAllocatedMemory();
-    }
-
-    public void createRenderLists(GeneratingMDICommandSet lists, int frameIndex) {
-
-        ChunkRenderPass[] chunkRenderPasses = this.renderPassManager.getAllRenderPasses();
-        int totalPasses = chunkRenderPasses.length;
-
-        // setup buffers, resizing as needed
-        int commandBufferPassSize = commandBufferPassSize(this.commandBuffer.getAlignment(), lists);
-        StreamingBuffer.WritableSection commandBufferSection = this.commandBuffer.getSection(
-                frameIndex,
-                commandBufferPassSize * totalPasses,
-                false
-        );
-        ByteBuffer commandBufferSectionView = commandBufferSection.getView();
-        long commandBufferSectionAddress = MemoryUtil.memAddress0(commandBufferSectionView);
-
-        int transformBufferPassSize = indexedTransformsBufferPassSize(this.uniformBufferChunkTransforms.getAlignment(), lists);
-        StreamingBuffer.WritableSection transformBufferSection = this.uniformBufferChunkTransforms.getSection(
-                frameIndex,
-                transformBufferPassSize * totalPasses,
-                false
-        );
-        ByteBuffer transformBufferSectionView = transformBufferSection.getView();
-        long transformBufferSectionAddress = MemoryUtil.memAddress0(transformBufferSectionView);
-
-        int commandBufferPosition = commandBufferSectionView.position();
-        int transformBufferPosition = transformBufferSectionView.position();
-
-        Collection<MdiChunkRenderBatch>[] renderLists = new Collection[totalPasses];
-        MinecraftClient.getInstance().getProfiler().push("memcpys");
-        long transformOffset = 0;
-        for (int i = 0; i < lists.regionCount; i++) {
-            var data = lists.renderData[i];
-            MemoryUtil.memCopy(data.instanceBuffer, transformBufferSectionAddress + transformOffset, (long) data.instanceIndex * TRANSFORM_STRUCT_STRIDE);
-            data.instanceBufferLocationCopy = transformOffset;
-            transformOffset += (long) data.instanceIndex * TRANSFORM_STRUCT_STRIDE;
-            transformOffset = MathUtil.align(
-                    transformOffset,
-                    this.uniformBufferChunkTransforms.getAlignment()
-            );
-        }
-        long commandOffset = 0;
-        for (int passId = 0; passId < chunkRenderPasses.length; passId++) {
-            Deque<MdiChunkRenderBatch> renderList = new ArrayDeque<>(128); // just an estimate, should be plenty
-            for (int i = 0; i < lists.regionCount; i++) {
-                var data = lists.renderData[i];
-                if (data.commandIndexes[passId] == 0)
-                    continue;
-                renderList.add(new MdiChunkRenderBatch(data.region.getVertexBuffer().getBufferObject(),
-                        data.region.getVertexBuffer().getStride(),
-                        data.commandIndexes[passId],
-                        data.instanceBufferLocationCopy,
-                        commandOffset));
-                MemoryUtil.memCopy(data.commandBuffers[passId], commandBufferSectionAddress + commandOffset, (long) data.commandIndexes[passId] * COMMAND_STRUCT_STRIDE);
-                commandOffset += (long) data.commandIndexes[passId] * COMMAND_STRUCT_STRIDE;
-                commandOffset = MathUtil.align(
-                        commandOffset,
-                        this.commandBuffer.getAlignment()
-                );
-            }
-            renderLists[passId] = renderList;
-        }
-        MinecraftClient.getInstance().getProfiler().pop();
-        commandBufferPosition+= commandOffset;
-        transformBufferPosition += transformOffset;
-
-        commandBufferSectionView.position(commandBufferPosition);
-        transformBufferSectionView.position(transformBufferPosition);
-
-        commandBufferSection.flushPartial();
-        transformBufferSection.flushPartial();
-
-        this.indexBuffer.ensureCapacity(1000000);
-        this.renderLists = renderLists;
     }
 
     @Override
@@ -380,18 +304,6 @@ public class MdiChunkRenderer extends AbstractBatchedMdChunkRenderer<MdiChunkRen
         return size;
     }
 
-    protected static int commandBufferPassSize(int alignment, GeneratingMDICommandSet lists) {
-        int size = 0;
-
-        for (int j = 0; j < lists.regionCount; j++) {
-            var data = lists.renderData[j];
-            for (int i :  data.commandIndexes) {
-                size += MathUtil.align(i * COMMAND_STRUCT_STRIDE, alignment);
-            }
-        }
-        return size;
-    }
-
     protected static int indexedTransformsBufferPassSize(int alignment, SortedTerrainLists lists) {
         int size = 0;
     
@@ -404,16 +316,6 @@ public class MdiChunkRenderer extends AbstractBatchedMdChunkRenderer<MdiChunkRen
         return size;
     }
 
-    protected static int indexedTransformsBufferPassSize(int alignment, GeneratingMDICommandSet lists) {
-        int size = 0;
-
-        for (int j = 0; j < lists.regionCount; j++) {
-            var data = lists.renderData[j];
-            size = MathUtil.align(size + (data.instanceIndex * TRANSFORM_STRUCT_STRIDE), alignment);
-        }
-
-        return size;
-    }
     
     @Override
     protected void setupPerRenderList(

@@ -18,7 +18,7 @@ public class AABB {
     }
 
     public boolean isVisible(Frustum frustum) {
-        return frustum.isBoxVisible(offset.x, offset.y, offset.z, offset.x + size.x, offset.y + size.y, offset.z + size.z);
+        return frustum.containsBox(offset.x, offset.y, offset.z, offset.x + size.x, offset.y + size.y, offset.z + size.z);
     }
 
     public boolean isInside(AABB other) {

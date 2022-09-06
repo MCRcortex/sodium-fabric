@@ -47,7 +47,7 @@ public class RenderSection {
         this.centerZ = ChunkSectionPos.getBlockCoord(this.sectionZ) + 8.0;
 
         this.regionKey = RenderRegion.getRegionCoord(this.sectionX, this.sectionY, this.sectionZ);
-        this.innerRegionKey = RenderRegion.getInnerCoord(this.chunkX, this.chunkY, this.chunkZ);
+        this.innerRegionKey = RenderRegion.getInnerCoord(this.sectionX, this.sectionY, this.sectionZ);
     }
 
     /**
@@ -77,7 +77,7 @@ public class RenderSection {
         this.ensureGeometryDeleted();
         this.disposed = true;
         if (region == null)
-            region = SodiumWorldRenderer.instance().getTerrainRenderer().regionManager.getRegion(chunkX, chunkY, chunkZ);
+            region = SodiumWorldRenderer.instance().getTerrainRenderer().regionManager.getRegion(sectionX, sectionY, sectionZ);
         if (region != null)
             region.deletedSection(this);
         if (SodiumClientMod.options().advanced.chunkRendererBackend == UserConfig.ChunkRendererBackend.GPU_DRIVEN)
@@ -275,9 +275,9 @@ public class RenderSection {
         //TODO: update meta
         meta.regionId = region.meta.id;
         meta.aabb.set(data.bounds);
-        meta.sectionPos.x = chunkX<<4;
-        meta.sectionPos.y = chunkY<<4;
-        meta.sectionPos.z = chunkZ<<4;
+        meta.sectionPos.x = sectionX<<4;
+        meta.sectionPos.y = sectionY<<4;
+        meta.sectionPos.z = sectionZ<<4;
 
         meta.visbitmask = 0;
         for (int i = 0; i < 3; i++) {

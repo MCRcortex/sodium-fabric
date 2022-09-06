@@ -157,6 +157,7 @@ public class SodiumWorldRenderer {
      * Called prior to any chunk rendering in order to update necessary state.
      */
     public void updateChunks(Camera camera, Frustum frustum, @Deprecated(forRemoval = true) int frame, boolean spectator) {
+
         NativeBuffer.reclaim(false);
         
         if (this.client.options.getClampedViewDistance() != this.chunkViewDistance) {
@@ -167,7 +168,6 @@ public class SodiumWorldRenderer {
         Entity.setRenderDistanceMultiplier(
                 MathHelper.clamp((double) this.chunkViewDistance / 8.0D, 1.0D, 2.5D) * this.client.options.getEntityDistanceScaling().getValue()
         );
-        
         Profiler profiler = this.client.getProfiler();
         profiler.push("camera_setup");
 
@@ -196,8 +196,12 @@ public class SodiumWorldRenderer {
         profiler.swap("chunk_update");
 
         this.chunkTracker.update();
-
         this.terrainRenderManager.setFrameIndex(frame);
+
+        if (false) {
+            profiler.pop();
+            return;
+        }
         this.terrainRenderManager.updateChunks();
 
         if (this.terrainRenderManager.isGraphDirty()) {

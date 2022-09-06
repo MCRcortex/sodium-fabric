@@ -24,12 +24,17 @@ import net.minecraft.util.math.Matrix4f;
 import static org.lwjgl.opengl.GL11.glFinish;
 
 public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
-    public GPUMdicChunkRenderer(RenderDevice device, ChunkRenderPassManager renderPassManager, TerrainVertexType vertexType) {
-        super(device, renderPassManager, vertexType);
+    TerrainVertexType vertexType;
+    public GPUMdicChunkRenderer(RenderDevice device,
+                                ChunkCameraContext camera,
+                                ChunkRenderPassManager renderPassManager,
+                                TerrainVertexType vertexType) {
+        super(device, camera, renderPassManager, vertexType);
+        this.vertexType = vertexType;
     }
 
     @Override
-    public void createRenderLists(SortedTerrainLists lists, ChunkCameraContext camera, int frameIndex) {
+    public void createRenderLists(SortedTerrainLists lists, int frameIndex) {
 
     }
 
@@ -51,6 +56,7 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
             this.setupTextures(renderPass, pipelineState);
 
             //TODO:FIXME: fix this ugly af hacks
+            /*
             ChunkCameraContext c;
             if (renderPass.isTranslucent()) {
                 c = new ChunkCameraContext((-viewport.frameDeltaX),
@@ -61,20 +67,20 @@ public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
                         (viewport.frameDeltaY),
                         (viewport.frameDeltaZ));
             }
-            float dx = (float) (c.deltaX + c.blockX);
-            float dy = (float) (c.deltaY + c.blockY);
-            float dz = (float) (c.deltaZ + c.blockZ);
+            float dx = (float) (c.getDeltaX() + c.getBlockX());
+            float dy = (float) (c.getDeltaY() + c.getBlockY());
+            float dz = (float) (c.getDeltaZ() + c.getBlockZ());
             matrices.modelView().translate(dx,
                     dy,
                     dz
-            );
+            );*/
             this.setupUniforms(matrices, programInterface, pipelineState, frameIndex);
 
             commandList.bindVertexBuffer(
                     BufferTarget.VERTICES,
                     SodiumWorldRenderer.instance().getGlobalVertexBufferTHISISTEMPORARY(),
                     0,
-                    CompactTerrainVertexType.VERTEX_FORMAT.stride()
+                    vertexType.getCustomVertexFormat().stride()
             );
 
             pipelineState.bindBufferBlock(

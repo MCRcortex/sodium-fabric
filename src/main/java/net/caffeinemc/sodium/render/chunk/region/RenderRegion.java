@@ -20,7 +20,6 @@ import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.RegionMeta;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderBounds;
-import net.caffeinemc.sodium.util.MathUtil;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.gfx.util.misc.MathUtil;
 import net.minecraft.util.math.ChunkSectionPos;
@@ -239,7 +238,7 @@ public class RenderRegion {
             if (meta == null) {
                 //System.out.println("NEW REGION ALLOCATION");
                 meta = new RegionMeta();
-                meta.id = id - 1;//FIXME: THE -1 IS CAUSE THE ID POOL STARTS AT 1 this is not good to do this
+                meta.id = id;
                 if (pos2id.size() != 1)
                     throw new IllegalStateException();
                 for (var sec : sectionMetaMap.values()) {

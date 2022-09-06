@@ -7,13 +7,13 @@ import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.gfx.util.buffer.streaming.DualStreamingBuffer;
+import net.caffeinemc.gfx.util.misc.MathUtil;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.render.chunk.IViewportData;
 import net.caffeinemc.sodium.render.chunk.ViewportInstancedData;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.SceneStruct;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
-import net.caffeinemc.sodium.util.MathUtil;
 
 import java.util.Comparator;
 import java.util.EnumSet;

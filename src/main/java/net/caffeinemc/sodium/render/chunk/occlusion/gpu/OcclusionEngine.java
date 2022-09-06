@@ -7,8 +7,8 @@ import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
-import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
+import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.buffers.RegionMetaManager;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.buffers.SectionMetaManager;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.MappedBufferWriter;
@@ -109,16 +109,16 @@ public class OcclusionEngine {
                     continue;
                 }
 
-                region.regionSortDistance = (Math.pow(region.regionCenterBlockX-cam.posX, 2)+
-                        Math.pow(region.regionCenterBlockY-cam.posY, 2)+
-                        Math.pow(region.regionCenterBlockZ-cam.posZ, 2));
+                region.regionSortDistance = (Math.pow(region.regionCenterBlockX-cam.getPosX(), 2)+
+                        Math.pow(region.regionCenterBlockY-cam.getPosY(), 2)+
+                        Math.pow(region.regionCenterBlockZ-cam.getPosZ(), 2));
                 viewport.visible_regions.add(region);
                 //TODO: NEED TO ONLY DO THIS AFTER ALL REGIONS ARE DONE SO THAT ITS BASED ON THE sorted distance
                 MemoryUtil.memPutInt(addrFrustumRegion + regionCount* 4L, region.meta.id);
                 //TODO: Region on vis tick
 
                 //This is a hack too inject visibility for region and section the camera is in
-                if (region.meta.aabb.isInside(cam.blockX, cam.blockY, cam.blockZ)) {
+                if (region.meta.aabb.isInside(cam.getBlockX(), cam.getBlockY(), cam.getBlockZ())) {
                     //Could technically move this to the CreateSectionRenderCommands shader
                     glClearNamedBufferSubData(GlBuffer.getHandle(viewport.regionVisibilityArray),
                             GL_R32UI, regionCount*4L, 4,
@@ -175,14 +175,14 @@ public class OcclusionEngine {
             viewport.scene.MVP.set(matrices.projection())
                     .mul(matrices.modelView())
                     //.translate(-(cam.blockX + cam.deltaX), -(cam.blockY + cam.deltaY), -(cam.blockZ + cam.deltaZ));
-                    .translate((float) -(cam.posX), (float) -(cam.posY),(float) -(cam.posZ));
+                    .translate((float) -(cam.getPosX()), (float) -(cam.getPosY()),(float) -(cam.getPosZ()));
             viewport.scene.MV.set(matrices.modelView());
-            viewport.scene.camera.set(cam.blockX + cam.deltaX, cam.blockY + cam.deltaY, cam.blockZ + cam.deltaZ);
-            viewport.scene.cameraSection.set(cam.blockX >> 4, cam.blockY >> 4, cam.blockZ >> 4, 0);
+            viewport.scene.camera.set(cam.getBlockX() + cam.getDeltaX(), cam.getBlockY() + cam.getDeltaY(), cam.getBlockZ() + cam.getDeltaZ());
+            viewport.scene.cameraSection.set(cam.getSectionX(), cam.getSectionY(), cam.getSectionZ(), 0);
             viewport.scene.regionCount = regionCount;
             viewport.scene.frameId = renderId;
 
-            RenderSection sectionIn = SodiumWorldRenderer.instance().getTerrainRenderer().getSection(cam.blockX>>4, cam.blockY>>4, cam.blockZ>>4);
+            RenderSection sectionIn = SodiumWorldRenderer.instance().getTerrainRenderer().getSection(cam.getSectionX(), cam.getSectionY(), cam.getSectionZ());
             if (sectionIn != null && sectionIn.meta != null) {
                 viewport.scene.regionInId = sectionIn.getRegion().meta.id;
                 viewport.scene.sectionInIndex = sectionIn.meta.id;
@@ -202,12 +202,12 @@ public class OcclusionEngine {
             sceneSection.getView().position((int) writer.getOffset());
             sceneSection.flushPartial();
 
-            viewport.frameDeltaX    = viewport.currentCameraX - cam.posX;
-            viewport.frameDeltaY    = viewport.currentCameraY - cam.posY;
-            viewport.frameDeltaZ    = viewport.currentCameraZ - cam.posZ;
-            viewport.currentCameraX = cam.posX;
-            viewport.currentCameraY = cam.posY;
-            viewport.currentCameraZ = cam.posZ;
+            viewport.frameDeltaX    = viewport.currentCameraX - cam.getPosX();
+            viewport.frameDeltaY    = viewport.currentCameraY - cam.getPosY();
+            viewport.frameDeltaZ    = viewport.currentCameraZ - cam.getPosZ();
+            viewport.currentCameraX = cam.getPosX();
+            viewport.currentCameraY = cam.getPosY();
+            viewport.currentCameraZ = cam.getPosZ();
 
             //FIXME: need to update to be a scalar of the amount the camera moved between the measurement var frame camera position and the current frame
             viewport.countMultiplier = 2;

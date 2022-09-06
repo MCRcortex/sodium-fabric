@@ -15,8 +15,11 @@ import java.util.Collection;
 public abstract class AbstractBatchedMdChunkRenderer<B extends AbstractBatchedMdChunkRenderer.MdChunkRenderBatch> extends AbstractMdChunkRenderer {
 
     protected Collection<B>[] renderLists;
-    public AbstractBatchedMdChunkRenderer(RenderDevice device, ChunkRenderPassManager renderPassManager, TerrainVertexType vertexType) {
-        super(device, renderPassManager, vertexType);
+    public AbstractBatchedMdChunkRenderer(RenderDevice device,
+                                          ChunkCameraContext camera,
+                                          ChunkRenderPassManager renderPassManager,
+                                          TerrainVertexType vertexType) {
+        super(device, camera, renderPassManager, vertexType);
     }
 
     //// RENDER METHODS

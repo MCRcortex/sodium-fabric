@@ -1,6 +1,6 @@
 package net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs;
 
-import net.caffeinemc.sodium.util.MathUtil;
+import net.caffeinemc.gfx.util.misc.MathUtil;
 import org.joml.Vector4f;
 import org.joml.Vector4i;
 

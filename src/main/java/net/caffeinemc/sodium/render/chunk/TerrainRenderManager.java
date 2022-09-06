@@ -18,7 +18,6 @@ import net.caffeinemc.sodium.render.chunk.compile.tasks.AbstractBuilderTask;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.EmptyTerrainBuildTask;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildTask;
-import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderer;
 import net.caffeinemc.sodium.render.chunk.draw.MdbvChunkRenderer;
@@ -27,8 +26,6 @@ import net.caffeinemc.sodium.render.chunk.draw.SortedTerrainLists;
 import net.caffeinemc.sodium.render.chunk.occlusion.SectionCuller;
 import net.caffeinemc.sodium.render.chunk.occlusion.SectionTree;
 import net.caffeinemc.sodium.render.chunk.draw.*;
-import net.caffeinemc.sodium.render.chunk.occlusion.ChunkOcclusion;
-import net.caffeinemc.sodium.render.chunk.occlusion.ChunkTree;
 import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
@@ -36,8 +33,6 @@ import net.caffeinemc.sodium.render.chunk.region.GlobalSingleBufferProvider;
 import net.caffeinemc.sodium.render.chunk.region.GlobalSparseAsyncBufferProvider;
 import net.caffeinemc.sodium.render.chunk.region.IVertexBufferProvider;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegionManager;
-import net.caffeinemc.sodium.render.chunk.sort.ChunkGeometrySorter;
-import net.caffeinemc.sodium.render.chunk.state.ChunkPassModel;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderFlag;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexFormats;
@@ -284,8 +279,8 @@ public class TerrainRenderManager {
         }
 
         this.onChunkDataChanged(x, y, z, ChunkRenderData.ABSENT, renderSection.getData());
-        if (render.getPendingUpdate() == ChunkUpdateType.INITIAL_BUILD) {
-            regionManager.getOrMakeRegionSectionPos(x, y, z).sectionInitialBuild(render);
+        if (renderSection.getPendingUpdate() == ChunkUpdateType.INITIAL_BUILD) {
+            regionManager.getOrMakeRegionSectionPos(x, y, z).sectionInitialBuild(renderSection);
         }
 
         return true;
@@ -482,7 +477,7 @@ public class TerrainRenderManager {
     }
 
     public RenderSection getSection(int x, int y, int z) {
-        return this.tree.getSection(x, y, z);
+        return this.sectionTree.getSection(x, y, z);
     }
 
     public boolean isBlockUpdatePrioritized(RenderSection render) {
@@ -533,7 +528,7 @@ public class TerrainRenderManager {
             
             case INDIRECT -> new MdiChunkRenderer(device, camera, renderPassManager, vertexType);
 
-            case GPU_DRIVEN -> new GPUMdicChunkRenderer(device, renderPassManager, vertexType);
+            case GPU_DRIVEN -> new GPUMdicChunkRenderer(device, camera, renderPassManager, vertexType);
         };
     }
 
