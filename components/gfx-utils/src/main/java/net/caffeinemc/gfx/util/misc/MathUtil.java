@@ -167,4 +167,33 @@ public class MathUtil {
     public static int absMax(int a, int b) {
         return java.lang.Math.abs(a) > java.lang.Math.abs(b) ? a : b;
     }
+    
+    public static int ceilDiv(int x, int y) {
+        int r = x / y;
+        // if the signs are the same and modulo not zero, round up
+        if ((x ^ y) >= 0 && (r * y != x)) {
+            r++;
+        }
+        return r;
+    }
+    
+    public static int floor(double value) {
+        int i = (int)value;
+        return i > value ? i - 1 : i;
+    }
+    
+    public static int floor(float value) {
+        int i = (int)value;
+        return i > value ? i - 1 : i;
+    }
+    
+    public static double reducePrecision(double x, int bits) {
+        int exponent = bits - java.lang.Math.getExponent(x);
+        return java.lang.Math.scalb(java.lang.Math.rint(java.lang.Math.scalb(x, exponent)), -exponent);
+    }
+    
+    public static double floorMod(double x, double y){
+        // x mod y behaving the same way as Math.floorMod but with doubles
+        return (x - java.lang.Math.floor(x / y) * y);
+    }
 }

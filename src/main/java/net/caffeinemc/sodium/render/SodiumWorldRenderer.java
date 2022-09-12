@@ -56,6 +56,8 @@ public class SodiumWorldRenderer {
     private int lastFogShapeId = Integer.MIN_VALUE;
 
     private boolean useEntityCulling;
+    private Frustum frustum;
+    private int frameIndex;
 
     private TerrainRenderManager terrainRenderManager;
     public ChunkRenderPassManager renderPassManager;
@@ -156,8 +158,7 @@ public class SodiumWorldRenderer {
     /**
      * Called prior to any chunk rendering in order to update necessary state.
      */
-    public void updateChunks(Camera camera, Frustum frustum, @Deprecated(forRemoval = true) int frame, boolean spectator) {
-
+    public void updateChunks(Camera camera, Frustum frustum, boolean spectator) {
         NativeBuffer.reclaim(false);
         
         if (this.client.options.getClampedViewDistance() != this.chunkViewDistance) {
@@ -165,6 +166,7 @@ public class SodiumWorldRenderer {
         }
         
         this.useEntityCulling = SodiumClientMod.options().performance.useEntityCulling;
+        this.frustum = frustum;
         Entity.setRenderDistanceMultiplier(
                 MathHelper.clamp((double) this.chunkViewDistance / 8.0D, 1.0D, 2.5D) * this.client.options.getEntityDistanceScaling().getValue()
         );
@@ -196,12 +198,8 @@ public class SodiumWorldRenderer {
         profiler.swap("chunk_update");
 
         this.chunkTracker.update();
-        this.terrainRenderManager.setFrameIndex(frame);
 
-        if (false) {
-            profiler.pop();
-            return;
-        }
+        this.terrainRenderManager.setFrameIndex(this.frameIndex);
         this.terrainRenderManager.updateChunks();
 
         if (this.terrainRenderManager.isGraphDirty()) {
@@ -349,11 +347,17 @@ public class SodiumWorldRenderer {
     }
 
     public boolean isBoxVisible(double x1, double y1, double z1, double x2, double y2, double z2) {
-        // Boxes outside the valid world height will never map to a rendered chunk
-        // Always render these boxes, or they'll be culled incorrectly!
+        // Boxes outside the valid world height will never map to a rendered section.
+        // Instead, do a raw frustum check against the box.
         if (y2 < this.world.getBottomY() + 0.5D || y1 > this.world.getTopY() - 0.5D) {
-            // TODO: use a raw frustum check for this?
-            return true;
+            return this.frustum.containsBox(
+                    (float) x1,
+                    (float) y1,
+                    (float) z1,
+                    (float) x2,
+                    (float) y2,
+                    (float) z2
+            );
         }
 
         int minX = ChunkSectionPos.getSectionCoord(x1 - 0.5D);
@@ -410,6 +414,10 @@ public class SodiumWorldRenderer {
         this.terrainRenderManager.scheduleRebuild(x, y, z, important);
     }
     
+    public void incrementFrame() {
+        this.frameIndex++;
+    }
+
     public Collection<String> getDebugStrings() {
         return this.terrainRenderManager.getDebugStrings();
     }

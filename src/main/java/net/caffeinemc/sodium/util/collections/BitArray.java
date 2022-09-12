@@ -80,6 +80,30 @@ public class BitArray {
         }
     }
     
+    // FIXME
+    public boolean checkUnset(int startIdx, int endIdx) {
+        int startWordIndex = wordIndex(startIdx);
+        int endWordIndex = wordIndex(endIdx - 1);
+        
+        long firstWordMask = ~(WORD_MASK << startIdx);
+        long lastWordMask = ~(WORD_MASK >>> -endIdx);
+        if (startWordIndex == endWordIndex) {
+            return (this.words[startWordIndex] & firstWordMask & lastWordMask) == 0x0000000000000000L;
+        } else {
+            if ((this.words[startWordIndex] & firstWordMask) != 0x0000000000000000L) {
+                return false;
+            }
+            
+            for (int i = startWordIndex + 1; i < endWordIndex; i++) {
+                if (this.words[i] != 0x0000000000000000L) {
+                    return false;
+                }
+            }
+            
+            return (this.words[endWordIndex] & lastWordMask) == 0x0000000000000000L;
+        }
+    }
+    
     public void copy(BitArray src, int startIdx, int endIdx) {
         int startWordIndex = wordIndex(startIdx);
         int endWordIndex = wordIndex(endIdx - 1);
@@ -117,6 +141,30 @@ public class BitArray {
         long bitMask = ~invBitMask;
         this.words[wordIndex] = (this.words[wordIndex] & bitMask) | (src.words[wordIndex] & invBitMask);
     }
+    
+    public void and(BitArray src, int startIdx, int endIdx) {
+        int startWordIndex = wordIndex(startIdx);
+        int endWordIndex = wordIndex(endIdx - 1);
+    
+        long firstWordMask = WORD_MASK << startIdx;
+        long lastWordMask = WORD_MASK >>> -endIdx;
+        if (startWordIndex == endWordIndex) {
+            long combinedMask = firstWordMask & lastWordMask;
+            long invCombinedMask = ~combinedMask;
+            this.words[startWordIndex] &= (src.words[startWordIndex] | invCombinedMask);
+        } else {
+            long invFirstWordMask = ~firstWordMask;
+            long invLastWordMask = ~lastWordMask;
+        
+            this.words[startWordIndex] &= (src.words[startWordIndex] | invFirstWordMask);
+            
+            for (int i = startWordIndex + 1; i < endWordIndex; i++) {
+                this.words[i] &= src.words[i];
+            }
+        
+            this.words[endWordIndex] &= (src.words[endWordIndex] | invLastWordMask);
+        }
+    }
 
     private static int wordIndex(int index) {
         return index >> ADDRESS_BITS_PER_WORD;
@@ -143,14 +191,24 @@ public class BitArray {
     public int capacity() {
         return this.count;
     }
+    
+    public boolean getAndSet(int index) {
+        int wordIndex = wordIndex(index);
+        long bit = 1L << bitIndex(index);
+        
+        long word = this.words[wordIndex];
+        this.words[wordIndex] = word | bit;
+        
+        return (word & bit) != 0;
+    }
 
     public boolean getAndUnset(int index) {
         var wordIndex = wordIndex(index);
         var bit = 1L << bitIndex(index);
-
+        
         var word = this.words[wordIndex];
         this.words[wordIndex] = word & ~bit;
-
+        
         return (word & bit) != 0;
     }
     
