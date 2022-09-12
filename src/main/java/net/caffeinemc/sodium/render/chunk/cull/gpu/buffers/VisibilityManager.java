@@ -1,4 +1,4 @@
-package net.caffeinemc.sodium.render.chunk.occlusion.gpu.buffers;
+package net.caffeinemc.sodium.render.chunk.cull.gpu.buffers;
 
 public class VisibilityManager {
 }

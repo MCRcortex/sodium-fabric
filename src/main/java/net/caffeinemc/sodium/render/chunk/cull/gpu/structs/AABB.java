@@ -1,4 +1,4 @@
-package net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs;
+package net.caffeinemc.sodium.render.chunk.cull.gpu.structs;
 
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderBounds;

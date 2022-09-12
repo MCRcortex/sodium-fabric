@@ -1,8 +1,7 @@
-package net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems;
+package net.caffeinemc.sodium.render.chunk.cull.gpu.systems;
 
 import net.caffeinemc.gfx.api.array.VertexArrayDescription;
 import net.caffeinemc.gfx.api.buffer.Buffer;
-import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.api.pipeline.RenderPipeline;
 import net.caffeinemc.gfx.api.pipeline.RenderPipelineDescription;
@@ -10,19 +9,15 @@ import net.caffeinemc.gfx.api.pipeline.state.WriteMask;
 import net.caffeinemc.gfx.api.shader.*;
 import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.CubeIndexBuffer;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.ViewportedData;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.CubeIndexBuffer;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.ViewportedData;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
 import net.caffeinemc.sodium.render.shader.ShaderParser;
 import net.minecraft.util.Identifier;
 
-import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Set;
-
-import static org.lwjgl.opengl.GL11C.*;
 
 public class RasterSectionShader {
 

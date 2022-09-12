@@ -1,27 +1,18 @@
-package net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems;
+package net.caffeinemc.sodium.render.chunk.cull.gpu.systems;
 
 import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.api.pipeline.ComputePipeline;
 import net.caffeinemc.gfx.api.shader.*;
-import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
-import net.caffeinemc.gfx.opengl.buffer.GlMappedBuffer;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.ViewportedData;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.OcclusionEngine;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.ViewportedData;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
 import net.caffeinemc.sodium.render.shader.ShaderParser;
 import net.minecraft.util.Identifier;
-import org.lwjgl.opengl.GL45C;
-
-import java.nio.ByteOrder;
 
 import static org.lwjgl.opengl.ARBDirectStateAccess.glClearNamedBufferData;
-import static org.lwjgl.opengl.GL11C.GL_UNSIGNED_INT;
-import static org.lwjgl.opengl.GL11C.glFinish;
-import static org.lwjgl.opengl.GL30C.GL_R32UI;
-import static org.lwjgl.opengl.GL30C.GL_RED_INTEGER;
 
 //TODO: maybe do via dispatch indirect or something that is set via the RasterSection compute shader
 // simply add 1 to x dim and atomic max the y dim

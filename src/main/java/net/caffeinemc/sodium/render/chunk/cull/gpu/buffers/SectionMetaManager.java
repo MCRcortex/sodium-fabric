@@ -1,4 +1,4 @@
-package net.caffeinemc.sodium.render.chunk.occlusion.gpu.buffers;
+package net.caffeinemc.sodium.render.chunk.cull.gpu.buffers;
 
 import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.buffer.MappedBuffer;
@@ -6,9 +6,9 @@ import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.MappedBufferWriter;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.SectionMeta;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.OcclusionEngine;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.structs.MappedBufferWriter;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.structs.SectionMeta;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 
 import java.util.Set;

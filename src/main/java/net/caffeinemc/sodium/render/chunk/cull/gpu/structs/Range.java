@@ -1,4 +1,4 @@
-package net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs;
+package net.caffeinemc.sodium.render.chunk.cull.gpu.structs;
 
 public class Range {
     public static final int SIZE = 8;

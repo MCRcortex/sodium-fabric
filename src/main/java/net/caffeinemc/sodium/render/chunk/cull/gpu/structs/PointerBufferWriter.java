@@ -1,6 +1,5 @@
-package net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs;
+package net.caffeinemc.sodium.render.chunk.cull.gpu.structs;
 
-import net.caffeinemc.gfx.api.buffer.MappedBuffer;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
 import org.joml.Vector4i;

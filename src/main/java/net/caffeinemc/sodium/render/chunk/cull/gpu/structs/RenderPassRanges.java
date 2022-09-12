@@ -1,4 +1,4 @@
-package net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs;
+package net.caffeinemc.sodium.render.chunk.cull.gpu.structs;
 
 public class RenderPassRanges {
     public static final int SIZE = 7 * Range.SIZE;

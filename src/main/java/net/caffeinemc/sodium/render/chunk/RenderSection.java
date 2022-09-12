@@ -5,11 +5,10 @@ import java.util.concurrent.CompletableFuture;
 
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.config.user.UserConfig;
-import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.RenderPassRanges;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.SectionMeta;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.structs.RenderPassRanges;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.structs.SectionMeta;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.minecraft.util.math.ChunkSectionPos;

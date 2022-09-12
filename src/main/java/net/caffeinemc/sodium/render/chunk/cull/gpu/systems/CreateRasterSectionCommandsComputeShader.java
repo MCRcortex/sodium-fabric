@@ -1,13 +1,11 @@
-package net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems;
+package net.caffeinemc.sodium.render.chunk.cull.gpu.systems;
 
 import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.api.pipeline.ComputePipeline;
-import net.caffeinemc.gfx.api.pipeline.RenderPipelineDescription;
-import net.caffeinemc.gfx.api.pipeline.state.WriteMask;
 import net.caffeinemc.gfx.api.shader.*;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.ViewportedData;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.OcclusionEngine;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.ViewportedData;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;

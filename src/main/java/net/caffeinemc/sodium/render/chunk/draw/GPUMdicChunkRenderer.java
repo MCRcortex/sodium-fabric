@@ -1,27 +1,17 @@
 package net.caffeinemc.sodium.render.chunk.draw;
 
 import net.caffeinemc.gfx.api.device.RenderDevice;
-import net.caffeinemc.gfx.api.device.commands.RenderCommandList;
-import net.caffeinemc.gfx.api.pipeline.PipelineState;
 import net.caffeinemc.gfx.api.pipeline.RenderPipeline;
 import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.OcclusionEngine;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.ViewportedData;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.OcclusionEngine;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.ViewportedData;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
-import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.chunk.shader.ChunkShaderInterface;
 import net.caffeinemc.sodium.render.shader.ShaderConstants;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
-import net.caffeinemc.sodium.render.terrain.format.compact.CompactTerrainVertexType;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.Matrix4f;
-
-import static org.lwjgl.opengl.GL11.glFinish;
 
 public class GPUMdicChunkRenderer extends AbstractMdChunkRenderer {
     TerrainVertexType vertexType;

@@ -1,41 +1,32 @@
-package net.caffeinemc.sodium.render.chunk.occlusion.gpu;
+package net.caffeinemc.sodium.render.chunk.cull.gpu;
 
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.opengl.buffer.GlBuffer;
 import net.caffeinemc.gfx.util.buffer.streaming.StreamingBuffer;
-import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.buffers.RegionMetaManager;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.buffers.SectionMetaManager;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.MappedBufferWriter;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.PointerBufferWriter;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.SectionMeta;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.CreateRasterSectionCommandsComputeShader;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.CreateTerrainCommandsComputeShader;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.RasterRegionShader;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.systems.RasterSectionShader;
-import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.buffers.RegionMetaManager;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.buffers.SectionMetaManager;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.structs.PointerBufferWriter;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.systems.CreateRasterSectionCommandsComputeShader;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.systems.CreateTerrainCommandsComputeShader;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.systems.RasterRegionShader;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.systems.RasterSectionShader;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.minecraft.client.MinecraftClient;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.lwjgl.opengl.ARBDirectStateAccess.*;
-import static org.lwjgl.opengl.GL11C.GL_RED;
 import static org.lwjgl.opengl.GL11C.GL_UNSIGNED_INT;
 import static org.lwjgl.opengl.GL30C.GL_R32UI;
 import static org.lwjgl.opengl.GL42C.*;
 import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BARRIER_BIT;
-import static org.lwjgl.opengl.GL44.GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT;
 
 
 //FIXME: The region the camera is in will get culled,

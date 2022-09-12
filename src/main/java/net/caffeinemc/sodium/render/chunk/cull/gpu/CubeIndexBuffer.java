@@ -1,4 +1,4 @@
-package net.caffeinemc.sodium.render.chunk.occlusion.gpu;
+package net.caffeinemc.sodium.render.chunk.cull.gpu;
 
 import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;

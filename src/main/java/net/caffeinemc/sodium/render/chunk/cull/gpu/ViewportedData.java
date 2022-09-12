@@ -1,4 +1,4 @@
-package net.caffeinemc.sodium.render.chunk.occlusion.gpu;
+package net.caffeinemc.sodium.render.chunk.cull.gpu;
 
 import it.unimi.dsi.fastutil.objects.ObjectAVLTreeSet;
 import net.caffeinemc.gfx.api.buffer.Buffer;
@@ -12,13 +12,12 @@ import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.render.chunk.IViewportData;
 import net.caffeinemc.sodium.render.chunk.ViewportInstancedData;
 import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
-import net.caffeinemc.sodium.render.chunk.occlusion.gpu.structs.SceneStruct;
+import net.caffeinemc.sodium.render.chunk.cull.gpu.structs.SceneStruct;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.Set;
-import java.util.TreeSet;
 
 import static org.lwjgl.opengl.ARBDirectStateAccess.glClearNamedBufferData;
 import static org.lwjgl.opengl.GL11C.GL_UNSIGNED_INT;
