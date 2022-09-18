@@ -5,6 +5,7 @@ import net.caffeinemc.sodium.render.chunk.compile.buffers.ChunkMeshBuilder;
 import net.caffeinemc.sodium.render.terrain.color.ColorSampler;
 import net.caffeinemc.sodium.render.terrain.color.blender.ColorBlender;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexSink;
+import net.caffeinemc.sodium.render.terrain.format.merging.MergingTerrainVertexSink;
 import net.caffeinemc.sodium.render.terrain.light.LightMode;
 import net.caffeinemc.sodium.render.terrain.light.LightPipeline;
 import net.caffeinemc.sodium.render.terrain.light.LightPipelineProvider;
@@ -122,23 +123,26 @@ public class BlockRenderer {
             colors = this.colorBlender.getColors(world, pos, src, colorSampler, state);
         }
 
-        for (int i = 0; i < 4; i++) {
-            int j = orientation.getVertexIndex(i);
+        if (vertices instanceof MergingTerrainVertexSink mergingTerrainVertexSink) {
+            mergingTerrainVertexSink.writeQuad(origin, orientation, blockOffset, src, colors, light);
+        } else {
+            for (int i = 0; i < 4; i++) {
+                int j = orientation.getVertexIndex(i);
 
-            float x = src.getX(j) + (float) blockOffset.getX();
-            float y = src.getY(j) + (float) blockOffset.getY();
-            float z = src.getZ(j) + (float) blockOffset.getZ();
+                float x = src.getX(j) + (float) blockOffset.getX();
+                float y = src.getY(j) + (float) blockOffset.getY();
+                float z = src.getZ(j) + (float) blockOffset.getZ();
 
-            int color = ColorABGR.repack(colors != null ? colors[j] : 0xFFFFFFFF, light.br[j]);
+                int color = ColorABGR.repack(colors != null ? colors[j] : 0xFFFFFFFF, light.br[j]);
 
-            float u = src.getTexU(j);
-            float v = src.getTexV(j);
+                float u = src.getTexU(j);
+                float v = src.getTexV(j);
 
-            int lm = light.lm[j];
+                int lm = light.lm[j];
 
-            vertices.writeVertex(origin, x, y, z, color, u, v, lm);
+                vertices.writeVertex(origin, x, y, z, color, u, v, lm);
+            }
         }
-
         Sprite sprite = src.getSprite();
 
         if (sprite != null) {

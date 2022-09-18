@@ -11,6 +11,7 @@ import net.caffeinemc.sodium.render.chunk.state.ChunkPassModel;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexSink;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
+import net.caffeinemc.sodium.render.terrain.format.merging.MergingTerrainVertexSink;
 import net.caffeinemc.sodium.render.terrain.quad.properties.ChunkMeshFace;
 import net.caffeinemc.sodium.render.vertex.buffer.VertexBufferBuilder;
 import net.caffeinemc.sodium.util.NativeBuffer;
@@ -76,6 +77,12 @@ public class TerrainBuildBuffers {
     }
     
     public BuiltChunkGeometry buildGeometry() {
+        for (ChunkMeshBuilder meshBuilder : this.delegates) {
+            for (ChunkMeshFace face : ChunkMeshFace.VALUES) {
+                TerrainVertexSink sink = meshBuilder.getVertexSink(face);
+                sink.finish();
+            }
+        }
         VertexBufferBuilder[][] buffers = this.vertexBuffers;
         
         var capacity = Arrays.stream(buffers)

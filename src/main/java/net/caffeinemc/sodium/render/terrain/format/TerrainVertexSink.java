@@ -1,6 +1,7 @@
 package net.caffeinemc.sodium.render.terrain.format;
 
 import net.caffeinemc.sodium.render.vertex.VertexSink;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 
 public interface TerrainVertexSink extends VertexSink {
@@ -19,5 +20,7 @@ public interface TerrainVertexSink extends VertexSink {
     default void writeVertex(Vec3i offset, float posX, float posY, float posZ, int color, float u, float v, int light) {
         this.writeVertex(offset.getX() + posX, offset.getY() + posY, offset.getZ() + posZ, color, u, v, light);
     }
+
+    default void finish() {}
 
 }

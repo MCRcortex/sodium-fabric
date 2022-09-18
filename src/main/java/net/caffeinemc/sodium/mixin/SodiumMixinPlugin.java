@@ -50,8 +50,9 @@ public class SodiumMixinPlugin implements IMixinConfigPlugin {
 
         if (option == null) {
             this.logger.error("No rules matched mixin '{}', treating as foreign and disabling!", mixin);
+            this.logger.error("overriding this! - cortex");
 
-            return false;
+            return true;
         }
 
         if (option.isOverridden()) {
