@@ -23,4 +23,6 @@ public interface TerrainVertexSink extends VertexSink {
 
     default void finish() {}
 
+    default TerrainVertexSink getDelegate() {return null;}
+
 }

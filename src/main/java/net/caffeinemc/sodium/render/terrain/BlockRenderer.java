@@ -123,26 +123,24 @@ public class BlockRenderer {
             colors = this.colorBlender.getColors(world, pos, src, colorSampler, state);
         }
 
-        if (vertices instanceof MergingTerrainVertexSink mergingTerrainVertexSink) {
-            mergingTerrainVertexSink.writeQuad(origin, orientation, blockOffset, src, colors, light);
-        } else {
-            for (int i = 0; i < 4; i++) {
-                int j = orientation.getVertexIndex(i);
 
-                float x = src.getX(j) + (float) blockOffset.getX();
-                float y = src.getY(j) + (float) blockOffset.getY();
-                float z = src.getZ(j) + (float) blockOffset.getZ();
+        for (int i = 0; i < 4; i++) {
+            int j = orientation.getVertexIndex(i);
 
-                int color = ColorABGR.repack(colors != null ? colors[j] : 0xFFFFFFFF, light.br[j]);
+            float x = src.getX(j) + (float) blockOffset.getX();
+            float y = src.getY(j) + (float) blockOffset.getY();
+            float z = src.getZ(j) + (float) blockOffset.getZ();
 
-                float u = src.getTexU(j);
-                float v = src.getTexV(j);
+            int color = ColorABGR.repack(colors != null ? colors[j] : 0xFFFFFFFF, light.br[j]);
 
-                int lm = light.lm[j];
+            float u = src.getTexU(j);
+            float v = src.getTexV(j);
 
-                vertices.writeVertex(origin, x, y, z, color, u, v, lm);
-            }
+            int lm = light.lm[j];
+
+            vertices.writeVertex(origin, x, y, z, color, u, v, lm);
         }
+
         Sprite sprite = src.getSprite();
 
         if (sprite != null) {

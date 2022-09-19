@@ -48,39 +48,10 @@ public class MergingTerrainVertexSink implements TerrainVertexSink {
     private final Object2ObjectOpenHashMap<Vert, List<QuadVertPair>> mapping = new Object2ObjectOpenHashMap<>(4096);
 
     private boolean canMergeOnAxis(Vert a, Vert b) {
+        if (false)
+            return true;
         //TODO: check that uv maps to an edge of the texture, else you cant merge it
         return a.colour == b.colour && a.lm == b.lm;
-    }
-
-    private void writeQuadNormal(BlockPos origin, ModelQuadOrientation orientation, Vec3d blockOffset, ModelQuadView src, int[] colors, QuadLightData light) {
-        for (int i = 0; i < 4; i++) {
-            int j = orientation.getVertexIndex(i);
-
-            float x = src.getX(j) + (float) blockOffset.getX();
-            float y = src.getY(j) + (float) blockOffset.getY();
-            float z = src.getZ(j) + (float) blockOffset.getZ();
-
-
-            int color = ColorABGR.repack(colors != null ? colors[j] : 0xFFFFFFFF, light.br[j]);
-
-            float u = src.getTexU(j);
-            float v = src.getTexV(j);
-
-            int lm = light.lm[j];
-
-            this.writeVertex(origin, x, y, z, color, u, v, lm);
-        }
-    }
-
-    private Vert makeVert(int idx, BlockPos origin, ModelQuadOrientation orientation, Vec3d blockOffset, ModelQuadView src, int[] colors, QuadLightData light) {
-        int j = orientation.getVertexIndex(idx);
-
-        float x = Math.round((src.getX(j) + (float) blockOffset.getX() + origin.getX())*(1<<21))/(float)(1<<21);
-        float y = Math.round((src.getY(j) + (float) blockOffset.getY() + origin.getY())*(1<<21))/(float)(1<<21);
-        float z = Math.round((src.getZ(j) + (float) blockOffset.getZ() + origin.getZ())*(1<<21))/(float)(1<<21);
-        int color = ColorABGR.repack(colors != null ? colors[j] : 0xFFFFFFFF, light.br[j]);
-        int lm = light.lm[j];
-        return new Vert(x,y,z,color,lm);
     }
 
     private static final int[][] LUT = new int[][] {
@@ -102,6 +73,8 @@ public class MergingTerrainVertexSink implements TerrainVertexSink {
                 Iterator<QuadVertPair> iter =  verts1.iterator();
                 while (iter.hasNext()) {
                     QuadVertPair qvp = iter.next();
+                    if (qvp.quad == quad)//FIXME SEE WHY OR HOW THIS IS POSSIBLE
+                        continue;
                     int merg = (qvp.quad.mergability&quad.mergability);
                     if (merg == 0/* || !quad.shape.equals(qvp.quad.shape)*/)
                         continue;
@@ -140,11 +113,15 @@ public class MergingTerrainVertexSink implements TerrainVertexSink {
                     //Remove everything cause can merge the quads
                     iter.remove();
                     for (int k = 0; k < 4; k++) {
-                        mapping.get(qvp.quad.verts[k]).remove(new QuadVertPair(k, qvp.quad));
+                        var a = mapping.get(qvp.quad.verts[k]);
+                        if (a != null)
+                            a.remove(new QuadVertPair(k, qvp.quad));
                     }
 
                     for (int k = 0; k < i; k++) {
-                        mapping.get(quad.verts[k]).remove(new QuadVertPair(k, quad));
+                        var a = mapping.get(quad.verts[k]);
+                        if (a != null)
+                            a.remove(new QuadVertPair(k, quad));
                     }
                     quads.remove(quad);
                     quads.remove(qvp.quad);
@@ -167,12 +144,43 @@ public class MergingTerrainVertexSink implements TerrainVertexSink {
         return null;
     }
 
+
+    /*
+    private void writeQuadNormal(BlockPos origin, ModelQuadOrientation orientation, Vec3d blockOffset, ModelQuadView src, int[] colors, QuadLightData light) {
+        for (int i = 0; i < 4; i++) {
+            int j = orientation.getVertexIndex(i);
+
+            float x = src.getX(j) + (float) blockOffset.getX();
+            float y = src.getY(j) + (float) blockOffset.getY();
+            float z = src.getZ(j) + (float) blockOffset.getZ();
+
+
+            int color = ColorABGR.repack(colors != null ? colors[j] : 0xFFFFFFFF, light.br[j]);
+
+            float u = src.getTexU(j);
+            float v = src.getTexV(j);
+
+            int lm = light.lm[j];
+
+            delegate.writeVertex(origin, x, y, z, color, u, v, lm);
+        }
+    }
+
+    private Vert makeVert(int idx, BlockPos origin, ModelQuadOrientation orientation, Vec3d blockOffset, ModelQuadView src, int[] colors, QuadLightData light) {
+        int j = orientation.getVertexIndex(idx);
+
+        float x = Math.round((src.getX(j) + (float) blockOffset.getX() + origin.getX())*(1<<21))/(float)(1<<21);
+        float y = Math.round((src.getY(j) + (float) blockOffset.getY() + origin.getY())*(1<<21))/(float)(1<<21);
+        float z = Math.round((src.getZ(j) + (float) blockOffset.getZ() + origin.getZ())*(1<<21))/(float)(1<<21);
+        int color = ColorABGR.repack(colors != null ? colors[j] : 0xFFFFFFFF, light.br[j]);
+        int lm = light.lm[j];
+        return new Vert(x,y,z,color,lm);
+    }
+
     public void writeQuad(BlockPos origin, ModelQuadOrientation orientation, Vec3d blockOffset, ModelQuadView src, int[] colors, QuadLightData light) {
-
-        final Vert[] verts = new Vert[4];
-        final UV[] uvs = new UV[4];
-        final int[] originalIdx = new int[4];
-
+        Vert[] verts = new Vert[4];
+        UV[] uvs = new UV[4];
+        int[] originalIdx = new int[4];
         for (int i = 0; i < 4; i++) {
             Vert v = makeVert(i, origin, orientation, blockOffset, src, colors, light);
             int j = orientation.getVertexIndex(i);
@@ -220,22 +228,86 @@ public class MergingTerrainVertexSink implements TerrainVertexSink {
             quad = newQ;
         }
         quads.add(quad);
-    }
+    }*/
 
     final TerrainVertexSink delegate;
     public MergingTerrainVertexSink(TerrainVertexSink sink) {
         this.delegate = sink;
     }
 
-    @Override
-    public void writeVertex(float posX, float posY, float posZ, int color, float u, float v, int light) {
-        delegate.writeVertex(posX, posY, posZ, color, u, v, light);
-    }
+
+    //Current quad building data
+    private int cindex = 0;
+    private Vert[] verts = new Vert[4];
+    private UV[] uvs = new UV[4];
+    private int[] originalIdx = new int[4];
 
     @Override
-    public void writeVertex(Vec3i offset, float posX, float posY, float posZ, int color, float u, float v, int light) {
-        this.writeVertex(offset.getX() + posX, offset.getY() + posY, offset.getZ() + posZ, color, u, v, light);
+    public void writeVertex(float posX, float posY, float posZ, int color, float u, float v_, int light) {
+        Vert v = new Vert(posX, posY, posZ, color, light);
+        UV uv = new UV(u, v_);
+        int o = cindex++;
+
+        for (int k = 0; k < 4; k++) {
+            if (verts[k] == null) {
+                verts[k] = v;
+                uvs[k] = uv;
+                originalIdx[k] = o;
+                break;
+            }
+            if (verts[k].compareTo(v) < 0) {
+                Vert tv = verts[k];
+                UV tu = uvs[k];
+                int to = originalIdx[k];
+                verts[k] = v;
+                uvs[k] = uv;
+                originalIdx[k] = o;
+                uv = tu;
+                v = tv;
+                o = to;
+            }
+        }
+
+
+        if (cindex == 4) {
+
+            int[] idxs = new int[4];
+            for (int i = 0; i < 4; i++) {
+                idxs[originalIdx[i]] = i;
+            }
+
+            int mergability = 0;
+            mergability |= (canMergeOnAxis(verts[1], verts[3]) && canMergeOnAxis(verts[0], verts[2]))?1:0;//Horizontal
+            mergability |= (canMergeOnAxis(verts[0], verts[1]) && canMergeOnAxis(verts[2], verts[3]))?2:0;//Vertical
+            if (mergability == 0) {
+
+                for (int i : idxs) {
+                    Vert V = verts[i];
+                    UV U = uvs[i];
+                    delegate.writeVertex(V.x, V.y, V.z, V.colour, U.u, U.v, V.lm);
+                }
+                for (int i = 0; i < 4; i++)
+                    verts[i] = null;
+                cindex = 0;
+                return;
+            }
+
+
+            Quad quad = new Quad(mergability, verts, uvs, new Vector3f(verts[3].x-verts[0].x,verts[3].y-verts[0].y,verts[3].z-verts[0].z).normalize(), idxs);
+            while (true) {
+                Quad newQ = addOrMerge(quad);
+                if (newQ == null)
+                    break;
+                quad = newQ;
+            }
+            quads.add(quad);
+            cindex = 0;
+            verts = new Vert[4];
+            uvs = new UV[4];
+            originalIdx = new int[4];
+        }
     }
+
 
     @Override
     public void ensureCapacity(int count) {
@@ -260,6 +332,10 @@ public class MergingTerrainVertexSink implements TerrainVertexSink {
         delegate.finish();
     }
 
+    @Override
+    public TerrainVertexSink getDelegate() {
+        return delegate;
+    }
 }
 
 
