@@ -6,15 +6,20 @@
 #import <sodium:terrain/terrain_opaque.glsl>
 
 in VertexOutput vs_out;
-
+#ifdef ALPHA_CUTOFF
+layout (depth_greater) out float gl_FragDepth;
+#endif
 void main() {
     vec4 frag_diffuse = texture(tex_diffuse, vs_out.tex_diffuse_coord);
 
-#ifdef ALPHA_CUTOFF
+
+    #ifdef ALPHA_CUTOFF
     if (frag_diffuse.a < ALPHA_CUTOFF) {
-        discard;
+        gl_FragDepth = 1.1;
+        return;
     }
-#endif
+    gl_FragDepth = gl_FragCoord.z;
+    #endif
 
     vec4 frag_mixed = vec4(frag_diffuse.rgb * vs_out.color_shade.rgb * vs_out.color_shade.a, frag_diffuse.a);
 

@@ -19,6 +19,7 @@ import net.caffeinemc.sodium.render.chunk.state.ChunkRenderBounds;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.caffeinemc.sodium.render.terrain.quad.properties.ChunkMeshFace;
 import net.minecraft.util.math.Vec3d;
+import org.lwjgl.system.MemoryUtil;
 
 public class SortedTerrainLists {
     private static final int REGIONS_ESTIMATE = 128;
@@ -74,6 +75,13 @@ public class SortedTerrainLists {
         this.sectionIndicesListPool = new ReferenceArrayList<>(INITIAL_CACHE_SIZE);
         this.modelPartCountsListPool = new ReferenceArrayList<>(INITIAL_CACHE_SIZE);
         this.modelPartSegmentsListPool = new ReferenceArrayList<>(INITIAL_CACHE_SIZE);
+
+        chunkRenderPasses = this.renderPassManager.getAllRenderPasses();
+        this.totalPasses = chunkRenderPasses.length;
+
+        modelPartCountsTable = new IntList[100][this.totalPasses];
+        modelPartSegmentsTable = new LongList[100][this.totalPasses];
+        sectionIndicesTable = new IntList[100][this.totalPasses];
     }
     
     private void reset() {
@@ -157,7 +165,15 @@ public class SortedTerrainLists {
             return cachedList;
         }
     }
-    
+
+    private final ChunkRenderPass[] chunkRenderPasses;
+    private final int totalPasses;
+
+    // lookup tables indexed by region id and pass id
+    private final IntList[][] modelPartCountsTable;
+    private final LongList[][] modelPartSegmentsTable;
+    private final IntList[][] sectionIndicesTable;
+
     public void update(List<RenderSection> sortedSections) {
         this.reset();
         
@@ -165,28 +181,27 @@ public class SortedTerrainLists {
             return;
         }
         
-        Vec3d cameraPos = this.camera.getPos();
-        boolean useBlockFaceCulling = SodiumClientMod.options().performance.useBlockFaceCulling;
-        ChunkRenderPass[] chunkRenderPasses = this.renderPassManager.getAllRenderPasses();
-        int totalPasses = chunkRenderPasses.length;
-        int regionTableSize = this.regionManager.getRegionTableSize();
-    
+        final  Vec3d cameraPos = this.camera.getPos();
+        final  boolean useBlockFaceCulling = SodiumClientMod.options().performance.useBlockFaceCulling;
+
+        final int regionTableSize = this.regionManager.getRegionTableSize();
         // lookup tables indexed by region id
         LongList[] uploadedSegmentsTable = new LongList[regionTableSize];
         IntList[] sectionCoordsTable = new IntList[regionTableSize];
         int[] sequentialRegionIdxTable = new int[regionTableSize];
-        
-        // lookup tables indexed by region id and pass id
-        IntList[][] modelPartCountsTable = new IntList[regionTableSize][totalPasses];
-        LongList[][] modelPartSegmentsTable = new LongList[regionTableSize][totalPasses];
-        IntList[][] sectionIndicesTable = new IntList[regionTableSize][totalPasses];
-        
+        /*
+        final ChunkRenderPass[] chunkRenderPasses = this.renderPassManager.getAllRenderPasses();
+        final int totalPasses = chunkRenderPasses.length;
+
+        final IntList[][]  modelPartCountsTable = new IntList[regionTableSize][totalPasses];
+        final LongList[][] modelPartSegmentsTable = new LongList[regionTableSize][totalPasses];
+        final IntList[][]  sectionIndicesTable = new IntList[regionTableSize][totalPasses];*/
         // index counters
         int sequentialRegionIdx = 0;
         
         int totalSectionCount = 0;
         
-        for (RenderSection section : sortedSections) {
+        for (final RenderSection section : sortedSections) {
             boolean sectionAdded = false;
     
             int sequentialSectionIdx = 0;
@@ -195,14 +210,14 @@ public class SortedTerrainLists {
             IntList[] regionSectionIndices = null;
     
             for (int passId = 0; passId < totalPasses; passId++) {
-                ChunkRenderData chunkRenderData = section.getData();
-                ChunkPassModel model = chunkRenderData.models[passId];
+                final ChunkRenderData chunkRenderData = section.getData();
+                final ChunkPassModel model = chunkRenderData.models[passId];
                 
                 // skip if the section has no models for the pass
                 if (model == null) {
                     continue;
                 }
-    
+
                 int visibilityBits = model.getVisibilityBits();
 
                 if (useBlockFaceCulling) {
@@ -213,9 +228,9 @@ public class SortedTerrainLists {
                 if (visibilityBits == 0) {
                     continue;
                 }
-                
-                RenderRegion region = section.getRegion();
-                int regionId = region.getId();
+
+                final RenderRegion region = section.getRegion();
+                final int regionId = region.getId();
     
                 // lazily allocate everything here
                 
@@ -230,6 +245,8 @@ public class SortedTerrainLists {
     
                     // if one is null, the region hasn't been processed yet
                     if (regionUploadedSegments == null) {
+                        for (int i = 0; i < totalPasses; i++)
+                            regionModelPartCounts[i] = null;
                         regionUploadedSegments = this.getUploadedSegmentsList();
                         uploadedSegmentsTable[regionId] = regionUploadedSegments;
                         this.uploadedSegments.add(regionUploadedSegments);
@@ -289,18 +306,18 @@ public class SortedTerrainLists {
                 // These functions also employ faster ways to iterate through indices of set bits
                 // in an integer.
                 // warning: don't use visibilityBits after these functions, they are destructive
-                boolean reverseOrder = chunkRenderPasses[passId].isTranslucent();
-                long[] modelPartSegments = model.getModelPartSegments();
+                final boolean reverseOrder = chunkRenderPasses[passId].isTranslucent();
+                final long[] modelPartSegments = model.getModelPartSegments();
                 
                 if (reverseOrder) {
                     while (visibilityBits != 0) {
-                        int dirIdx = (Integer.SIZE - 1) - Integer.numberOfLeadingZeros(visibilityBits);
+                        final int dirIdx = (Integer.SIZE - 1) - Integer.numberOfLeadingZeros(visibilityBits);
                         regionPassModelPartSegments.add(modelPartSegments[dirIdx]);
                         visibilityBits ^= 1 << dirIdx;
                     }
                 } else {
                     while (visibilityBits != 0) {
-                        int dirIdx = Integer.numberOfTrailingZeros(visibilityBits);
+                        final int dirIdx = Integer.numberOfTrailingZeros(visibilityBits);
                         regionPassModelPartSegments.add(modelPartSegments[dirIdx]);
                         visibilityBits &= visibilityBits - 1;
                     }

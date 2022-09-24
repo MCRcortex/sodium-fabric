@@ -44,15 +44,8 @@ public class DirectionUtil {
         Validate.isTrue(Direction.NORTH.getOffsetZ() == -1);
     }
 
+    private static final int[] OPPOSITE = new int[]{UP, DOWN, SOUTH, NORTH, EAST, WEST};
     public static int getOppositeId(int dir) {
-        return switch (dir) {
-            case DOWN -> UP;
-            case UP -> DOWN;
-            case NORTH -> SOUTH;
-            case SOUTH -> NORTH;
-            case WEST -> EAST;
-            case EAST -> WEST;
-            default -> throw new IllegalStateException("Unexpected value: " + dir);
-        };
+        return OPPOSITE[dir];
     }
 }

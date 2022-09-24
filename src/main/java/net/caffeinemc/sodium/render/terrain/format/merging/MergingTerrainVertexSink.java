@@ -78,7 +78,7 @@ public class MergingTerrainVertexSink implements TerrainVertexSink {
                     int merg = (qvp.quad.mergability&quad.mergability);
                     if (merg == 0/* || !quad.shape.equals(qvp.quad.shape)*/)
                         continue;
-                    /*
+
                     if (merg != 3) {
                         if (merg == 1) {
                             if (Math.abs(qvp.vertIdx-i) != 2)
@@ -87,7 +87,7 @@ public class MergingTerrainVertexSink implements TerrainVertexSink {
                             if (Math.abs(qvp.vertIdx-i) != 1)
                                 continue;
                         }
-                    }*/
+                    }
 
                     /*
                     if (!Arrays.equals(quad.originalIndex, qvp.quad.originalIndex)) {

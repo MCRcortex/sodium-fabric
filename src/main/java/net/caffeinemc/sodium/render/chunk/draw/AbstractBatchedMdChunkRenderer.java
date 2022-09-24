@@ -12,6 +12,9 @@ import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 
 import java.util.Collection;
 
+import static org.lwjgl.opengl.GL11.glDepthRange;
+import static org.lwjgl.opengl.NVDepthBufferFloat.*;
+
 public abstract class AbstractBatchedMdChunkRenderer<B extends AbstractBatchedMdChunkRenderer.MdChunkRenderBatch> extends AbstractMdChunkRenderer {
 
     protected Collection<B>[] renderLists;

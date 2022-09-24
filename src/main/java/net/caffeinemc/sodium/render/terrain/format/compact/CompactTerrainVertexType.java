@@ -5,6 +5,7 @@ import net.caffeinemc.gfx.api.array.attribute.VertexFormat;
 import net.caffeinemc.sodium.render.terrain.format.TerrainMeshAttribute;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexSink;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
+import net.caffeinemc.sodium.render.terrain.format.merging.IndexShareMergingTerrainVertexSink;
 import net.caffeinemc.sodium.render.terrain.format.merging.MergingTerrainVertexSink;
 import net.caffeinemc.sodium.render.vertex.buffer.VertexBufferView;
 import net.caffeinemc.sodium.render.vertex.type.BlittableVertexType;

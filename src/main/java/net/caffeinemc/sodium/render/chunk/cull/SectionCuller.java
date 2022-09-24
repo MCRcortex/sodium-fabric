@@ -44,6 +44,7 @@ public class SectionCuller {
     private final int[] queue2;
     
     private final int[] sortedVisibleSections;
+    private final long[] sortedVisibleSectionsTraversal;
     private int visibleSectionCount;
     
     public SectionCuller(SectionTree sectionTree, int chunkViewDistance) {
@@ -55,7 +56,8 @@ public class SectionCuller {
         this.queue1 = new int[maxSize];
         this.queue2 = new int[maxSize];
         this.sortedVisibleSections = new int[maxSize];
-        
+        this.sortedVisibleSectionsTraversal = new long[maxSize];
+
         this.fallbackSectionLists = new IntList[chunkViewDistance * 2 + 1];
         // the first list will have a known size of 1 always
         this.fallbackSectionLists[0] = new IntArrayList(1);
@@ -386,25 +388,25 @@ public class SectionCuller {
         // on top of the potential slowdown of the normal path seems to outweigh
         // any gains in those rare circumstances
         int visibilityOverride = useOcclusionCulling ? 0 : -1;
-    
+
         int tableZStart = sectionZStart & this.sectionTree.sectionWidthMask;
         int tableXStart = sectionXStart & this.sectionTree.sectionWidthMask;
         int tableZEnd = sectionZEnd & this.sectionTree.sectionWidthMask;
         int tableXEnd = sectionXEnd & this.sectionTree.sectionWidthMask;
-    
+
         this.visibleSectionCount = 0;
         int currentQueueSize = 0;
         int nextQueueSize = 0;
-        
+
         int[] currentQueue = this.queue1;
         int[] nextQueue = this.queue2;
-        
+
         int originSectionX = this.sectionTree.camera.getSectionX();
         int originSectionY = this.sectionTree.camera.getSectionY();
         int originSectionZ = this.sectionTree.camera.getSectionZ();
-    
+
         int startSectionIdx = this.sectionTree.getSectionIdx(originSectionX, originSectionY, originSectionZ);
-        
+
         boolean fallback = startSectionIdx == SectionTree.OUT_OF_BOUNDS_INDEX;
         if (fallback) {
             this.getStartingNodesFallback(originSectionX, originSectionY, originSectionZ);
@@ -459,7 +461,7 @@ public class SectionCuller {
                             tableZEnd,
                             tableXEnd
                     );
-                    
+
                     if (adjacentNodeIdx < -1 || sectionIdx < 0) {
                         int adjacentNodeIdx2 = this.getAdjacentIdx(
                                 sectionIdx,
@@ -505,13 +507,96 @@ public class SectionCuller {
             int[] temp = currentQueue;
             currentQueue = nextQueue;
             nextQueue = temp;
-            
+
             currentQueueSize = nextQueueSize;
             nextQueueSize = 0;
         }
 
         Arrays.fill(this.allowedTraversalDirections, (byte) 0);
         Arrays.fill(this.visibleTraversalDirections, (byte) 0);
+    }
+
+    private void occlusionCull2(
+            boolean useOcclusionCulling,
+            final int sectionZStart,
+            final int sectionXStart,
+            final int sectionZEnd,
+            final int sectionXEnd
+    ) {
+        // It's possible to improve culling for spectator mode players in walls,
+        // but the time cost to update this algorithm, bugfix it and maintain it
+        // on top of the potential slowdown of the normal path seems to outweigh
+        // any gains in those rare circumstances
+        int visibilityOverride = useOcclusionCulling ? 0 : -1;
+
+        int tableZStart = sectionZStart & this.sectionTree.sectionWidthMask;
+        int tableXStart = sectionXStart & this.sectionTree.sectionWidthMask;
+        int tableZEnd = sectionZEnd & this.sectionTree.sectionWidthMask;
+        int tableXEnd = sectionXEnd & this.sectionTree.sectionWidthMask;
+
+        this.visibleSectionCount = 0;
+
+
+        int originSectionX = this.sectionTree.camera.getSectionX();
+        int originSectionY = this.sectionTree.camera.getSectionY();
+        int originSectionZ = this.sectionTree.camera.getSectionZ();
+
+        int startSectionIdx = this.sectionTree.getSectionIdx(originSectionX, originSectionY, originSectionZ);
+
+        boolean fallback = startSectionIdx == SectionTree.OUT_OF_BOUNDS_INDEX;
+        if (fallback) {
+            throw new IllegalStateException();
+        }
+        {
+            byte visible = 0;
+
+            for (int direction = 0; direction < DirectionUtil.COUNT; direction++) {
+                visible |= this.getVisibilityData(startSectionIdx, direction);
+            }
+
+            sortedVisibleSectionsTraversal[0] = ((long) (0xFF|(((short)visible)<<8))) | (((long)startSectionIdx)<<32);
+        }
+
+
+        int queueSize = 1;
+        this.sectionOcclusionVisibilityBits.set(startSectionIdx);
+        while (this.visibleSectionCount != queueSize) {
+            final long data = sortedVisibleSectionsTraversal[visibleSectionCount++];
+
+            final int sectionIdx = (int) (data>>>32);
+            final byte allowedTraversalDirection = (byte) (data&0xFF);
+            byte visibleTraversalDirection = (byte) ((data>>8)&0xFF);
+            while (visibleTraversalDirection != 0) {
+                final int outgoingDirection = Integer.numberOfTrailingZeros(visibleTraversalDirection);
+                visibleTraversalDirection &= visibleTraversalDirection - 1;
+                int adjacentNodeIdx = this.getAdjacentIdx(
+                        sectionIdx,
+                        outgoingDirection,
+                        tableZStart,
+                        tableXStart,
+                        tableZEnd,
+                        tableXEnd
+                );
+
+                if (adjacentNodeIdx == SectionTree.OUT_OF_BOUNDS_INDEX)
+                    continue;
+
+                if (!sectionVisibilityBits.get(adjacentNodeIdx)) {
+                    continue;
+                }
+                if (sectionOcclusionVisibilityBits.get(adjacentNodeIdx))
+                    continue;
+
+                int reverseDirection = DirectionUtil.getOppositeId(outgoingDirection);
+
+                int visible = this.getVisibilityData(adjacentNodeIdx, reverseDirection) | visibilityOverride;
+                // prevent further iterations to backtrack
+                int newAllowed = allowedTraversalDirection & ~(1 << reverseDirection);
+
+                sortedVisibleSectionsTraversal[queueSize++] = (((long)adjacentNodeIdx)<<32) | ((Byte.toUnsignedInt((byte) newAllowed) | ( ((long)Byte.toUnsignedInt((byte) (newAllowed & visible))) <<8)));
+                this.sectionOcclusionVisibilityBits.set(adjacentNodeIdx);
+            }
+        }
     }
 
     private static final int XP = 1 << DirectionUtil.X_PLUS;
@@ -695,6 +780,7 @@ public class SectionCuller {
     
     public Iterator<RenderSection> getVisibleSectionIterator() {
         return new SortedVisibleSectionIterator();
+//        return new SortedVisibleSectionIterator2();
 //        return new VisibleSectionIterator();
     }
     
@@ -717,21 +803,39 @@ public class SectionCuller {
             return section;
         }
     }
-    
+
     private class SortedVisibleSectionIterator implements Iterator<RenderSection> {
         private int idx;
-        
+
         private SortedVisibleSectionIterator() {
         }
-        
+
         @Override
         public boolean hasNext() {
             return this.idx < SectionCuller.this.visibleSectionCount;
         }
-        
+
         @Override
         public RenderSection next() {
             int trueIdx = SectionCuller.this.sortedVisibleSections[this.idx++];
+            return SectionCuller.this.sectionTree.sections[trueIdx];
+        }
+    }
+
+    private class SortedVisibleSectionIterator2 implements Iterator<RenderSection> {
+        private int idx;
+
+        private SortedVisibleSectionIterator2() {
+        }
+
+        @Override
+        public boolean hasNext() {
+            return this.idx < SectionCuller.this.visibleSectionCount;
+        }
+
+        @Override
+        public RenderSection next() {
+            int trueIdx = (int) (SectionCuller.this.sortedVisibleSectionsTraversal[this.idx++]>>32);
             return SectionCuller.this.sectionTree.sections[trueIdx];
         }
     }
