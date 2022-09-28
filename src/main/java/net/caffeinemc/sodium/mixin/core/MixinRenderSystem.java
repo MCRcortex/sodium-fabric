@@ -8,11 +8,15 @@ import net.caffeinemc.gfx.api.sync.Fence;
 import net.caffeinemc.gfx.opengl.device.GlRenderDevice;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.pipeline.Blaze3DPipelineManager;
+import net.caffeinemc.sodium.vkinterop.VkContext;
+import net.caffeinemc.sodium.vkinterop.VkContextTEMP;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import static org.lwjgl.vulkan.VK12.VK_API_VERSION_1_2;
 
 @Mixin(RenderSystem.class)
 public class MixinRenderSystem {
@@ -44,5 +48,6 @@ public class MixinRenderSystem {
                         SodiumClientMod.options().advanced.enableApiDebug
                 )
         );
+        VkContextTEMP.INIT();
     }
 }

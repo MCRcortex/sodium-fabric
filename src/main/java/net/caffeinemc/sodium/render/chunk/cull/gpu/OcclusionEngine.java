@@ -134,7 +134,7 @@ public class OcclusionEngine {
         {
             MinecraftClient.getInstance().getProfiler().swap("region_tick");
             for (RenderRegion region : viewport.visible_regions) {
-                region.tickInitialBuilds();
+                //region.tickInitialBuilds();
                 region.tickEnqueuedBuilds();
             }
         }
