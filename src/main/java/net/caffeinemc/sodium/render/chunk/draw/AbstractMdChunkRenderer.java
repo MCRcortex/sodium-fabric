@@ -34,6 +34,10 @@ import net.caffeinemc.sodium.render.terrain.format.TerrainMeshAttribute;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.gfx.util.misc.MathUtil;
 import net.caffeinemc.sodium.util.TextureUtil;
+import net.caffeinemc.sodium.vkinterop.ShaderUtils;
+import net.caffeinemc.sodium.vkinterop.VKRenderPipeline;
+import net.caffeinemc.sodium.vkinterop.vk.SVkDevice;
+import net.caffeinemc.sodium.vkinterop.vk.pipeline.SVkShader;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import org.joml.Matrix4f;
@@ -47,7 +51,8 @@ public abstract class AbstractMdChunkRenderer extends AbstractChunkRenderer {
     
     protected final ChunkRenderPassManager renderPassManager;
     protected final RenderPipeline<ChunkShaderInterface, BufferTarget>[] renderPipelines;
-    
+    protected final VKRenderPipeline[] vkrenderPipelines;
+
     protected final StreamingBuffer uniformBufferCameraMatrices;
     protected final StreamingBuffer uniformBufferChunkTransforms;
     protected final StreamingBuffer uniformBufferFogParameters;
@@ -65,7 +70,8 @@ public abstract class AbstractMdChunkRenderer extends AbstractChunkRenderer {
     
         //noinspection unchecked
         this.renderPipelines = new RenderPipeline[renderPassManager.getRenderPassCount()];
-    
+        this.vkrenderPipelines = new VKRenderPipeline[renderPassManager.getRenderPassCount()];
+
         // construct all pipelines for current render passes now
         var vertexFormat = vertexType.getCustomVertexFormat();
         var vertexArray = new VertexArrayDescription<>(
@@ -110,12 +116,14 @@ public abstract class AbstractMdChunkRenderer extends AbstractChunkRenderer {
                     new Identifier("sodium", "terrain/terrain_opaque.frag"),
                     constants
             );
-        
+
             var desc = ShaderDescription.builder()
                                         .addShaderSource(ShaderType.VERTEX, vertShader)
                                         .addShaderSource(ShaderType.FRAGMENT, fragShader)
                                         .build();
-        
+            new SVkShader(SVkDevice.INSTANCE, vertShader, ShaderType.VERTEX);
+            new SVkShader(SVkDevice.INSTANCE, fragShader, ShaderType.FRAGMENT);
+
             Program<ChunkShaderInterface> program = this.device.createProgram(desc, ChunkShaderInterface::new);
             RenderPipeline<ChunkShaderInterface, BufferTarget> renderPipeline = this.device.createRenderPipeline(
                     renderPass.getPipelineDescription(),
@@ -124,6 +132,7 @@ public abstract class AbstractMdChunkRenderer extends AbstractChunkRenderer {
             );
         
             this.renderPipelines[renderPass.getId()] = renderPipeline;
+            this.vkrenderPipelines[renderPass.getId()] = new VKRenderPipeline(vertexFormat, renderPass.getPipelineDescription(), vertShader, fragShader);
         }
         
         // Set up buffers
@@ -176,11 +185,11 @@ public abstract class AbstractMdChunkRenderer extends AbstractChunkRenderer {
     
     protected void setupTextures(ChunkRenderPass pass, PipelineState pipelineState) {
         pipelineState.bindTexture(
-                0,
+                3,
                 TextureUtil.getBlockAtlasTexture(),
                 pass.isMipped() ? this.blockTextureMippedSampler : this.blockTextureSampler
         );
-        pipelineState.bindTexture(1, TextureUtil.getLightTexture(), this.lightTextureSampler);
+        pipelineState.bindTexture(4, TextureUtil.getLightTexture(), this.lightTextureSampler);
     }
     
     protected void setupUniforms(

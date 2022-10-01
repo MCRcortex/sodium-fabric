@@ -1,17 +1,21 @@
 package net.caffeinemc.sodium.render.chunk.region;
 
 
-import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
-import net.caffeinemc.gfx.api.buffer.ImmutableBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
+import net.caffeinemc.gfx.opengl.buffer.GlImmutableBuffer;
 import net.caffeinemc.gfx.util.buffer.BufferPool;
 import net.caffeinemc.gfx.util.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.AsyncArenaBuffer;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
+import net.caffeinemc.sodium.vkinterop.vk.SVkDevice;
+import net.caffeinemc.sodium.vkinterop.vk.memory.SVkGlBuffer;
 
-import java.util.EnumSet;
+import java.util.Set;
+
+import static org.lwjgl.opengl.ARBDirectStateAccess.glCreateBuffers;
+import static org.lwjgl.vulkan.VK10.*;
 
 public class GlobalSingleBufferProvider implements IVertexBufferProvider {
     private final RenderDevice device;
@@ -27,10 +31,12 @@ public class GlobalSingleBufferProvider implements IVertexBufferProvider {
         this.bufferPool = new BufferPool<>(
                 device,
                 RenderRegionManager.PRUNE_SAMPLE_SIZE,
-                c -> device.createBuffer(
-                        c,
-                        EnumSet.noneOf(ImmutableBufferFlags.class)
-                )
+                c -> {
+                    SVkGlBuffer buffer = SVkDevice.INSTANCE.m_alloc_e.createVkGlBuffer(c,
+                            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                            VK_MEMORY_HEAP_DEVICE_LOCAL_BIT, 1);
+                    return new GlImmutableBuffer(buffer.glId, c, Set.of());
+                }
         );
         buffer = new AsyncArenaBuffer(
                 device,

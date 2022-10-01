@@ -5,6 +5,7 @@ import net.caffeinemc.gfx.api.device.RenderConfiguration;
 import net.caffeinemc.gfx.opengl.device.GlRenderDevice;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.pipeline.Blaze3DPipelineManager;
+import net.caffeinemc.sodium.vkinterop.VkContextTEMP;
 import net.minecraft.client.WindowEventHandler;
 import net.minecraft.client.WindowSettings;
 import net.minecraft.client.util.MonitorTracker;

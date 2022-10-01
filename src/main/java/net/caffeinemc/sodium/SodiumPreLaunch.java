@@ -2,6 +2,8 @@ package net.caffeinemc.sodium;
 
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+
+import net.caffeinemc.sodium.vkinterop.VkContextTEMP;
 import net.fabricmc.loader.api.Version;
 import net.fabricmc.loader.api.VersionParsingException;
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
@@ -18,6 +20,7 @@ public class SodiumPreLaunch implements PreLaunchEntrypoint {
     public void onPreLaunch() {
         tryLoadRenderdoc();
         checkJemalloc();
+        VkContextTEMP.INIT();
     }
     
     private static void tryLoadRenderdoc() {

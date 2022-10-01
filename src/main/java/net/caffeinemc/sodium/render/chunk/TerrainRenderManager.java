@@ -516,6 +516,8 @@ public class TerrainRenderManager {
             case INDIRECT -> new MdiChunkRenderer(device, camera, renderPassManager, vertexType);
 
             case GPU_DRIVEN -> new GPUMdicChunkRenderer(device, camera, renderPassManager, vertexType);
+
+            case VULKAN -> new VulkanRenderer(device, camera, renderPassManager, vertexType);
         };
     }
 

@@ -1,0 +1,99 @@
+package net.caffeinemc.sodium.vkinterop.vk;
+
+import net.caffeinemc.sodium.vkinterop.VkContextTEMP;
+import net.caffeinemc.sodium.vkinterop.VkUtils;
+import net.caffeinemc.sodium.vkinterop.vk.memory.SVkBuffer;
+import net.caffeinemc.sodium.vkinterop.vk.memory.SVkGlBuffer;
+import net.caffeinemc.sodium.vkinterop.vk.memory.SVmaMemInfo;
+import org.lwjgl.PointerBuffer;
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.util.vma.VmaAllocationCreateInfo;
+import org.lwjgl.util.vma.VmaAllocationInfo;
+import org.lwjgl.util.vma.VmaAllocatorCreateInfo;
+import org.lwjgl.util.vma.VmaVulkanFunctions;
+import org.lwjgl.vulkan.*;
+
+import java.nio.LongBuffer;
+import java.util.function.BiConsumer;
+
+import static net.caffeinemc.sodium.vkinterop.VkUtils._CHECK_;
+import static org.lwjgl.opengl.ARBDirectStateAccess.glCreateBuffers;
+import static org.lwjgl.opengl.EXTMemoryObject.glCreateMemoryObjectsEXT;
+import static org.lwjgl.opengl.EXTMemoryObject.glNamedBufferStorageMemEXT;
+import static org.lwjgl.opengl.EXTMemoryObjectWin32.GL_HANDLE_TYPE_OPAQUE_WIN32_EXT;
+import static org.lwjgl.opengl.EXTMemoryObjectWin32.glImportMemoryWin32HandleEXT;
+import static org.lwjgl.system.MemoryStack.stackPush;
+import static org.lwjgl.util.vma.Vma.*;
+import static org.lwjgl.vulkan.KHRExternalMemoryWin32.vkGetMemoryWin32HandleKHR;
+import static org.lwjgl.vulkan.VK10.*;
+import static org.lwjgl.vulkan.VK11.VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+
+public class SVmaAllocator {
+    protected final SVkDevice device;
+    protected final long allocator;
+
+    public SVmaAllocator(SVkDevice device) {
+        this(device, null);
+    }
+
+    public SVmaAllocator(SVkDevice device, BiConsumer<MemoryStack, VmaAllocatorCreateInfo> mutator) {
+        this.device = device;
+
+        try(MemoryStack stack = stackPush()) {
+            VmaVulkanFunctions vulkanFunctions = VmaVulkanFunctions
+                    .calloc(stack)
+                    .set(device.device.getPhysicalDevice().getInstance(), device.device);
+
+            VmaAllocatorCreateInfo allocatorCreateInfo = VmaAllocatorCreateInfo.calloc(stack)
+                    .instance(device.device.getPhysicalDevice().getInstance())
+                    .physicalDevice(device.device.getPhysicalDevice())
+                    .device(device.device)
+                    .pVulkanFunctions(vulkanFunctions);
+
+            if (mutator != null) {
+                mutator.accept(stack, allocatorCreateInfo);
+            }
+
+            PointerBuffer pAllocator = stack.pointers(VK_NULL_HANDLE);
+
+            if (vmaCreateAllocator(allocatorCreateInfo, pAllocator) != VK_SUCCESS) {
+                throw new RuntimeException("Failed to create command pool");
+            }
+
+            allocator = pAllocator.get(0);
+        }
+    }
+
+    public SVkBuffer createBuffer(long size, int bufferUsage, int properties, int alignment) {
+        return createBuffer(size, bufferUsage, properties, alignment, 0);
+    }
+
+    protected SVkBuffer createBuffer(long size, int bufferUsage, int properties, int alignment, long pNext) {
+        try (MemoryStack stack = stackPush()) {
+            // create the final destination buffer
+            LongBuffer pBuffer = stack.mallocLong(1);
+            PointerBuffer pAllocation = stack.mallocPointer(1);
+            VmaAllocationInfo ai = VmaAllocationInfo.calloc(stack);
+            _CHECK_(vmaCreateBuffer(allocator,
+                            VkBufferCreateInfo
+                                    .calloc(stack)
+                                    .sType$Default()
+                                    .size(size)
+                                    .usage(bufferUsage)
+                                    .pNext(pNext),
+                            VmaAllocationCreateInfo
+                                    .calloc(stack)
+                                    .usage(VMA_MEMORY_USAGE_AUTO)
+                                    .requiredFlags(properties),
+                            pBuffer,
+                            pAllocation,
+                            ai),
+                    "Failed to allocate buffer");
+
+            if ((ai.offset() % alignment) != 0)
+                throw new AssertionError("Illegal offset alignment");
+            SVmaMemInfo memInfo = new SVmaMemInfo(this, pAllocation.get(0), ai.deviceMemory(), ai.offset(), ai.size());
+            return new SVkBuffer(memInfo, pBuffer.get(0));
+        }
+    }
+}

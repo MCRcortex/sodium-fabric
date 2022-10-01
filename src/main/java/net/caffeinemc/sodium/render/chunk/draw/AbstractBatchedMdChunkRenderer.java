@@ -12,6 +12,8 @@ import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 
 import java.util.Collection;
 
+import static net.caffeinemc.sodium.vkinterop.TestBed.runRenderPipeline;
+import static org.lwjgl.opengl.EXTSemaphore.glSignalSemaphoreEXT;
 import static org.lwjgl.opengl.GL11.glDepthRange;
 import static org.lwjgl.opengl.NVDepthBufferFloat.*;
 
@@ -59,6 +61,9 @@ public abstract class AbstractBatchedMdChunkRenderer<B extends AbstractBatchedMd
                         renderPipeline, commandList, programInterface, pipelineState, batch);
             }
         });
+
+        runRenderPipeline(this.vkrenderPipelines[passId], frameIndex);
+
     }
 
     //// OVERRIDABLE RENDERING METHODS

@@ -5,7 +5,7 @@
 #import <sodium:include/terrain_textures.glsl>
 #import <sodium:terrain/terrain_opaque.glsl>
 
-in VertexOutput vs_out;
+layout(location = 0) in VertexOutput vs_out;
 #ifdef ALPHA_CUTOFF
 layout (depth_greater) out float gl_FragDepth;
 #endif

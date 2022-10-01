@@ -48,6 +48,5 @@ public class MixinRenderSystem {
                         SodiumClientMod.options().advanced.enableApiDebug
                 )
         );
-        VkContextTEMP.INIT();
     }
 }

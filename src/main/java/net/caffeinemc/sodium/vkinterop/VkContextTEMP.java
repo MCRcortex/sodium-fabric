@@ -1,7 +1,9 @@
 package net.caffeinemc.sodium.vkinterop;
 
+import net.caffeinemc.sodium.vkinterop.vk.SVkDevice;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.util.vma.VmaAllocatorCreateInfo;
 import org.lwjgl.util.vma.VmaVulkanFunctions;
 import org.lwjgl.vulkan.VkAllocationCallbacks;
@@ -23,6 +25,8 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.util.vma.Vma.vmaCreateAllocator;
 import static org.lwjgl.vulkan.EXTDebugUtils.*;
+import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
+import static org.lwjgl.vulkan.KHRBufferDeviceAddress.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR;
 import static org.lwjgl.vulkan.KHRExternalFenceCapabilities.VK_KHR_EXTERNAL_FENCE_CAPABILITIES_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRExternalFenceWin32.VK_KHR_EXTERNAL_FENCE_WIN32_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRExternalMemory.VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME;
@@ -36,6 +40,7 @@ import static org.lwjgl.vulkan.KHRGetPhysicalDeviceProperties2.VK_KHR_GET_PHYSIC
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK10.*;
 import static org.lwjgl.vulkan.VK11.VK_API_VERSION_1_1;
+import static org.lwjgl.vulkan.VK11.VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
 
 
 public class VkContextTEMP {
@@ -44,7 +49,7 @@ public class VkContextTEMP {
 
     public static final int INDEX_SIZE = Short.BYTES;
 
-    private static final boolean ENABLE_VALIDATION_LAYERS = false;
+    private static final boolean ENABLE_VALIDATION_LAYERS = true;
 //    private static final boolean ENABLE_VALIDATION_LAYERS = true;
 
     public static final Set<String> VALIDATION_LAYERS;
@@ -60,7 +65,6 @@ public class VkContextTEMP {
     }
 
     private static final Set<String> DEVICE_EXTENSIONS = Stream.of(
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
                     VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
                     VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME,
                     VK_KHR_EXTERNAL_FENCE_WIN32_EXTENSION_NAME,
@@ -145,6 +149,7 @@ public class VkContextTEMP {
     private static long commandPool;
     private static VkCommandBuffer immediateCmdBuffer;
     private static long immediateFence;
+    private static long renderPass;
 
     private static long allocator;
 
@@ -158,8 +163,7 @@ public class VkContextTEMP {
         //MemoryTypes.createMemoryTypes();
         createCommandPool();
         allocateImmediateCmdBuffer();
-
-        //createRenderPass();
+        createRenderPass();
 
     }
 
@@ -377,6 +381,13 @@ public class VkContextTEMP {
             allocatorCreateInfo.device(device);
             allocatorCreateInfo.pVulkanFunctions(vulkanFunctions);
             allocatorCreateInfo.instance(instance);
+            IntBuffer b = MemoryUtil.memAllocInt(5);
+            b.put(0, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT);//VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+            b.put(1, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT);//VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+            b.put(2, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT);//VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+            b.put(3, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT);//VK_MEMORY_PROPERTY_HOST_CACHED_BIT
+            b.put(4, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT);//VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT
+            allocatorCreateInfo.pTypeExternalMemoryHandleTypes(b);
 
             PointerBuffer pAllocator = stack.pointers(VK_NULL_HANDLE);
 
@@ -408,17 +419,17 @@ public class VkContextTEMP {
             commandPool = pCommandPool.get(0);
         }
     }
-    /*
+
     private static void createRenderPass() {
 
         try(MemoryStack stack = stackPush()) {
 
-            VkAttachmentDescription.Buffer attachments = VkAttachmentDescription.callocStack(2, stack);
-            VkAttachmentReference.Buffer attachmentRefs = VkAttachmentReference.callocStack(2, stack);
+            VkAttachmentDescription.Buffer attachments = VkAttachmentDescription.calloc(2, stack);
+            VkAttachmentReference.Buffer attachmentRefs = VkAttachmentReference.calloc(2, stack);
 
             // Color attachments
             VkAttachmentDescription colorAttachment = attachments.get(0);
-            colorAttachment.format(swapChainImageFormat);
+            colorAttachment.format(VK_FORMAT_R8G8B8A8_UNORM);
             colorAttachment.samples(VK_SAMPLE_COUNT_1_BIT);
             colorAttachment.loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
             colorAttachment.storeOp(VK_ATTACHMENT_STORE_OP_STORE);
@@ -436,7 +447,7 @@ public class VkContextTEMP {
             // Depth-Stencil attachments
 
             VkAttachmentDescription depthAttachment = attachments.get(1);
-            depthAttachment.format(findDepthFormat());
+            depthAttachment.format(VK_FORMAT_D24_UNORM_S8_UINT);//TODO: MAKE THIS DYNAMIC OR SOME SHIT BASED ON ACTUAL FORMAT
             depthAttachment.samples(VK_SAMPLE_COUNT_1_BIT);
             depthAttachment.loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
             depthAttachment.storeOp(VK_ATTACHMENT_STORE_OP_DONT_CARE);
@@ -476,9 +487,15 @@ public class VkContextTEMP {
             }
 
             renderPass = pRenderPass.get(0);
+
+
         }
     }
-    */
+
+    public static long getRenderPass() {
+        return renderPass;
+    }
+
     private static int clamp(int min, int max, int value) {
         return Math.max(min, Math.min(max, value));
     }
@@ -680,6 +697,30 @@ public class VkContextTEMP {
         }
     }
 
+    public static long createImageView(long image, int format, int aspectFlags, int mipLevels) {
+
+        try(MemoryStack stack = stackPush()) {
+
+            VkImageViewCreateInfo viewInfo = VkImageViewCreateInfo.callocStack(stack);
+            viewInfo.sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
+            viewInfo.image(image);
+            viewInfo.viewType(VK_IMAGE_VIEW_TYPE_2D);
+            viewInfo.format(format);
+            viewInfo.subresourceRange().aspectMask(aspectFlags);
+            viewInfo.subresourceRange().baseMipLevel(0);
+            viewInfo.subresourceRange().levelCount(mipLevels);
+            viewInfo.subresourceRange().baseArrayLayer(0);
+            viewInfo.subresourceRange().layerCount(1);
+
+            LongBuffer pImageView = stack.mallocLong(1);
+
+            if(vkCreateImageView(device, viewInfo, null, pImageView) != VK_SUCCESS) {
+                throw new RuntimeException("Failed to create texture image view");
+            }
+
+            return pImageView.get(0);
+        }
+    }
     private static boolean checkValidationLayerSupport() {
 
         try(MemoryStack stack = stackPush()) {
@@ -721,24 +762,6 @@ public class VkContextTEMP {
     }
     public static void INIT() {
         initVulkan();
-        try(MemoryStack stack = stackPush()) {
-            LongBuffer pBuffer = stack.mallocLong(1);
-            PointerBuffer pAllocation = stack.pointers(VK_NULL_HANDLE);
-
-            VkMemUtil.createBuffer(1024*5,
-                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                    pBuffer,
-                    pAllocation);
-
-            int glId = glCreateBuffers();
-            VkBufferInfo_VMA bufferInfo = new VkBufferInfo_VMA(pBuffer.get(0), pAllocation.get(0), 1024*5);
-            VkBufferInfo bufferInfo2 = VkMemUtil.createBuffer2(1024*5,
-                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-            VkMemUtil.bindVulkanBuffer(glId, bufferInfo2);
-            System.err.println("VULKAN INIT");
-
-        }
+        TestBed.init();
     }
 }
