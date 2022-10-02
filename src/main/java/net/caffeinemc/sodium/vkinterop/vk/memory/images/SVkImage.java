@@ -1,4 +1,6 @@
-package net.caffeinemc.sodium.vkinterop.vk.memory;
+package net.caffeinemc.sodium.vkinterop.vk.memory.images;
+
+import net.caffeinemc.sodium.vkinterop.vk.memory.SVmaMemInfo;
 
 public class SVkImage {
     public final SVmaMemInfo memHandle;

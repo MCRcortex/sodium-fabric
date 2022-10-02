@@ -4,8 +4,8 @@ package net.caffeinemc.sodium.vkinterop.vk.pipeline;
 // maybe make a builder or subtype thing that generates these pipelines
 // or create subclasses for the different pipelines
 public class SVkPipeline {
-    SVkPipelineLayout pipelineLayout;
-    long pipeline;
+    public SVkPipelineLayout pipelineLayout;
+    public long pipeline;
 
     public SVkPipeline(long pipeline, SVkPipelineLayout pipelineLayout) {
         this.pipeline = pipeline;

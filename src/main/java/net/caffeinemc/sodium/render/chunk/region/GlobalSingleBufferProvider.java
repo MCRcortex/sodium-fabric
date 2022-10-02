@@ -2,6 +2,7 @@ package net.caffeinemc.sodium.render.chunk.region;
 
 
 import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
+import net.caffeinemc.gfx.api.buffer.ImmutableBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.opengl.buffer.GlImmutableBuffer;
 import net.caffeinemc.gfx.util.buffer.BufferPool;
@@ -24,6 +25,13 @@ public class GlobalSingleBufferProvider implements IVertexBufferProvider {
     private final BufferPool<ImmutableBuffer> bufferPool;
     private final ArenaBuffer buffer;
 
+    public static class GlVkImmutableBuffer extends GlImmutableBuffer {
+        public SVkGlBuffer buffer;
+        public GlVkImmutableBuffer(SVkGlBuffer buffer, long capacity, Set<ImmutableBufferFlags> flags) {
+            super(buffer.glId, capacity, flags);
+            this.buffer = buffer;
+        }
+    }
     public GlobalSingleBufferProvider(RenderDevice device, StreamingBuffer stagingBuffer, TerrainVertexType vertexType) {
         this.device = device;
         this.stagingBuffer = stagingBuffer;
@@ -35,7 +43,7 @@ public class GlobalSingleBufferProvider implements IVertexBufferProvider {
                     SVkGlBuffer buffer = SVkDevice.INSTANCE.m_alloc_e.createVkGlBuffer(c,
                             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                             VK_MEMORY_HEAP_DEVICE_LOCAL_BIT, 1);
-                    return new GlImmutableBuffer(buffer.glId, c, Set.of());
+                    return new GlVkImmutableBuffer(buffer, c, Set.of());
                 }
         );
         buffer = new AsyncArenaBuffer(

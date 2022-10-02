@@ -20,6 +20,19 @@ public class SVkGraphicsPipelineBuilder {
     RenderPipelineDescription pipelineDescription;
     SVkShader[] stages;
     SVkPipelineLayout pipelineLayout;
+    public SVkGraphicsPipelineBuilder(SVkDevice device,
+                                      SVkRenderPass renderPass,
+                                      SVkVertexInputBindingAttributeDescription bad,
+                                      RenderPipelineDescription pipelineDescription,
+                                      SVkShader[] stages,
+                                      SVkPipelineLayout layout) {
+        this.device = device;
+        this.renderPass = renderPass;
+        this.bad = bad;
+        this.pipelineDescription = pipelineDescription;
+        this.stages = stages;
+        this.pipelineLayout = layout;
+    }
 
     public SVkPipeline createPipeline() {
         try(MemoryStack stack = stackPush()) {

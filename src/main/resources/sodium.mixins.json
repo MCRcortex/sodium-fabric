@@ -62,6 +62,7 @@
     "features.texture_tracking.MixinSpriteAnimation",
     "features.texture_tracking.MixinSpriteAtlasTexture",
     "features.texture_tracking.MixinSpriteBillboardParticle",
+    "features.texture_tracking.MixinTextureUtil",
     "features.texture_updates.MixinSpriteInterpolated"
   ]
 }

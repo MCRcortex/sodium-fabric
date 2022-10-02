@@ -113,10 +113,10 @@ public class VkContextTEMP {
         return allocator;
     }
 
-    static class QueueFamilyIndices {
+    public static class QueueFamilyIndices {
 
         // We use Integer to use null as the empty value
-        Integer graphicsFamily;
+        public Integer graphicsFamily;
         //Integer presentFamily;
 
         public boolean isComplete() {
@@ -124,7 +124,7 @@ public class VkContextTEMP {
         }
 
         public int[] unique() {
-            return IntStream.of(graphicsFamily).distinct().toArray();
+            return IntStream.of(graphicsFamily).toArray();
         }
 
         public int[] array() {

@@ -16,8 +16,8 @@ import static org.lwjgl.vulkan.VK11.VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN
 
 public class Sync {
     public static class GlVkSemaphore {
-        int glSemaphore;
-        long vkSemaphore;
+        public int glSemaphore;
+        public long vkSemaphore;
         public GlVkSemaphore() {
             try (MemoryStack stack = stackPush()){
 

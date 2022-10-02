@@ -11,7 +11,18 @@ public class SDescriptorDescription {
         public int type;
         public int count;
         public int stages;
+        public Descriptor(int binding, int type, int count, int stages) {
+            this.binding = binding;
+            this.type = type;
+            this.count = count;
+            this.stages = stages;
+        }
     }
-    public SDescriptorDescription() {
+    public SDescriptorDescription(Descriptor... descriptors) {
+        this.descriptors.addAll(List.of(descriptors));
+    }
+    public SDescriptorDescription add(int type, int stages) {
+        this.descriptors.add(new Descriptor(this.descriptors.size(), type, 1, stages));
+        return this;
     }
 }

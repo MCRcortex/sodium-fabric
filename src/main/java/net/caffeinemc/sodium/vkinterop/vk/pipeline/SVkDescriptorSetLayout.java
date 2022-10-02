@@ -2,6 +2,7 @@ package net.caffeinemc.sodium.vkinterop.vk.pipeline;
 
 import net.caffeinemc.sodium.vkinterop.VkContextTEMP;
 import net.caffeinemc.sodium.vkinterop.vk.SDescriptorDescription;
+import net.caffeinemc.sodium.vkinterop.vk.SVkDevice;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkDescriptorSetLayoutBinding;
 import org.lwjgl.vulkan.VkDescriptorSetLayoutCreateInfo;
@@ -13,15 +14,17 @@ import static org.lwjgl.vulkan.VK10.*;
 import static org.lwjgl.vulkan.VK10.VK_SUCCESS;
 
 public class SVkDescriptorSetLayout {
+    SVkDevice device;
     SDescriptorDescription description;
     long layout;
-    public SVkDescriptorSetLayout(SDescriptorDescription description) {
+    public SVkDescriptorSetLayout(SVkDevice device, SDescriptorDescription description) {
+        this.device = device;
         this.description = description;
         try(MemoryStack stack = stackPush()) {
             VkDescriptorSetLayoutBinding.Buffer bindings = VkDescriptorSetLayoutBinding.calloc(description.descriptors.size(), stack);
             for (int i = 0; i < description.descriptors.size(); i++) {
                 SDescriptorDescription.Descriptor descriptor = description.descriptors.get(i);
-                bindings.get(i)//Camera matrices
+                bindings.get(i)
                         .binding(descriptor.binding)
                         .descriptorCount(descriptor.count)
                         .descriptorType(descriptor.type)
@@ -31,11 +34,11 @@ public class SVkDescriptorSetLayout {
 
             LongBuffer pDescriptorSetLayout = stack.mallocLong(1);
 
-            VkDescriptorSetLayoutCreateInfo layoutInfo = VkDescriptorSetLayoutCreateInfo.calloc(stack);
-            layoutInfo.sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO);
-            layoutInfo.pBindings(bindings);
+            VkDescriptorSetLayoutCreateInfo layoutInfo = VkDescriptorSetLayoutCreateInfo.calloc(stack)
+                    .sType$Default()
+                    .pBindings(bindings);
 
-            if(vkCreateDescriptorSetLayout(VkContextTEMP.getDevice(), layoutInfo, null, pDescriptorSetLayout) != VK_SUCCESS) {
+            if(vkCreateDescriptorSetLayout(device.device, layoutInfo, null, pDescriptorSetLayout) != VK_SUCCESS) {
                 throw new RuntimeException("Failed to create descriptor set layout");
             }
             layout = pDescriptorSetLayout.get(0);

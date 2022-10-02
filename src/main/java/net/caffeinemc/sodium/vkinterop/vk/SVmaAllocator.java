@@ -1,10 +1,12 @@
 package net.caffeinemc.sodium.vkinterop.vk;
 
 import net.caffeinemc.sodium.vkinterop.VkContextTEMP;
+import net.caffeinemc.sodium.vkinterop.VkMemUtil;
 import net.caffeinemc.sodium.vkinterop.VkUtils;
 import net.caffeinemc.sodium.vkinterop.vk.memory.SVkBuffer;
 import net.caffeinemc.sodium.vkinterop.vk.memory.SVkGlBuffer;
 import net.caffeinemc.sodium.vkinterop.vk.memory.SVmaMemInfo;
+import net.caffeinemc.sodium.vkinterop.vk.memory.images.SVkImage;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.vma.VmaAllocationCreateInfo;
@@ -68,7 +70,11 @@ public class SVmaAllocator {
         return createBuffer(size, bufferUsage, properties, alignment, 0);
     }
 
-    protected SVkBuffer createBuffer(long size, int bufferUsage, int properties, int alignment, long pNext) {
+    public SVkBuffer createBuffer(long size, int bufferUsage, int properties, int alignment, long pUserData) {
+        return createBuffer(size, bufferUsage, properties, alignment, 0, pUserData);
+    }
+
+    protected SVkBuffer createBuffer(long size, int bufferUsage, int properties, int alignment, long pNext, long pUserData) {
         try (MemoryStack stack = stackPush()) {
             // create the final destination buffer
             LongBuffer pBuffer = stack.mallocLong(1);
@@ -84,7 +90,8 @@ public class SVmaAllocator {
                             VmaAllocationCreateInfo
                                     .calloc(stack)
                                     .usage(VMA_MEMORY_USAGE_AUTO)
-                                    .requiredFlags(properties),
+                                    .requiredFlags(properties)
+                                    .pUserData(pUserData),
                             pBuffer,
                             pAllocation,
                             ai),
@@ -94,6 +101,55 @@ public class SVmaAllocator {
                 throw new AssertionError("Illegal offset alignment");
             SVmaMemInfo memInfo = new SVmaMemInfo(this, pAllocation.get(0), ai.deviceMemory(), ai.offset(), ai.size());
             return new SVkBuffer(memInfo, pBuffer.get(0));
+        }
+    }
+
+
+    //TODO: Make more configurable type
+    public SVkImage createImage(int width, int height, int mipLevel, int format, int usage, int properties) {
+        return createImage(width, height, mipLevel, format, usage, properties, 0);
+    }
+
+    protected SVkImage createImage(int width, int height, int mipLevel, int format, int usage, int properties, long pNext) {
+        try (MemoryStack stack = stackPush()) {
+            VkImageCreateInfo  imageInfo = VkImageCreateInfo .calloc(stack)
+                    .sType$Default()
+                    .usage(usage)
+                    .pNext(pNext)
+                    .imageType(VK_IMAGE_TYPE_2D)
+                    .mipLevels(mipLevel)
+                    .arrayLayers(1)
+                    .format(format)
+                    .tiling(VK_IMAGE_TILING_OPTIMAL)
+                    .initialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
+                    .usage(usage)
+                    .samples(VK_SAMPLE_COUNT_1_BIT)
+                    .sharingMode(VK_SHARING_MODE_CONCURRENT)
+                    .pQueueFamilyIndices(stack.ints(0,1));
+            imageInfo.extent().width(width);
+            imageInfo.extent().height(height);
+            imageInfo.extent().depth(1);
+
+            VmaAllocationCreateInfo allocationInfo  = VmaAllocationCreateInfo.calloc(stack)
+                    .requiredFlags(properties);
+
+            LongBuffer pImage = stack.callocLong(1);
+            PointerBuffer pAllocation = stack.callocPointer(1);
+
+            VmaAllocationInfo info = VmaAllocationInfo.calloc(stack);
+            _CHECK_(vmaCreateImage(allocator,
+                    imageInfo,
+                    allocationInfo,
+                    pImage,
+                    pAllocation,
+                    info), "Failed to create image");
+            return new SVkImage(
+                    new SVmaMemInfo(this,
+                            pAllocation.get(0),
+                            info.deviceMemory(),
+                            info.offset(),
+                            info.size()),
+                    pImage.get(0));
         }
     }
 }

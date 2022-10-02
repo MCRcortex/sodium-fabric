@@ -1,6 +1,8 @@
 package net.caffeinemc.sodium.vkinterop;
 
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import net.caffeinemc.sodium.vkinterop.vk.memory.SVmaMemInfo;
+import net.caffeinemc.sodium.vkinterop.vk.memory.images.SVkGlImage;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.vma.VmaAllocationCreateInfo;
