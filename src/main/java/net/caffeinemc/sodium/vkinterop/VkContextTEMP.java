@@ -1,5 +1,6 @@
 package net.caffeinemc.sodium.vkinterop;
 
+import net.caffeinemc.sodium.render.chunk.raytrace.AccelerationSystem;
 import net.caffeinemc.sodium.vkinterop.vk.SVkDevice;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
@@ -25,8 +26,12 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.util.vma.Vma.vmaCreateAllocator;
 import static org.lwjgl.vulkan.EXTDebugUtils.*;
+import static org.lwjgl.vulkan.EXTDescriptorIndexing.VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
+import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRBufferDeviceAddress.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR;
+import static org.lwjgl.vulkan.KHRBufferDeviceAddress.VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME;
+import static org.lwjgl.vulkan.KHRDeferredHostOperations.VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRExternalFenceCapabilities.VK_KHR_EXTERNAL_FENCE_CAPABILITIES_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRExternalFenceWin32.VK_KHR_EXTERNAL_FENCE_WIN32_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRExternalMemory.VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME;
@@ -37,10 +42,14 @@ import static org.lwjgl.vulkan.KHRExternalSemaphoreCapabilities.VK_KHR_EXTERNAL_
 import static org.lwjgl.vulkan.KHRExternalSemaphoreWin32.VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRGetMemoryRequirements2.VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRGetPhysicalDeviceProperties2.VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME;
+import static org.lwjgl.vulkan.KHRRayTracingPipeline.VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME;
+import static org.lwjgl.vulkan.KHRShaderFloatControls.VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME;
+import static org.lwjgl.vulkan.KHRSpirv14.VK_KHR_SPIRV_1_4_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK10.*;
 import static org.lwjgl.vulkan.VK11.VK_API_VERSION_1_1;
 import static org.lwjgl.vulkan.VK11.VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+import static org.lwjgl.vulkan.VK12.VK_API_VERSION_1_2;
 
 
 public class VkContextTEMP {
@@ -70,7 +79,14 @@ public class VkContextTEMP {
                     VK_KHR_EXTERNAL_FENCE_WIN32_EXTENSION_NAME,
                     VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
                     VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
-                    VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME
+                    VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
+                    VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+                    VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+                    VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+                    VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+            VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+    VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+    VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
             )
             .collect(toSet());
 
@@ -117,18 +133,21 @@ public class VkContextTEMP {
 
         // We use Integer to use null as the empty value
         public Integer graphicsFamily;
+        public Integer computeFamily;
+        public Integer transferFamily;
+        public Integer sparseFamily;
         //Integer presentFamily;
 
         public boolean isComplete() {
-            return graphicsFamily != null;
+            return graphicsFamily != null && computeFamily != null && transferFamily != null && sparseFamily != null;
         }
 
         public int[] unique() {
-            return IntStream.of(graphicsFamily).toArray();
+            return IntStream.of(graphicsFamily, computeFamily, transferFamily, sparseFamily).distinct().toArray();
         }
 
         public int[] array() {
-            return new int[] {graphicsFamily};
+            return new int[] {graphicsFamily, computeFamily, transferFamily, sparseFamily};
         }
     }
 
@@ -195,7 +214,7 @@ public class VkContextTEMP {
             appInfo.applicationVersion(VK_MAKE_VERSION(1, 0, 0));
             appInfo.pEngineName(stack.UTF8Safe("No Engine"));
             appInfo.engineVersion(VK_MAKE_VERSION(1, 0, 0));
-            appInfo.apiVersion(VK_API_VERSION_1_1);
+            appInfo.apiVersion(VK_API_VERSION_1_2);
 
             VkInstanceCreateInfo createInfo = VkInstanceCreateInfo.callocStack(stack);
 
@@ -334,8 +353,6 @@ public class VkContextTEMP {
                 queueCreateInfo.pQueuePriorities(stack.floats(1.0f));
             }
 
-            VkPhysicalDeviceFeatures deviceFeatures = VkPhysicalDeviceFeatures.calloc(stack);
-            deviceFeatures.samplerAnisotropy(true);
 
             VkDeviceCreateInfo createInfo = VkDeviceCreateInfo.callocStack(stack);
 
@@ -343,7 +360,23 @@ public class VkContextTEMP {
             createInfo.pQueueCreateInfos(queueCreateInfos);
             // queueCreateInfoCount is automatically set
 
-            createInfo.pEnabledFeatures(deviceFeatures);
+            //createInfo.pEnabledFeatures(deviceFeatures);
+            createInfo.pNext(VkPhysicalDeviceFeatures2KHR
+                            .calloc(stack)
+                            .sType$Default()
+                            .features(f -> f.shaderInt64(true)))
+                    .pNext(VkPhysicalDeviceRayTracingPipelineFeaturesKHR
+                            .calloc(stack)
+                            .sType$Default()
+                            .rayTracingPipeline(true))
+                    .pNext(VkPhysicalDeviceAccelerationStructureFeaturesKHR
+                            .calloc(stack)
+                            .sType$Default()
+                            .accelerationStructure(true))
+                    .pNext(VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
+                            .calloc(stack)
+                            .sType$Default()
+                            .bufferDeviceAddress(true));
 
             createInfo.ppEnabledExtensionNames(asPointerBuffer(DEVICE_EXTENSIONS));
 
@@ -653,7 +686,7 @@ public class VkContextTEMP {
                     .map(VkExtensionProperties::extensionNameString)
                     .collect(toSet());
 
-            extensions.removeAll(DEVICE_EXTENSIONS);
+            //extensions.removeAll(DEVICE_EXTENSIONS);
 
             return availableExtensions.stream()
                     .map(VkExtensionProperties::extensionNameString)
@@ -682,6 +715,15 @@ public class VkContextTEMP {
 
                 if((queueFamilies.get(i).queueFlags() & VK_QUEUE_GRAPHICS_BIT) != 0) {
                     indices.graphicsFamily = i;
+                }
+                if((queueFamilies.get(i).queueFlags() & VK_QUEUE_COMPUTE_BIT) != 0) {
+                    indices.computeFamily = i;
+                }
+                if((queueFamilies.get(i).queueFlags() & VK_QUEUE_TRANSFER_BIT) != 0) {
+                    indices.transferFamily = i;
+                }
+                if((queueFamilies.get(i).queueFlags() & VK_QUEUE_SPARSE_BINDING_BIT) != 0) {
+                    indices.sparseFamily = i;
                 }
 
                 //vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, presentSupport);
@@ -763,5 +805,6 @@ public class VkContextTEMP {
     public static void INIT() {
         initVulkan();
         TestBed.init();
+        new AccelerationSystem(SVkDevice.INSTANCE);
     }
 }

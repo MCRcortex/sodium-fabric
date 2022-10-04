@@ -14,13 +14,13 @@ import static org.lwjgl.vulkan.VK10.VK_SUCCESS;
 public class SVkCommandPool {
     SVkDevice device;
     public long pool;
-    public SVkCommandPool(SVkDevice device, int queueNodeIndex) {//TODO: make queueNodeIndex a S class type
+    public SVkCommandPool(SVkDevice device, int queueNodeIndex, int flags) {//TODO: make queueNodeIndex a S class type
         this.device = device;
         try(MemoryStack stack = stackPush()) {
             VkCommandPoolCreateInfo poolInfo = VkCommandPoolCreateInfo.calloc(stack)
                     .sType$Default()
                     .queueFamilyIndex(queueNodeIndex)
-                    .flags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+                    .flags(flags);
 
             LongBuffer pCommandPool = stack.mallocLong(1);
 

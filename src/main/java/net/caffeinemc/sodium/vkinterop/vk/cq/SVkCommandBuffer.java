@@ -30,4 +30,17 @@ public class SVkCommandBuffer {
         }
         return buffers;
     }
+
+    public static VkCommandBuffer createOneTimeBuffer(SVkDevice device) {
+        try (MemoryStack stack = stackPush()) {
+            VkCommandBufferAllocateInfo cmdBufAllocateInfo = VkCommandBufferAllocateInfo.calloc(stack)
+                    .sType$Default()
+                    .commandPool(device.transientCmdPool.pool)
+                    .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
+                    .commandBufferCount(1);
+            PointerBuffer pCommandBuffers = memAllocPointer(1);
+            _CHECK_(vkAllocateCommandBuffers(device.device, cmdBufAllocateInfo, pCommandBuffers), "failed to allocate command buffers");
+            return new VkCommandBuffer(pCommandBuffers.get(0), device.device);
+        }
+    }
 }

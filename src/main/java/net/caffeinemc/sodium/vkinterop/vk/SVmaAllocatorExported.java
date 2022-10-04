@@ -81,7 +81,7 @@ public class SVmaAllocatorExported extends SVmaAllocator {
             glImportMemoryWin32HandleEXT(memoryObject, req.size(), GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, handle);
             int glId = glCreateBuffers();
             glNamedBufferStorageMemEXT(glId, size, memoryObject, 0);//vkBuffer.memHandle.offset
-            return new SVkGlBuffer(vkBuffer.memHandle, vkBuffer.buffer, glId, handle, memoryObject);
+            return new SVkGlBuffer(vkBuffer.memHandle, vkBuffer.buffer, size, glId, handle, memoryObject);
         }
     }
 

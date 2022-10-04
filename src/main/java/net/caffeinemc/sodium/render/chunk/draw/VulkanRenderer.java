@@ -105,7 +105,7 @@ public class VulkanRenderer implements ChunkRenderer {
                     new SVkImageView(device, depth, VK_FORMAT_D24_UNORM_S8_UINT, VK_IMAGE_ASPECT_DEPTH_BIT, 1)
                 );
 
-        commandPool = new SVkCommandPool(device, VkContextTEMP.findQueueFamilies(VkContextTEMP.getDevice().getPhysicalDevice()).graphicsFamily);//FIXME: make use a class instead
+        commandPool = new SVkCommandPool(device, device.queueFamily, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);//FIXME: make use a class instead
         commandBuffers = SVkCommandBuffer.createCommandBuffers(device, commandPool, maxInFlightFrames);
 
 
@@ -142,9 +142,9 @@ public class VulkanRenderer implements ChunkRenderer {
                 ))
         );
         for (int i = 0; i < maxInFlightFrames; i++) {
-            uniforms[i][0] = device.m_alloc_e.createVkGlBuffer(CAMERA_MATRICES_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_HEAP_DEVICE_LOCAL_BIT, 1);
-            uniforms[i][1] = device.m_alloc_e.createVkGlBuffer(FOG_PARAMETERS_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_HEAP_DEVICE_LOCAL_BIT, 1);
-            uniforms[i][2] = device.m_alloc_e.createVkGlBuffer(TRANSFORM_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_HEAP_DEVICE_LOCAL_BIT, TRANSFORM_STRUCT_STRIDE);
+            uniforms[i][0] = device.m_alloc_e.createVkGlBuffer(CAMERA_MATRICES_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 1);
+            uniforms[i][1] = device.m_alloc_e.createVkGlBuffer(FOG_PARAMETERS_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 1);
+            uniforms[i][2] = device.m_alloc_e.createVkGlBuffer(TRANSFORM_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, TRANSFORM_STRUCT_STRIDE);
         }
         SVkGlImage blockAtlas = TEXTURE_MAP.getOrDefault(GlTexture.getHandle(TextureUtil.getBlockAtlasTexture()), null);
         SVkGlImage lightTexture = TEXTURE_MAP.getOrDefault(GlTexture.getHandle(TextureUtil.getLightTexture()), null);

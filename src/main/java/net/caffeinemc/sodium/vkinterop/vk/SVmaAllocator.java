@@ -1,10 +1,6 @@
 package net.caffeinemc.sodium.vkinterop.vk;
 
-import net.caffeinemc.sodium.vkinterop.VkContextTEMP;
-import net.caffeinemc.sodium.vkinterop.VkMemUtil;
-import net.caffeinemc.sodium.vkinterop.VkUtils;
 import net.caffeinemc.sodium.vkinterop.vk.memory.SVkBuffer;
-import net.caffeinemc.sodium.vkinterop.vk.memory.SVkGlBuffer;
 import net.caffeinemc.sodium.vkinterop.vk.memory.SVmaMemInfo;
 import net.caffeinemc.sodium.vkinterop.vk.memory.images.SVkImage;
 import org.lwjgl.PointerBuffer;
@@ -21,17 +17,12 @@ import java.util.function.BiConsumer;
 import static net.caffeinemc.sodium.vkinterop.VkUtils._CHECK_;
 import static org.lwjgl.opengl.ARBDirectStateAccess.glCreateBuffers;
 import static org.lwjgl.opengl.EXTMemoryObject.glCreateMemoryObjectsEXT;
-import static org.lwjgl.opengl.EXTMemoryObject.glNamedBufferStorageMemEXT;
-import static org.lwjgl.opengl.EXTMemoryObjectWin32.GL_HANDLE_TYPE_OPAQUE_WIN32_EXT;
-import static org.lwjgl.opengl.EXTMemoryObjectWin32.glImportMemoryWin32HandleEXT;
 import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.util.vma.Vma.*;
-import static org.lwjgl.vulkan.KHRExternalMemoryWin32.vkGetMemoryWin32HandleKHR;
 import static org.lwjgl.vulkan.VK10.*;
-import static org.lwjgl.vulkan.VK11.VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
 
 public class SVmaAllocator {
-    protected final SVkDevice device;
+    public final SVkDevice device;
     protected final long allocator;
 
     public SVmaAllocator(SVkDevice device) {
@@ -42,15 +33,14 @@ public class SVmaAllocator {
         this.device = device;
 
         try(MemoryStack stack = stackPush()) {
-            VmaVulkanFunctions vulkanFunctions = VmaVulkanFunctions
-                    .calloc(stack)
-                    .set(device.device.getPhysicalDevice().getInstance(), device.device);
-
             VmaAllocatorCreateInfo allocatorCreateInfo = VmaAllocatorCreateInfo.calloc(stack)
                     .instance(device.device.getPhysicalDevice().getInstance())
                     .physicalDevice(device.device.getPhysicalDevice())
                     .device(device.device)
-                    .pVulkanFunctions(vulkanFunctions);
+                    .pVulkanFunctions(VmaVulkanFunctions
+                            .calloc(stack)
+                            .set(device.device.getPhysicalDevice().getInstance(), device.device))
+                    .flags(VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT);
 
             if (mutator != null) {
                 mutator.accept(stack, allocatorCreateInfo);
@@ -85,7 +75,7 @@ public class SVmaAllocator {
                                     .calloc(stack)
                                     .sType$Default()
                                     .size(size)
-                                    .usage(bufferUsage)
+                                    .usage(bufferUsage | (pUserData != 0 ? VK_BUFFER_USAGE_TRANSFER_DST_BIT : 0))
                                     .pNext(pNext),
                             VmaAllocationCreateInfo
                                     .calloc(stack)
@@ -100,7 +90,7 @@ public class SVmaAllocator {
             if ((ai.offset() % alignment) != 0)
                 throw new AssertionError("Illegal offset alignment");
             SVmaMemInfo memInfo = new SVmaMemInfo(this, pAllocation.get(0), ai.deviceMemory(), ai.offset(), ai.size());
-            return new SVkBuffer(memInfo, pBuffer.get(0));
+            return new SVkBuffer(memInfo, pBuffer.get(0), size);
         }
     }
 

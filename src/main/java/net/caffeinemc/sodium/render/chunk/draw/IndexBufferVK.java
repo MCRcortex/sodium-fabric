@@ -9,13 +9,17 @@ import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 
 import static org.lwjgl.vulkan.VK10.*;
+import static org.lwjgl.vulkan.VK12.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
 public class IndexBufferVK {
-    SVkBuffer indexBuffer;
+    public SVkBuffer indexBuffer;
     public IndexBufferVK(int quadCount) {
+        this(quadCount, 0);
+    }
+    public IndexBufferVK(int quadCount, int flags) {
         ByteBuffer buffer = genQuadIdxs(quadCount*4);
         indexBuffer = SVkDevice.INSTANCE.m_alloc.createBuffer(buffer.capacity(),
-                VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | flags,//FIXME: VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT dont hardcode
                 VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
                 4,
                 MemoryUtil.memAddress(buffer));
