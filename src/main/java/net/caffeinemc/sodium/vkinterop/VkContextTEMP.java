@@ -47,8 +47,7 @@ import static org.lwjgl.vulkan.KHRShaderFloatControls.VK_KHR_SHADER_FLOAT_CONTRO
 import static org.lwjgl.vulkan.KHRSpirv14.VK_KHR_SPIRV_1_4_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK10.*;
-import static org.lwjgl.vulkan.VK11.VK_API_VERSION_1_1;
-import static org.lwjgl.vulkan.VK11.VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+import static org.lwjgl.vulkan.VK11.*;
 import static org.lwjgl.vulkan.VK12.VK_API_VERSION_1_2;
 
 
@@ -359,6 +358,10 @@ public class VkContextTEMP {
             createInfo.sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
             createInfo.pQueueCreateInfos(queueCreateInfos);
             // queueCreateInfoCount is automatically set
+
+            VkPhysicalDeviceFeatures2 features = VkPhysicalDeviceFeatures2.calloc(stack)
+                    .sType$Default();
+            vkGetPhysicalDeviceFeatures2(physicalDevice, features);
 
             //createInfo.pEnabledFeatures(deviceFeatures);
             createInfo.pNext(VkPhysicalDeviceFeatures2KHR
@@ -802,9 +805,10 @@ public class VkContextTEMP {
         extensions.forEach(ie -> buffer.put(memUTF8(ie)));
         return buffer.rewind();
     }
+    public static AccelerationSystem acc;
     public static void INIT() {
         initVulkan();
         TestBed.init();
-        new AccelerationSystem(SVkDevice.INSTANCE);
+        acc = new AccelerationSystem(SVkDevice.INSTANCE);
     }
 }

@@ -40,6 +40,7 @@ import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.render.texture.SpriteUtil;
 import net.caffeinemc.sodium.util.ListUtil;
 import net.caffeinemc.sodium.util.tasks.WorkStealingFutureDrain;
+import net.caffeinemc.sodium.vkinterop.VkContextTEMP;
 import net.caffeinemc.sodium.world.ChunkStatus;
 import net.caffeinemc.sodium.world.ChunkTracker;
 import net.caffeinemc.sodium.world.slice.WorldSliceData;
@@ -156,6 +157,9 @@ public class TerrainRenderManager {
     }
 
     public void update(Frustum frustum, boolean spectator) {
+        synchronized (VkContextTEMP.acc) {
+            VkContextTEMP.acc.tick();
+        }
         Profiler profiler = MinecraftClient.getInstance().getProfiler();
 
         this.frustum = frustum;

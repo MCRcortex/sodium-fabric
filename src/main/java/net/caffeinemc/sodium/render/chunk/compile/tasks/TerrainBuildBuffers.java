@@ -6,16 +6,18 @@ import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
 import net.caffeinemc.sodium.render.chunk.compile.buffers.ChunkMeshBuilder;
 import net.caffeinemc.sodium.render.chunk.compile.buffers.DefaultChunkMeshBuilder;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
+import net.caffeinemc.sodium.render.chunk.raytrace.AccelerationVertexWriter;
 import net.caffeinemc.sodium.render.chunk.state.BuiltChunkGeometry;
 import net.caffeinemc.sodium.render.chunk.state.ChunkPassModel;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexSink;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
-import net.caffeinemc.sodium.render.terrain.format.merging.MergingTerrainVertexSink;
 import net.caffeinemc.sodium.render.terrain.quad.properties.ChunkMeshFace;
 import net.caffeinemc.sodium.render.vertex.buffer.VertexBufferBuilder;
 import net.caffeinemc.sodium.util.NativeBuffer;
+import net.caffeinemc.sodium.vkinterop.VkContextTEMP;
 import net.minecraft.client.render.RenderLayer;
+import net.minecraft.util.math.ChunkSectionPos;
 import org.lwjgl.system.MemoryUtil;
 
 /**
@@ -76,11 +78,21 @@ public class TerrainBuildBuffers {
         return this.delegates[this.renderPassManager.getRenderPassForLayer(layer).getId()];
     }
     
-    public BuiltChunkGeometry buildGeometry() {
+    public BuiltChunkGeometry buildGeometry(ChunkSectionPos chunkPos) {
         for (ChunkMeshBuilder meshBuilder : this.delegates) {
             for (ChunkMeshFace face : ChunkMeshFace.VALUES) {
                 TerrainVertexSink sink = meshBuilder.getVertexSink(face);
                 sink.finish();
+                if (sink.getDelegate() instanceof AccelerationVertexWriter accelerationVertexWriter) {
+                    if (accelerationVertexWriter.pos%(4*3*4) != 0)
+                        throw new IllegalStateException();
+                    if (accelerationVertexWriter.pos != 0) {
+                        synchronized (VkContextTEMP.acc) {
+                            VkContextTEMP.acc.chunkBuilt(chunkPos.getSectionX(), chunkPos.getSectionY(), chunkPos.getSectionZ(), accelerationVertexWriter.mem, accelerationVertexWriter.pos / (4 * 3 * 4));
+                        }
+                    }
+                    MemoryUtil.nmemFree(accelerationVertexWriter.mem);
+                }
             }
         }
         VertexBufferBuilder[][] buffers = this.vertexBuffers;

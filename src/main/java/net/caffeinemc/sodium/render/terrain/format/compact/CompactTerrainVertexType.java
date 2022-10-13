@@ -2,6 +2,7 @@ package net.caffeinemc.sodium.render.terrain.format.compact;
 
 import net.caffeinemc.gfx.api.array.attribute.VertexAttributeFormat;
 import net.caffeinemc.gfx.api.array.attribute.VertexFormat;
+import net.caffeinemc.sodium.render.chunk.raytrace.AccelerationVertexWriter;
 import net.caffeinemc.sodium.render.terrain.format.TerrainMeshAttribute;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexSink;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
@@ -37,7 +38,7 @@ public class CompactTerrainVertexType implements TerrainVertexType {
 
     @Override
     public TerrainVertexSink createBufferWriter(VertexBufferView buffer, boolean direct) {
-        return direct ? new MergingTerrainVertexSink(new CompactTerrainVertexBufferWriterUnsafe(buffer)) : new CompactTerrainVertexBufferWriterNio(buffer);
+        return direct ? new MergingTerrainVertexSink(new AccelerationVertexWriter(new CompactTerrainVertexBufferWriterUnsafe(buffer))) : new CompactTerrainVertexBufferWriterNio(buffer);
     }
 
     @Override

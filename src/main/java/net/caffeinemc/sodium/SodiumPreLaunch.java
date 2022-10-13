@@ -1,5 +1,8 @@
 package net.caffeinemc.sodium;
 
+import java.io.File;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -18,6 +21,8 @@ public class SodiumPreLaunch implements PreLaunchEntrypoint {
     
     @Override
     public void onPreLaunch() {
+        ((org.apache.logging.log4j.core.LoggerContext)LogManager.getContext(false)).setConfigLocation(new File("D:/sodium-fabric-cullmister/.gradle/loom-cache/log4j.xml").toURI());
+
         tryLoadRenderdoc();
         checkJemalloc();
         VkContextTEMP.INIT();

@@ -14,6 +14,7 @@ import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.vulkan.*;
 
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.LongBuffer;
 import java.util.*;
@@ -21,6 +22,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 
 import static net.caffeinemc.sodium.vkinterop.VkUtils._CHECK_;
 import static net.caffeinemc.sodium.vkinterop.VkUtils.pointersOfElements;
+import static org.lwjgl.system.MemoryStack.create;
 import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.system.MemoryUtil.NULL;
 import static org.lwjgl.system.MemoryUtil.memByteBuffer;
@@ -37,6 +39,22 @@ import static org.lwjgl.vulkan.VK12.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 public class AccelerationSystem {
     SVkDevice device;
     IndexBufferVK indexBuffer = new IndexBufferVK(1000000, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR);
+
+    public void chunkBuilt(int x, int y, int z, long mem, long quadCount) {
+        FloatBuffer verts = MemoryUtil.memCallocFloat((int) (quadCount*4*3));
+        for (long i = 0; i < quadCount*4*3; i++) {
+            verts.put(MemoryUtil.memGetFloat(mem+i*4));
+        }
+        verts.rewind();
+        BlasBuildData bbd = new BlasBuildData(device.m_alloc.createBuffer(4*3*4*quadCount,
+                VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
+                        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR,
+                0,
+                Float.BYTES, MemoryUtil.memAddress(verts)), new Vector3i(x,y,z));
+        rebuilQueue.add(bbd);
+    }
+
     public static class BlasBuildData {
         SVkBuffer vertexData;//NOTE:Can technically free this after it has been built since blas is self containing
         int quadCount;
@@ -70,23 +88,17 @@ public class AccelerationSystem {
 
     public AccelerationSystem(SVkDevice device) {
         this.device = device;
-        FloatBuffer verts = MemoryUtil.memCallocFloat(4*3);
-        verts.put(0).put(0).put(0);
-        verts.put(1).put(0).put(0);
-        verts.put(1).put(0).put(1);
-        verts.put(0).put(0).put(1);
-        verts.rewind();
-        BlasBuildData bbd = new BlasBuildData(device.m_alloc.createBuffer(4*3*4,
-                VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
-                        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR,
-                0,
-                Float.BYTES, MemoryUtil.memAddress(verts)), new Vector3i(0,0,0));
-        rebuilQueue.add(bbd);
+
+        //buildBlass();
+        //rebuildTLAS();
+    }
+
+    public void tick() {
+        if (rebuilQueue.size() == 0)
+            return;
         buildBlass();
         rebuildTLAS();
     }
-
 
     private SVkBuffer makeBLASBuffer(long size) {
         return device.m_alloc.createBuffer(size,
@@ -102,8 +114,9 @@ public class AccelerationSystem {
             //TODO: FREE old
         }
     }
+    static final MemoryStack innerStack = MemoryStack.create(MemoryUtil.memAlloc(1024*1024*1024));
     private void buildBlass() {
-        try (MemoryStack stack = stackPush()) {
+        try (MemoryStack stack = innerStack.push()) {
             VkAccelerationStructureBuildGeometryInfoKHR.Buffer pInfos =
                     VkAccelerationStructureBuildGeometryInfoKHR
                             .calloc(rebuilQueue.size(), stack);
@@ -215,12 +228,13 @@ public class AccelerationSystem {
                 vkFreeCommandBuffers(device.device, device.transientCmdPool.pool, cmdBuf);
                 //scratchBuffer.free();//TODO: Free scratch buffer
             });
+            rebuilQueue.clear();
         }
     }
 
 
     private void rebuildTLAS() {
-        try (MemoryStack stack = stackPush()) {
+        try (MemoryStack stack = innerStack.push()) {
             VkAccelerationStructureInstanceKHR.Buffer instances = VkAccelerationStructureInstanceKHR
                     .calloc(blass.size(), stack);
             int i = -1;

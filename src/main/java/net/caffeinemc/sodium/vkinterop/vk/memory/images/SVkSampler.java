@@ -22,7 +22,7 @@ public class SVkSampler {
             .addressModeU(VK_SAMPLER_ADDRESS_MODE_REPEAT)
             .addressModeV(VK_SAMPLER_ADDRESS_MODE_REPEAT)
             .addressModeW(VK_SAMPLER_ADDRESS_MODE_REPEAT)
-            .anisotropyEnable(true)
+            .anisotropyEnable(false)
             .maxAnisotropy(16.0f)
             .borderColor(VK_BORDER_COLOR_INT_OPAQUE_BLACK)
             .unnormalizedCoordinates(false)

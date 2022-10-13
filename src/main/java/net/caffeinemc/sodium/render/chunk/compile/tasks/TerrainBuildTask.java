@@ -130,7 +130,7 @@ public class TerrainBuildTask extends AbstractBuilderTask {
             }
         }
 
-        BuiltChunkGeometry geometry = buffers.buildGeometry();
+        BuiltChunkGeometry geometry = buffers.buildGeometry(this.render.getChunkPos());
 
         renderData.setModels(geometry.models());
         renderData.setOcclusionData(occluder.build());
