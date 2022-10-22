@@ -5,7 +5,7 @@
 #import <sodium:include/terrain_textures.glsl>
 #import <sodium:terrain/terrain_opaque.glsl>
 
-in VertexOutput vs_out;
+layout(location = 0) in VertexOutput vs_out;
 
 void main() {
     vec4 frag_diffuse = texture(tex_diffuse, vs_out.tex_diffuse_coord);

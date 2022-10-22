@@ -70,8 +70,9 @@ public class UserConfig {
     public enum ChunkRendererBackend implements TextProvider {
         DEFAULT("options.gamma.default", p -> true),
         BASEVERTEX("sodium.options.chunk_renderer_backend.base_vertex", p -> true),
-        INDIRECT("sodium.options.chunk_renderer_backend.indirect", p -> true);
-        
+        INDIRECT("sodium.options.chunk_renderer_backend.indirect", p -> true),
+        VULKAN("sodium.options.chunk_renderer_backend.vulkan", p -> true);
+
         private final Text name;
         private final Predicate<RenderDeviceProperties> supportedSupplier;
     

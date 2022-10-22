@@ -8,7 +8,7 @@
 #import <sodium:include/terrain_textures.glsl>
 #import <sodium:terrain/terrain_opaque.glsl>
 
-out VertexOutput vs_out;
+layout(location = 0) out VertexOutput vs_out;
 
 void main() {
     _vert_init();

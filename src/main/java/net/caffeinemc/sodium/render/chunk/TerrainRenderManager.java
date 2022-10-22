@@ -24,6 +24,7 @@ import net.caffeinemc.sodium.render.chunk.draw.MdiChunkRenderer;
 import net.caffeinemc.sodium.render.chunk.draw.SortedTerrainLists;
 import net.caffeinemc.sodium.render.chunk.cull.SectionCuller;
 import net.caffeinemc.sodium.render.chunk.cull.SectionTree;
+import net.caffeinemc.sodium.render.chunk.draw.VulkanChunkRenderer;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegionManager;
@@ -469,6 +470,8 @@ public class TerrainRenderManager {
             case BASEVERTEX -> new MdbvChunkRenderer(device, camera, renderPassManager, vertexType);
             
             case INDIRECT -> new MdiChunkRenderer(device, camera, renderPassManager, vertexType);
+
+            case VULKAN -> new VulkanChunkRenderer(device, camera, renderPassManager, vertexType);
         };
     }
 

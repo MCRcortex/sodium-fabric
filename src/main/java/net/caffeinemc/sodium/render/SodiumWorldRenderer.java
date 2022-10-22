@@ -223,24 +223,29 @@ public class SodiumWorldRenderer {
     }
 
     private void initRenderer() {
-        if (this.terrainRenderManager != null) {
-            this.terrainRenderManager.destroy();
-            this.terrainRenderManager = null;
+        try {
+            if (this.terrainRenderManager != null) {
+                this.terrainRenderManager.destroy();
+                this.terrainRenderManager = null;
+            }
+
+            this.chunkViewDistance = this.client.options.getClampedViewDistance();
+
+            this.renderPassManager = ChunkRenderPassManager.createDefaultMappings();
+
+            this.terrainRenderManager = new TerrainRenderManager(
+                    SodiumClientMod.DEVICE,
+                    this,
+                    this.renderPassManager,
+                    this.world,
+                    new ChunkCameraContext(this.client),
+                    this.chunkViewDistance
+            );
+            this.terrainRenderManager.reloadChunks(this.chunkTracker);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(-1);
         }
-
-        this.chunkViewDistance = this.client.options.getClampedViewDistance();
-
-        this.renderPassManager = ChunkRenderPassManager.createDefaultMappings();
-        
-        this.terrainRenderManager = new TerrainRenderManager(
-                SodiumClientMod.DEVICE,
-                this,
-                this.renderPassManager,
-                this.world,
-                new ChunkCameraContext(this.client),
-                this.chunkViewDistance
-        );
-        this.terrainRenderManager.reloadChunks(this.chunkTracker);
     }
 
     public void renderTileEntities(MatrixStack matrices, BufferBuilderStorage bufferBuilders, Long2ObjectMap<SortedSet<BlockBreakingInfo>> blockBreakingProgressions,
