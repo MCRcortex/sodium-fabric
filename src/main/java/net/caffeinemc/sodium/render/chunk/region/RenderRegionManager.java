@@ -8,10 +8,13 @@ import it.unimi.dsi.fastutil.objects.ReferenceList;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
+
+import me.cortex.vulkanitelib.memory.buffer.VGlVkBuffer;
 import net.caffeinemc.gfx.api.buffer.ImmutableBuffer;
 import net.caffeinemc.gfx.api.buffer.ImmutableBufferFlags;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
+import net.caffeinemc.gfx.opengl.buffer.VkGlImmutableBuffer;
 import net.caffeinemc.gfx.util.buffer.BufferPool;
 import net.caffeinemc.gfx.util.buffer.streaming.SectionedStreamingBuffer;
 import net.caffeinemc.gfx.util.buffer.streaming.StreamingBuffer;
@@ -24,8 +27,11 @@ import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.util.IntPool;
+import net.caffeinemc.sodium.vk.VulkanContext;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.profiler.Profiler;
+
+import static org.lwjgl.vulkan.VK10.*;
 
 public class RenderRegionManager {
     // these constants have been found from experimentation
@@ -50,10 +56,15 @@ public class RenderRegionManager {
         this.bufferPool = new BufferPool<>(
                 device,
                 PRUNE_SAMPLE_SIZE,
-                c -> device.createBuffer(
+                c -> /*
+                        device.createBuffer(
                         c,
                         EnumSet.noneOf(ImmutableBufferFlags.class)
-                )
+                )*/
+                {
+                    VGlVkBuffer buffer = VulkanContext.device.exportedAllocator.createSharedBuffer(c, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                    return new VkGlImmutableBuffer(buffer, buffer.glId, buffer.size, EnumSet.noneOf(ImmutableBufferFlags.class));
+                }
         );
 
         var maxInFlightFrames = SodiumClientMod.options().advanced.cpuRenderAheadLimit + 1;

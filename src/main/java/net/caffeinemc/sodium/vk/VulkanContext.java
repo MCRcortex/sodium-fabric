@@ -3,6 +3,7 @@ package net.caffeinemc.sodium.vk;
 import me.cortex.vulkanitelib.VContextBuilder;
 import me.cortex.vulkanitelib.VVkContext;
 import me.cortex.vulkanitelib.VVkDevice;
+import me.cortex.vulkanitelib.other.VVkCommandPool;
 
 import static org.lwjgl.vulkan.EXTDescriptorIndexing.VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME;
@@ -22,10 +23,12 @@ import static org.lwjgl.vulkan.KHRRayTracingPipeline.VK_KHR_RAY_TRACING_PIPELINE
 import static org.lwjgl.vulkan.KHRShaderDrawParameters.VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRShaderFloatControls.VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRSpirv14.VK_KHR_SPIRV_1_4_EXTENSION_NAME;
+import static org.lwjgl.vulkan.VK10.VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 
 public class VulkanContext {
     public static final VVkContext context;
     public static final VVkDevice device;
+    public static final VVkCommandPool transientPool;
     static {
         context = new VContextBuilder(true)
                 .setVersion(1,3)
@@ -51,7 +54,7 @@ public class VulkanContext {
                         VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME)
                 .create();
         device = context.getDevice();
-
+        transientPool = device.createCommandPool(0, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
         System.out.println("Successfully initialized vulkan backend");
     }
 }

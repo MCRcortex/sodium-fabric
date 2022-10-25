@@ -270,6 +270,7 @@ public class TerrainRenderManager {
     }
 
     public void renderLayer(ChunkRenderMatrices matrices, ChunkRenderPass renderPass) {
+        //if (renderPass.getId() != 0)
         this.chunkRenderer.render(renderPass, matrices, this.frameIndex);
     }
 

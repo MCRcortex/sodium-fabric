@@ -259,11 +259,11 @@ public abstract class AbstractMdChunkRenderer<B extends AbstractMdChunkRenderer.
     
     protected void setupTextures(ChunkRenderPass pass, PipelineState pipelineState) {
         pipelineState.bindTexture(
-                0,
+                3,
                 TextureUtil.getBlockAtlasTexture(),
                 pass.isMipped() ? this.blockTextureMippedSampler : this.blockTextureSampler
         );
-        pipelineState.bindTexture(1, TextureUtil.getLightTexture(), this.lightTextureSampler);
+        pipelineState.bindTexture(4, TextureUtil.getLightTexture(), this.lightTextureSampler);
     }
     
     protected void setupUniforms(
