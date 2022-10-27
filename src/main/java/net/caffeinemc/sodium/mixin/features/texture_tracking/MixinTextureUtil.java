@@ -18,5 +18,6 @@ public class MixinTextureUtil {
     public static void prepareImage(int id, int width, int height) {
         VGlVkImage im = VulkanContext.device.exportedAllocator.createShared2DImage(id, width, height, 1, VK_FORMAT_R8G8B8A8_UNORM, GL_RGBA8, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         GlStateManager._bindTexture(id);
+        VulkanContext.gl2vk_textures.put(id, im);
     }
 }

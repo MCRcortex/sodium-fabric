@@ -1,8 +1,10 @@
 package net.caffeinemc.sodium.vk;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import me.cortex.vulkanitelib.VContextBuilder;
 import me.cortex.vulkanitelib.VVkContext;
 import me.cortex.vulkanitelib.VVkDevice;
+import me.cortex.vulkanitelib.memory.image.VGlVkImage;
 import me.cortex.vulkanitelib.other.VVkCommandPool;
 
 import static org.lwjgl.vulkan.EXTDescriptorIndexing.VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME;
@@ -28,7 +30,7 @@ import static org.lwjgl.vulkan.VK10.VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 public class VulkanContext {
     public static final VVkContext context;
     public static final VVkDevice device;
-    public static final VVkCommandPool transientPool;
+    public static final Int2ObjectOpenHashMap<VGlVkImage> gl2vk_textures = new Int2ObjectOpenHashMap<>();
     static {
         context = new VContextBuilder(true)
                 .setVersion(1,3)
@@ -54,7 +56,6 @@ public class VulkanContext {
                         VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME)
                 .create();
         device = context.getDevice();
-        transientPool = device.createCommandPool(0, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
         System.out.println("Successfully initialized vulkan backend");
     }
 }

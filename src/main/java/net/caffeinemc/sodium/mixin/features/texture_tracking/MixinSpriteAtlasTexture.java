@@ -22,7 +22,7 @@ public class MixinSpriteAtlasTexture {
     private void redirect(int id, int maxLevel, int width, int height) {
         VGlVkImage im = VulkanContext.device.exportedAllocator.createShared2DImage(id, width, height, maxLevel+1, VK_FORMAT_R8G8B8A8_UNORM, GL_RGBA8, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         GlStateManager._bindTexture(id);
-        //VulkanRenderer.TEXTURE_MAP.put(id, im);
+        VulkanContext.gl2vk_textures.put(id, im);
     }
     @Inject(method = "getSprite", at = @At("RETURN"))
     private void preReturnSprite(CallbackInfoReturnable<Sprite> cir) {
