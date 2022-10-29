@@ -26,13 +26,15 @@ public class MixinFramebuffer {
 
     @Inject(method = "initFbo", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gl/Framebuffer;checkFramebufferStatus()V", ordinal = 0))
     private void changeTexture(int width, int height, boolean getError, CallbackInfo ci) {
+
         GlStateManager._deleteTexture(colorAttachment);
 
         VGlVkImage im = VulkanContext.device.exportedAllocator.createShared2DImage(width,height, 1, VK_FORMAT_R8G8B8A8_UNORM, GL11.GL_RGBA8, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_SAMPLED_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         this.colorAttachment = im.glId;
         GlStateManager._bindTexture(this.colorAttachment);
         VulkanContext.gl2vk_textures.put(this.colorAttachment, im);
-        VulkanContext.colorTex = im;
+        if (VulkanContext.colorTex == null)
+            VulkanContext.colorTex = im;
 
         GlStateManager._glFramebufferTexture2D(36160, 36064, 3553, this.colorAttachment, 0);
 
@@ -42,7 +44,8 @@ public class MixinFramebuffer {
         this.depthAttachment = db.glId;
         GlStateManager._bindTexture(this.depthAttachment);
         VulkanContext.gl2vk_textures.put(this.depthAttachment, db);
-        VulkanContext.depthTex = db;
+        if (VulkanContext.depthTex == null)
+            VulkanContext.depthTex = db;
 
         GlStateManager._glFramebufferTexture2D(36160, 36096, 3553, this.depthAttachment, 0);
 
