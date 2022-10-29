@@ -31,6 +31,8 @@ public class VulkanContext {
     public static final VVkContext context;
     public static final VVkDevice device;
     public static final Int2ObjectOpenHashMap<VGlVkImage> gl2vk_textures = new Int2ObjectOpenHashMap<>();
+    public static VGlVkImage colorTex;
+    public static VGlVkImage depthTex;
     static {
         context = new VContextBuilder(true)
                 .setVersion(1,3)
