@@ -174,6 +174,9 @@ public class VVkDevice {
                     .semaphore(out[0])
                     .handleType(VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT);
             _CHECK_(vkGetSemaphoreWin32HandleKHR(device, sgwhi, pb));
+            if (pb.get(0)== 0) {
+                throw new IllegalStateException();
+            }
             int glSemaphore = glGenSemaphoresEXT();
             glImportSemaphoreWin32HandleEXT(glSemaphore, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, pb.get(0));
 

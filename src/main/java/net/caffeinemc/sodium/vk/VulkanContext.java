@@ -51,11 +51,12 @@ public class VulkanContext {
                         VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
                         VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
                         VK_KHR_SPIRV_1_4_EXTENSION_NAME,
-                        VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
-                        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-                        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-                        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-                        VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME)
+                //        VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+                //        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+                //        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+                //        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+                        VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME
+                )
                 .create();
         device = context.getDevice();
         System.out.println("Successfully initialized vulkan backend");

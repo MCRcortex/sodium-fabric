@@ -60,6 +60,8 @@ import static org.lwjgl.opengl.ARBDirectStateAccess.glNamedFramebufferTexture;
 import static org.lwjgl.opengl.EXTSemaphore.*;
 import static org.lwjgl.opengl.GL11.GL_RGBA8;
 import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL42C.GL_ALL_BARRIER_BITS;
+import static org.lwjgl.opengl.GL42C.glMemoryBarrier;
 import static org.lwjgl.util.vma.Vma.VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 import static org.lwjgl.vulkan.VK10.*;
 
@@ -298,10 +300,13 @@ public class VulkanChunkRenderer implements ChunkRenderer {
         glFb = glCreateFramebuffers();
         glNamedFramebufferTexture(glFb, GL_COLOR_ATTACHMENT0, gc.glId, 0);
         colourBuf = gc;
-        glNamedFramebufferTexture(glFb, GL_COLOR_ATTACHMENT0, VulkanContext.colorTex.glId, 0);
+        glNamedFramebufferTexture(glFb, GL_COLOR_ATTACHMENT0, theFrameBuffer.glId, 0);
         glNamedFramebufferTexture(glFb, GL_DEPTH_ATTACHMENT, VulkanContext.depthTex.glId, 0);*
 
          */
+
+        theFrameBuffer = device.createFramebuffer(renderPass, VulkanContext.gl2vk_textures.get(MinecraftClient.getInstance().getFramebuffer().getColorAttachment()).createView(VK_IMAGE_ASPECT_COLOR_BIT), VulkanContext.gl2vk_textures.get(MinecraftClient.getInstance().getFramebuffer().getDepthAttachment()).createView(VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT));
+
     }
 
     protected static ShaderConstants.Builder getBaseShaderConstants(ChunkRenderPass pass, TerrainVertexType vertexType) {
@@ -331,11 +336,6 @@ public class VulkanChunkRenderer implements ChunkRenderer {
 
     @Override
     public void createRenderLists(SortedTerrainLists lists, int frameIndex) {
-
-        if (theFrameBuffer == null) {
-            theFrameBuffer = device.createFramebuffer(renderPass, VulkanContext.colorTex.createView(VK_IMAGE_ASPECT_COLOR_BIT), VulkanContext.depthTex.createView(VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT));
-        }
-
         BlockPos cameraBlockPos = this.cameraContext.getBlockPos();
         float cameraDeltaX = this.cameraContext.getDeltaX();
         float cameraDeltaY = this.cameraContext.getDeltaY();
@@ -374,15 +374,15 @@ public class VulkanChunkRenderer implements ChunkRenderer {
             try (MemoryStack stack = MemoryStack.stackPush()) {
                 // Update dynamic viewport state
                 VkViewport.Buffer viewport = VkViewport.calloc(1, stack)
-                        .width(VulkanContext.colorTex.width)
-                        .height(VulkanContext.colorTex.height)
+                        .width(theFrameBuffer.width)
+                        .height(theFrameBuffer.height)
                         .minDepth(0.0f)
                         .maxDepth(1.0f);
                 vkCmdSetViewport(cmd.buffer, 0, viewport);
 
                 // Update dynamic scissor state
                 VkRect2D.Buffer scissor = VkRect2D.calloc(1, stack);
-                scissor.extent().set(VulkanContext.colorTex.width, VulkanContext.colorTex.height);
+                scissor.extent().set(theFrameBuffer.width, theFrameBuffer.height);
 
                 vkCmdSetScissor(cmd.buffer, 0, scissor);
                 vkCmdSetDepthBias(cmd.buffer, 0, 0.0f, 0);
@@ -394,8 +394,8 @@ public class VulkanChunkRenderer implements ChunkRenderer {
                     clearAttachments.get(0).aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).clearValue().color().float32(0, 1).float32(1, 0).float32(2, 1).float32(3, 1);
                     clearAttachments.get(1).aspectMask(VK_IMAGE_ASPECT_DEPTH_BIT).clearValue().depthStencil().depth(1);
                     VkClearRect.Buffer clearRects = VkClearRect.calloc(2, stack);
-                    clearRects.get(0).layerCount(1).rect().extent().set(VulkanContext.colorTex.width, VulkanContext.colorTex.height);
-                    clearRects.get(1).layerCount(1).rect().extent().set(VulkanContext.colorTex.width, VulkanContext.colorTex.height);
+                    clearRects.get(0).layerCount(1).rect().extent().set(theFrameBuffer.width, theFrameBuffer.height);
+                    clearRects.get(1).layerCount(1).rect().extent().set(theFrameBuffer.width, theFrameBuffer.height);
                     //vkCmdClearAttachments(cmd.buffer, clearAttachments, clearRects);
                 }
             }
@@ -514,14 +514,14 @@ public class VulkanChunkRenderer implements ChunkRenderer {
         VGlVkSemaphore waitSem = waitSemaphores[frameIndex][renderPass.getId()];
         VGlVkSemaphore signalSem = signalSemaphores[frameIndex][renderPass.getId()];
 
+        //glFinish();
         glFinish();
-        waitSem.glSignal(new int[]{},new int[]{VulkanContext.colorTex.glId, VulkanContext.depthTex.glId},new int[]{GL_LAYOUT_GENERAL_EXT,GL_LAYOUT_GENERAL_EXT});//TODO: provide the framebuffer depth and colour texture
-        queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()], waitSem, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, signalSem, null);//TODO: need to basicly submit all the layers at once with correct ordering, that way it can work on multiple render passes at the same time
+        waitSem.glSignal(new int[]{},new int[]{((VGlVkImage)theFrameBuffer.attachments[0].image).glId},new int[]{GL_LAYOUT_GENERAL_EXT});//TODO: provide the framebuffer depth and colour texture
+        queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()], waitSem, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, signalSem, null);//TODO: need to basicly submit all the layers at once with correct ordering, that way it can work on multiple render passes at the same time
         //queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()]);
-        signalSem.glWait(new int[]{},new int[]{VulkanContext.colorTex.glId, VulkanContext.depthTex.glId},new int[]{GL_LAYOUT_GENERAL_EXT,GL_LAYOUT_GENERAL_EXT});//TODO: provide the framebuffer depth and colour texture
+        signalSem.glWait(new int[]{},new int[]{((VGlVkImage)theFrameBuffer.attachments[0].image).glId},new int[]{GL_LAYOUT_GENERAL_EXT});//TODO: provide the framebuffer depth and colour texture
+        //glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
-
-        vkQueueWaitIdle(queue.queue);
         /*
         if (renderPass.getId() == 4){
             glBindFramebuffer(GL_READ_FRAMEBUFFER, glFb);
