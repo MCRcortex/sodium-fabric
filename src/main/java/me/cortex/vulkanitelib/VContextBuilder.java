@@ -1,7 +1,11 @@
 package me.cortex.vulkanitelib;
 
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.Struct;
+
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Function;
 
 import static org.lwjgl.vulkan.EXTDebugUtils.VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 
@@ -28,12 +32,17 @@ public class VContextBuilder {
     static class ExtensionEntry {//TODO: add optional pointerFeatureStruct so that it can be conditionally configured if wanted NOTE: MUST DO THIS SO THAT vkGetPhysicalDeviceFeatures2 struct can be filled out
         final String name;
         final boolean optional;
-        public ExtensionEntry(String name, boolean optional) {
+        final Function<MemoryStack, Struct> pNextApplicator;
+        public ExtensionEntry(String name, boolean optional, Function<MemoryStack, Struct> pNextApplicator) {
             this.name = name;
             this.optional = optional;
+            this.pNextApplicator = pNextApplicator;
+        }
+        public ExtensionEntry(String name, Function<MemoryStack, Struct> pNextApplicator) {
+            this(name, false, pNextApplicator);
         }
         public ExtensionEntry(String name) {
-            this(name, false);
+            this(name, false, null);
         }
     }
     List<ExtensionEntry> instanceExtensions = new LinkedList<>();
@@ -56,6 +65,12 @@ public class VContextBuilder {
     List<ExtensionEntry> deviceExtensions = new LinkedList<>();
     public VContextBuilder addDeviceExtension(String extension) {
         deviceExtensions.add(new ExtensionEntry(extension));
+        return this;
+    }
+
+    //TODO: need to add a feature requester
+    public VContextBuilder addDeviceExtension(String extension, Function<MemoryStack, Struct> applicator) {//TODO: make this alot cleaner somehow
+        deviceExtensions.add(new ExtensionEntry(extension, applicator));
         return this;
     }
     public VContextBuilder addDeviceExtensions(String... extensions) {

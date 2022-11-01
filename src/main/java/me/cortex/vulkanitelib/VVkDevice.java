@@ -1,5 +1,6 @@
 package me.cortex.vulkanitelib;
 
+import me.cortex.testbed.RayQueryTriangle;
 import me.cortex.vulkanitelib.descriptors.VVkDescriptorSetLayout;
 import me.cortex.vulkanitelib.descriptors.builders.DescriptorSetLayoutBuilder;
 import me.cortex.vulkanitelib.memory.VVkAllocator;
@@ -10,13 +11,13 @@ import me.cortex.vulkanitelib.memory.image.VVkSampler;
 import me.cortex.vulkanitelib.other.VVkCommandBuffer;
 import me.cortex.vulkanitelib.other.VVkCommandPool;
 import me.cortex.vulkanitelib.other.VVkQueue;
-import me.cortex.vulkanitelib.pipelines.VVkGraphicsPipeline;
-import me.cortex.vulkanitelib.pipelines.VVkPipeline;
-import me.cortex.vulkanitelib.pipelines.VVkRenderPass;
-import me.cortex.vulkanitelib.pipelines.VVkShader;
+import me.cortex.vulkanitelib.pipelines.*;
+import me.cortex.vulkanitelib.pipelines.builders.ComputePipelineBuilder;
 import me.cortex.vulkanitelib.pipelines.builders.GraphicsPipelineBuilder;
 import me.cortex.vulkanitelib.pipelines.builders.RenderPassBuilder;
+import me.cortex.vulkanitelib.raytracing.VAccelerationMethods;
 import me.cortex.vulkanitelib.sync.VGlVkSemaphore;
+import me.cortex.vulkanitelib.sync.VVkFence;
 import me.cortex.vulkanitelib.sync.VVkSemaphore;
 import me.cortex.vulkanitelib.utils.ShaderUtils;
 import org.lwjgl.PointerBuffer;
@@ -25,12 +26,14 @@ import org.lwjgl.vulkan.*;
 
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
-import java.util.HashMap;
+import java.util.*;
+import java.util.function.Consumer;
 
 import static me.cortex.vulkanitelib.utils.VVkUtils._CHECK_;
 import static org.lwjgl.opengl.EXTSemaphore.glGenSemaphoresEXT;
 import static org.lwjgl.opengl.EXTSemaphoreWin32.GL_HANDLE_TYPE_OPAQUE_WIN32_EXT;
 import static org.lwjgl.opengl.EXTSemaphoreWin32.glImportSemaphoreWin32HandleEXT;
+import static org.lwjgl.util.vma.Vma.VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 import static org.lwjgl.vulkan.KHRExternalSemaphoreWin32.vkGetSemaphoreWin32HandleKHR;
 import static org.lwjgl.vulkan.VK10.*;
 import static org.lwjgl.vulkan.VK11.VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT;
@@ -41,12 +44,17 @@ public class VVkDevice {
     public VVkAllocator allocator;
     public VVkExportedAllocator exportedAllocator;//TODO: FIX THIS ENTIRE MESS OF A SYSTEM FOR THE LOVE OF GOD
     public final VVkCommandPool transientPool;
+
+    public VAccelerationMethods accelerator;
+
     public VVkDevice(VkDevice device, VVkContext vVkContext) {
         this.device = device;
         this.context = vVkContext;
-        this.allocator = new VVkAllocator(this);
+        this.allocator = new VVkAllocator(this, VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT);//TODO: make this dependent on extensions
         this.exportedAllocator = new VVkExportedAllocator(this);
         transientPool = createCommandPool(0, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);//TODO: pass in transient family
+
+        accelerator = new VAccelerationMethods(this);//TODO: DONT PUT THIS IN THE DEVICE CLASS
     }
 
     public VVkRenderPass build(RenderPassBuilder rpb) {
@@ -89,6 +97,19 @@ public class VVkDevice {
             LongBuffer pPipeline = stack.mallocLong(1);
             _CHECK_(vkCreateGraphicsPipelines(device, 0, VkGraphicsPipelineCreateInfo.create(pipelineCreateInfo.address(), 1), null, pPipeline));
             return new VVkGraphicsPipeline(this, pPipeline.get(0), pLayout.get(0));
+        }
+    }
+
+    public VVkComputePipeline build(ComputePipelineBuilder csp) {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            VkPipelineLayoutCreateInfo layoutCreateInfo = csp.generateLayout(stack);
+            LongBuffer pLayout = stack.mallocLong(1);
+            _CHECK_(vkCreatePipelineLayout(device, layoutCreateInfo, null, pLayout));
+
+            VkComputePipelineCreateInfo pipelineCreateInfo = csp.generatePipeline(stack, pLayout.get(0));
+            LongBuffer pPipeline = stack.mallocLong(1);
+            _CHECK_(vkCreateComputePipelines(device, 0, VkComputePipelineCreateInfo.create(pipelineCreateInfo.address(), 1), null, pPipeline));
+            return new VVkComputePipeline(this, pPipeline.get(0), pLayout.get(0));
         }
     }
 
@@ -206,4 +227,49 @@ public class VVkDevice {
             return new VVkSampler(this, pSampler.get(0));
         }
     }
+
+    public VVkDevice singleTimeCommand(Consumer<VVkCommandBuffer> acceptor, Runnable postFence) {
+        VVkCommandBuffer commandBuffer = transientPool.createCommandBuffer();
+        commandBuffer.begin();
+        acceptor.accept(commandBuffer);
+        commandBuffer.end();
+        fetchQueue().submit(commandBuffer, postFence);
+        return this;
+    }
+
+    public VVkFence createFence(boolean addToWatch) {
+        try (MemoryStack stack = MemoryStack.stackPush()){
+            LongBuffer pFence = stack.mallocLong(1);
+            _CHECK_(vkCreateFence(device, VkFenceCreateInfo
+                            .calloc(stack)
+                            .sType$Default(), null, pFence),
+                    "Failed to create fence");
+            VVkFence fence = new VVkFence(this, pFence.get(0));
+            if (addToWatch)
+                addFenceWatch(fence);
+            return fence;
+        }
+    }
+
+
+    //TODO: maybe move this from here somewhere else
+    private final Set<VVkFence> fences = new HashSet<>();
+    public VVkDevice addFenceWatch(VVkFence fence) {
+        fences.add(fence);
+        return this;
+    }
+    //TODO: maybe move this from here somewhere else
+    public VVkDevice tickFences() {
+        Iterator<VVkFence> it = fences.iterator();
+        while (it.hasNext()) {
+            VVkFence e = it.next();
+            if (vkGetFenceStatus(device, e.fence) == VK_SUCCESS) {
+                it.remove();
+                e.free();
+                e.onFenced();
+            }
+        }
+        return this;
+    }
+
 }

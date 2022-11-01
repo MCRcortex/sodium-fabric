@@ -10,6 +10,7 @@ import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkDescriptorBufferInfo;
 import org.lwjgl.vulkan.VkDescriptorImageInfo;
 import org.lwjgl.vulkan.VkWriteDescriptorSet;
+import org.lwjgl.vulkan.VkWriteDescriptorSetAccelerationStructureKHR;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Stack;
 import java.util.function.Consumer;
 
+import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 import static org.lwjgl.vulkan.VK10.*;
 
 
@@ -33,6 +35,9 @@ public class DescriptorUpdateBuilder {
     }
     private static void combImageSamplePrep(MemoryStack stack, VkWriteDescriptorSet writer) {
         writer.descriptorCount(1).pImageInfo(VkDescriptorImageInfo.calloc(1, stack)).descriptorType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    }
+    private static void accelerationPrep(MemoryStack stack, VkWriteDescriptorSet writer) {
+        writer.descriptorCount(1).pNext(VkWriteDescriptorSetAccelerationStructureKHR.calloc(stack).sType$Default()).descriptorType(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR);
     }
 
     public DescriptorUpdateBuilder sbuffer(int binding, VVkBuffer[] buffers) {

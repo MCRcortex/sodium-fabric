@@ -35,7 +35,7 @@ import static org.lwjgl.vulkan.VK11.VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_
 public class VVkExportedAllocator extends VVkAllocator {
     public final long allocator;
     public VVkExportedAllocator(VVkDevice device) {
-        super(device);
+        super(device, 0);
         try (MemoryStack stack = MemoryStack.stackPush()) {
             VmaAllocatorCreateInfo allocatorCreateInfo = VmaAllocatorCreateInfo.calloc(stack)
                     .instance(device.device.getPhysicalDevice().getInstance())

@@ -6,6 +6,9 @@ import me.cortex.vulkanitelib.VVkContext;
 import me.cortex.vulkanitelib.VVkDevice;
 import me.cortex.vulkanitelib.memory.image.VGlVkImage;
 import me.cortex.vulkanitelib.other.VVkCommandPool;
+import org.lwjgl.vulkan.VkPhysicalDeviceAccelerationStructureFeaturesKHR;
+import org.lwjgl.vulkan.VkPhysicalDeviceBufferDeviceAddressFeaturesKHR;
+import org.lwjgl.vulkan.VkPhysicalDeviceRayQueryFeaturesKHR;
 
 import static org.lwjgl.vulkan.EXTDescriptorIndexing.VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME;
@@ -21,6 +24,7 @@ import static org.lwjgl.vulkan.KHRExternalSemaphoreCapabilities.VK_KHR_EXTERNAL_
 import static org.lwjgl.vulkan.KHRExternalSemaphoreWin32.VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRGetMemoryRequirements2.VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRGetPhysicalDeviceProperties2.VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME;
+import static org.lwjgl.vulkan.KHRRayQuery.VK_KHR_RAY_QUERY_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRRayTracingPipeline.VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRShaderDrawParameters.VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRShaderFloatControls.VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME;
@@ -49,14 +53,26 @@ public class VulkanContext {
                         VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
                         VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
                         VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-                        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
                         VK_KHR_SPIRV_1_4_EXTENSION_NAME,
-                //        VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
-                //        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-                //        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-                //        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-                        VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME
-                )
+                        VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
+
+                        VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+                        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
+                ).addDeviceExtension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, (stack)->
+                        VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
+                                .calloc(stack)
+                                .sType$Default()
+                                .bufferDeviceAddress(true))
+                .addDeviceExtension(VK_KHR_RAY_QUERY_EXTENSION_NAME, (stack)->
+                        VkPhysicalDeviceRayQueryFeaturesKHR
+                                .calloc(stack)
+                                .sType$Default()
+                                .rayQuery(true))
+                .addDeviceExtension(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, (stack)->
+                        VkPhysicalDeviceAccelerationStructureFeaturesKHR
+                                .calloc(stack)
+                                .sType$Default()
+                                .accelerationStructure(true))
                 .create();
         device = context.getDevice();
         System.out.println("Successfully initialized vulkan backend");

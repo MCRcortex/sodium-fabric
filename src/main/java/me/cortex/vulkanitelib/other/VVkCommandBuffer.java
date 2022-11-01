@@ -27,7 +27,7 @@ public class VVkCommandBuffer extends VVkObject {
 
     @Override
     public void free() {
-        throw new IllegalStateException();
+        //Uhuhuhuhuh nani
     }
 
     public VVkCommandBuffer begin() {
@@ -57,7 +57,6 @@ public class VVkCommandBuffer extends VVkObject {
                     .renderPass(framebuffer.renderPass.renderpass)
                     .pClearValues(vkClearValues);
 
-            beginInfo.renderArea().offset().set(0, 0);
             beginInfo.renderArea().extent().set(framebuffer.width, framebuffer.height);
             vkCmdBeginRenderPass(buffer, beginInfo, VK_SUBPASS_CONTENTS_INLINE);//TODO: move VK_SUBPASS_CONTENTS_INLINE somewhere else
         }

@@ -8,5 +8,6 @@ public abstract class VVkMemoryObject extends VVkObject {
     protected VVkMemoryObject(VVkMemory memory) {
         super(memory.device);
         this.memory = memory;
+        this.memory.refCount++;
     }
 }

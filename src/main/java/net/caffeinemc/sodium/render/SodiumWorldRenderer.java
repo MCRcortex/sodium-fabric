@@ -147,6 +147,9 @@ public class SodiumWorldRenderer {
         return this.terrainRenderManager.getBuilder().isBuildQueueEmpty();
     }
 
+    int lastDirty = -1;
+    int[] frameDirtyTracker;
+
     /**
      * Called prior to any chunk rendering in order to update necessary state.
      */
@@ -194,9 +197,12 @@ public class SodiumWorldRenderer {
 
         this.terrainRenderManager.setFrameIndex(this.frameIndex);
         this.terrainRenderManager.updateChunks();
+        if (this.terrainRenderManager.isGraphDirty())
+            lastDirty = frameIndex;
 
-        if (this.terrainRenderManager.isGraphDirty()||true) {//For vk atm need to update perframe to build commandBuffer for the specific frame
+        if (frameDirtyTracker[frameIndex%frameDirtyTracker.length]!=lastDirty) {//For vk atm need to update perframe to build commandBuffer for the specific frame
             this.terrainRenderManager.update(frustum, spectator);
+            frameDirtyTracker[frameIndex%frameDirtyTracker.length] = lastDirty;
         }
 
         profiler.swap("visible_chunk_tick");
@@ -242,6 +248,7 @@ public class SodiumWorldRenderer {
                     this.chunkViewDistance
             );
             this.terrainRenderManager.reloadChunks(this.chunkTracker);
+            frameDirtyTracker = new int[SodiumClientMod.options().advanced.cpuRenderAheadLimit + 1];
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(-1);

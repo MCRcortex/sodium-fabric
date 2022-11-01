@@ -2,6 +2,7 @@ package me.cortex.vulkanitelib;
 
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.vulkan.*;
 
 import java.nio.ByteBuffer;
@@ -56,6 +57,20 @@ public class VVkContext {
                     .ppEnabledExtensionNames(extensions)
                     .ppEnabledLayerNames(layers)
                     .pQueueCreateInfos(queueCreateInfos);
+
+            //Construct the pNext chain
+            //FIXME: this is very sketchy
+            long chain = createInfo.address();
+            for (var ext : deviceSupportedExtensions) {
+                for (var ext2 : builder.deviceExtensions) {
+                    if (ext2.name.equals(ext) && ext2.pNextApplicator != null) {
+                        long next = ext2.pNextApplicator.apply(stack).address();
+                        MemoryUtil.memPutAddress(chain+8, next);
+                        chain = next;
+                    }
+                }
+            }
+
             PointerBuffer pDevice = stack.callocPointer(1);
             _CHECK_(vkCreateDevice(physicalDevice, createInfo, null, pDevice));
             device = new VkDevice(pDevice.get(0), physicalDevice, createInfo);

@@ -8,12 +8,15 @@ import me.cortex.vulkanitelib.sync.VGlVkSemaphore;
 import me.cortex.vulkanitelib.sync.VVkFence;
 import me.cortex.vulkanitelib.sync.VVkSemaphore;
 import org.lwjgl.system.MemoryStack;
+import org.lwjgl.vulkan.VkFenceCreateInfo;
 import org.lwjgl.vulkan.VkQueue;
 import org.lwjgl.vulkan.VkSubmitInfo;
 
 import java.nio.LongBuffer;
+import java.util.function.Consumer;
 
 import static me.cortex.vulkanitelib.utils.VVkUtils._CHECK_;
+import static org.lwjgl.vulkan.VK10.vkCreateFence;
 import static org.lwjgl.vulkan.VK10.vkQueueSubmit;
 
 public class VVkQueue extends VVkObject {
@@ -28,6 +31,7 @@ public class VVkQueue extends VVkObject {
     public void free() {
         throw new IllegalStateException();
     }
+
 
     public class BatchSubmitter {
         public BatchSubmitter buffer(VVkCommandBuffer buffer) {
@@ -83,15 +87,24 @@ public class VVkQueue extends VVkObject {
         return this;
     }
 
-    //TEMPORARY HACK
-    public VVkQueue submit(VVkCommandBuffer cmdBuff) {
+
+    public VVkQueue submit(VVkCommandBuffer cmd, Runnable fence) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
+            VVkFence pFence = device.createFence(true);
+            pFence.add(fence);
+            if (cmd.pool == device.transientPool)
+                pFence.add(cmd::free);
             _CHECK_(vkQueueSubmit(queue, VkSubmitInfo
                             .calloc(stack)
                             .sType$Default()
-                            .pCommandBuffers(stack.pointers(cmdBuff.buffer)), 0),
+                            .pCommandBuffers(stack.pointers(cmd.buffer)), pFence.fence),
                     "Failed to submit command buffer");
         }
         return this;
+    }
+
+    //TEMPORARY HACK
+    public VVkQueue submit(VVkCommandBuffer cmdBuff) {
+        return submit(cmdBuff, ()->{});//TODO: optimize so it doesnt just add a dummy runnable
     }
 }

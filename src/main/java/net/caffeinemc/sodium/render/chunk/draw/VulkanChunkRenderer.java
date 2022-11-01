@@ -73,11 +73,11 @@ public class VulkanChunkRenderer implements ChunkRenderer {
         }
         public IndexBuffer(int quadCount, int flags) {
             ByteBuffer buffer = genQuadIdxs(quadCount*4);
-            indexBuffer = VulkanContext.device.allocator.createBuffer(buffer.capacity(),
+            indexBuffer = VulkanContext.device.allocator.createBuffer(buffer,
                     VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | flags,
                     VK_MEMORY_HEAP_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-            MemoryUtil.memCopy(buffer, indexBuffer.map());
-            indexBuffer.unmap();
+            //MemoryUtil.memCopy(buffer, indexBuffer.map());
+            //indexBuffer.unmap();
         }
 
         public static ByteBuffer genQuadIdxs(int vertexCount) {
@@ -133,6 +133,7 @@ public class VulkanChunkRenderer implements ChunkRenderer {
     protected final VVkBuffer[] uniformFogData;
 
     protected final VVkBuffer[] uniformChunkData;
+    //protected final VVkBuffer[][] drawIndirectCommands;
 
     final int MAX_CHUNK_COUNT = 10000;
 
@@ -336,28 +337,12 @@ public class VulkanChunkRenderer implements ChunkRenderer {
 
     @Override
     public void createRenderLists(SortedTerrainLists lists, int frameIndex) {
+        frameIndex %= terrainCommandBuffers.length;
         BlockPos cameraBlockPos = this.cameraContext.getBlockPos();
         float cameraDeltaX = this.cameraContext.getDeltaX();
         float cameraDeltaY = this.cameraContext.getDeltaY();
         float cameraDeltaZ = this.cameraContext.getDeltaZ();
 
-        frameIndex %= terrainCommandBuffers.length;
-
-        if (crm != null) {
-            var ucdb = MemoryUtil.memAddress(uniformCameraData[frameIndex].map());
-
-            crm.projection().getToAddress(ucdb);
-            crm.modelView().getToAddress(ucdb + 64);
-
-            Matrix4f mvpMatrix = new Matrix4f();
-            mvpMatrix.set(crm.projection());
-            mvpMatrix.mul(crm.modelView());
-            mvpMatrix.getToAddress(ucdb + 128);
-            uniformCameraData[frameIndex].unmap();
-
-
-
-        }
 
         var ucdb = uniformChunkData[frameIndex].map().asFloatBuffer();
         VVkCommandBuffer[] cmds = terrainCommandBuffers[frameIndex];//TODO:FIXME: this can be a primary level as each render pass renders different terrain so needs different buffer anyway
@@ -509,13 +494,28 @@ public class VulkanChunkRenderer implements ChunkRenderer {
 
     @Override
     public void render(ChunkRenderPass renderPass, ChunkRenderMatrices matrices, int frameIndex) {
-        crm = matrices;
         frameIndex %= terrainCommandBuffers.length;
+        device.tickFences();//TODO: MOVE THIS SOMEWHERE BETTER
+
+        {
+            var ucdb = MemoryUtil.memAddress(uniformCameraData[frameIndex].map());
+
+            matrices.projection().getToAddress(ucdb);
+            matrices.modelView().getToAddress(ucdb + 64);
+
+            Matrix4f mvpMatrix = new Matrix4f();
+            mvpMatrix.set(matrices.projection());
+            mvpMatrix.mul(matrices.modelView());
+            mvpMatrix.getToAddress(ucdb + 128);
+            uniformCameraData[frameIndex].unmap();
+        }
+
+
         VGlVkSemaphore waitSem = waitSemaphores[frameIndex][renderPass.getId()];
         VGlVkSemaphore signalSem = signalSemaphores[frameIndex][renderPass.getId()];
 
         //glFinish();
-        glFinish();
+        //glFinish();
         waitSem.glSignal(new int[]{},new int[]{((VGlVkImage)theFrameBuffer.attachments[0].image).glId},new int[]{GL_LAYOUT_GENERAL_EXT});//TODO: provide the framebuffer depth and colour texture
         queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()], waitSem, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, signalSem, null);//TODO: need to basicly submit all the layers at once with correct ordering, that way it can work on multiple render passes at the same time
         //queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()]);

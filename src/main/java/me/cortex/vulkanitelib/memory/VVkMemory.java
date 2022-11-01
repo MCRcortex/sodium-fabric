@@ -18,6 +18,7 @@ public class VVkMemory extends VVkObject {
     public final int type;
     public final long offset;
     public final long size;
+    public int refCount;
     public VVkMemory(VVkAllocator allocator, long allocation, VmaAllocationInfo info) {
         super(allocator.device);
         this.allocator = allocator;
@@ -42,6 +43,13 @@ public class VVkMemory extends VVkObject {
 
     @Override
     public void free() {
-        throw new IllegalStateException();
+
+    }
+
+    public void decRef() {
+        refCount--;
+        if (refCount == 0) {
+            free();
+        }
     }
 }
