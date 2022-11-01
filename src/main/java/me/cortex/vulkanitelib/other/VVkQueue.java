@@ -75,12 +75,13 @@ public class VVkQueue extends VVkObject {
             waitSemaphores.rewind();
             sigSemaphores.rewind();
             _CHECK_(vkQueueSubmit(queue, VkSubmitInfo
-                            .calloc(stack)
-                            .sType$Default()
-                            .pWaitSemaphores(waitSemaphores)
-                            .pWaitDstStageMask(stack.ints(waitDstStageMsk))
-                            .pSignalSemaphores(sigSemaphores)
-                            .pCommandBuffers(stack.pointers(cmdBuff.buffer)),
+                                    .calloc(stack)
+                                    .sType$Default()
+                                    .pWaitSemaphores(waitSemaphores)
+                                    .pWaitDstStageMask(stack.ints(waitDstStageMsk))
+                                    .pSignalSemaphores(sigSemaphores)
+                                    .pCommandBuffers(stack.pointers(cmdBuff.buffer))
+                                    .waitSemaphoreCount(wait.length),
                             fence != null?fence.fence:0),
                     "Failed to submit command buffer");
         }

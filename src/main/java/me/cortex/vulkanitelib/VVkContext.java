@@ -58,6 +58,9 @@ public class VVkContext {
                     .ppEnabledLayerNames(layers)
                     .pQueueCreateInfos(queueCreateInfos);
 
+            createInfo.pEnabledFeatures(VkPhysicalDeviceFeatures.calloc(stack).multiDrawIndirect(true));
+
+
             //Construct the pNext chain
             //FIXME: this is very sketchy
             long chain = createInfo.address();

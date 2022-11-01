@@ -197,7 +197,7 @@ public class SodiumWorldRenderer {
 
         this.terrainRenderManager.setFrameIndex(this.frameIndex);
         this.terrainRenderManager.updateChunks();
-        if (this.terrainRenderManager.isGraphDirty())
+        if (this.terrainRenderManager.isGraphDirty() && frameIndex != 0)
             lastDirty = frameIndex;
 
         if (frameDirtyTracker[frameIndex%frameDirtyTracker.length]!=lastDirty) {//For vk atm need to update perframe to build commandBuffer for the specific frame

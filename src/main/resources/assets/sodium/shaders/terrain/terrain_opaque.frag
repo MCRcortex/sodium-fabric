@@ -1,5 +1,5 @@
 #version 460 core
-#extension GL_EXT_ray_query : enable
+//#extension GL_EXT_ray_query : enable
 
 #import <sodium:include/terrain_fog.frag>
 #import <sodium:include/terrain_buffers.frag>

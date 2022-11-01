@@ -5,6 +5,8 @@ import me.cortex.vulkanitelib.memory.image.VGlVkImage;
 import net.caffeinemc.sodium.vk.VulkanContext;
 import net.minecraft.client.gl.Framebuffer;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.vulkan.VkImageMemoryBarrier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -17,12 +19,14 @@ import static org.lwjgl.vulkan.VK10.*;
 import static org.lwjgl.vulkan.VK10.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
 @Mixin(Framebuffer.class)
-public class MixinFramebuffer {
+public abstract class MixinFramebuffer {
     @Shadow
     protected int colorAttachment;
 
     @Shadow
     protected int depthAttachment;
+
+    @Shadow public abstract void setClearColor(float r, float g, float b, float a);
 
     @Inject(method = "initFbo", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gl/Framebuffer;checkFramebufferStatus()V", ordinal = 0))
     private void changeTexture(int width, int height, boolean getError, CallbackInfo ci) {
@@ -48,6 +52,38 @@ public class MixinFramebuffer {
             VulkanContext.depthTex = db;
 
         GlStateManager._glFramebufferTexture2D(36160, 36096, 3553, this.depthAttachment, 0);
+
+        VulkanContext.device.singleTimeCommand(cmd -> {
+            try (MemoryStack stack = MemoryStack.stackPush()) {
+                vkCmdPipelineBarrier(cmd.buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,0,
+                        null,null, VkImageMemoryBarrier
+                                .calloc(1, stack)
+                                .sType$Default()
+                                .srcAccessMask(0)
+                                .dstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
+                                .oldLayout(VK_IMAGE_LAYOUT_UNDEFINED)
+                                .newLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                                .image(im.image)
+                                .subresourceRange(r1 ->
+                                        r1.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                                                .layerCount(1)
+                                                .levelCount(1)));
+
+                vkCmdPipelineBarrier(cmd.buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,0,
+                        null,null, VkImageMemoryBarrier
+                                .calloc(1, stack)
+                                .sType$Default()
+                                .srcAccessMask(0)
+                                .dstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)
+                                .oldLayout(VK_IMAGE_LAYOUT_UNDEFINED)
+                                .newLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+                                .image(db.image)
+                                .subresourceRange(r1 ->
+                                        r1.aspectMask(VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT)
+                                                .layerCount(1)
+                                                .levelCount(1)));
+            }
+        }, ()->{});
 
     }
 }

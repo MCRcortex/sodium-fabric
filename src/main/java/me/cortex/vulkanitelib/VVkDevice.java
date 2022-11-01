@@ -31,8 +31,11 @@ import java.util.function.Consumer;
 
 import static me.cortex.vulkanitelib.utils.VVkUtils._CHECK_;
 import static org.lwjgl.opengl.EXTSemaphore.glGenSemaphoresEXT;
+import static org.lwjgl.opengl.EXTSemaphore.glIsSemaphoreEXT;
 import static org.lwjgl.opengl.EXTSemaphoreWin32.GL_HANDLE_TYPE_OPAQUE_WIN32_EXT;
 import static org.lwjgl.opengl.EXTSemaphoreWin32.glImportSemaphoreWin32HandleEXT;
+import static org.lwjgl.opengl.GL11C.glGetError;
+import static org.lwjgl.opengl.KHRRobustness.GL_NO_ERROR;
 import static org.lwjgl.util.vma.Vma.VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 import static org.lwjgl.vulkan.KHRExternalSemaphoreWin32.vkGetSemaphoreWin32HandleKHR;
 import static org.lwjgl.vulkan.VK10.*;
@@ -200,6 +203,10 @@ public class VVkDevice {
             }
             int glSemaphore = glGenSemaphoresEXT();
             glImportSemaphoreWin32HandleEXT(glSemaphore, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, pb.get(0));
+            if (!glIsSemaphoreEXT(glSemaphore))
+                throw new IllegalStateException();
+            if (glGetError() != GL_NO_ERROR)
+                throw new IllegalStateException();
 
             return new VGlVkSemaphore(this, glSemaphore, pb.get(0), out[0]);
         }

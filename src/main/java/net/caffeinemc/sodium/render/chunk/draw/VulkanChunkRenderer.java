@@ -133,7 +133,7 @@ public class VulkanChunkRenderer implements ChunkRenderer {
     protected final VVkBuffer[] uniformFogData;
 
     protected final VVkBuffer[] uniformChunkData;
-    //protected final VVkBuffer[][] drawIndirectCommands;
+    protected final VVkBuffer[][] drawIndirectCommands;
 
     final int MAX_CHUNK_COUNT = 10000;
 
@@ -143,6 +143,7 @@ public class VulkanChunkRenderer implements ChunkRenderer {
         this.renderPassManager = renderPassManager;
         maxInFlightFrames = SodiumClientMod.options().advanced.cpuRenderAheadLimit + 1;
         terrainCommandBuffers = new VVkCommandBuffer[maxInFlightFrames][renderPassManager.getRenderPassCount()];
+        drawIndirectCommands = new VVkBuffer[maxInFlightFrames][renderPassManager.getRenderPassCount()];
         waitSemaphores = new VGlVkSemaphore[maxInFlightFrames][renderPassManager.getRenderPassCount()];
         signalSemaphores = new VGlVkSemaphore[maxInFlightFrames][renderPassManager.getRenderPassCount()];
         uniformCameraData = new VVkBuffer[maxInFlightFrames];
@@ -164,6 +165,7 @@ public class VulkanChunkRenderer implements ChunkRenderer {
                 terrainCommandBuffers[i][j] = allCmds[i*renderPassManager.getRenderPassCount() + j];
                 waitSemaphores[i][j] = device.createSharedSemaphore();
                 signalSemaphores[i][j] = device.createSharedSemaphore();
+                drawIndirectCommands[i][j] = device.allocator.createBuffer(5*4*50000, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, 0, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
             }
             //TODO: add VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
             uniformCameraData[i] = device.allocator.createBuffer(CAMERA_MATRICES_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
@@ -386,6 +388,8 @@ public class VulkanChunkRenderer implements ChunkRenderer {
             }
 
 
+            var cmdBuff = drawIndirectCommands[frameIndex][renderPass.getId()];
+            var cmdDmp = cmdBuff.map().asIntBuffer();
 
             IntList passRegionIndices = lists.regionIndices[renderPass.getId()];
             List<IntList> passModelPartCounts = lists.modelPartCounts[renderPass.getId()];
@@ -394,7 +398,6 @@ public class VulkanChunkRenderer implements ChunkRenderer {
             int passRegionCount = passRegionIndices.size();
 
             boolean reverseOrder = renderPass.isTranslucent();
-
             int regionIdx = reverseOrder ? passRegionCount - 1 : 0;
             while (reverseOrder ? (regionIdx >= 0) : (regionIdx < passRegionCount)) {
                 IntList regionPassModelPartCounts = passModelPartCounts.get(regionIdx);
@@ -411,6 +414,8 @@ public class VulkanChunkRenderer implements ChunkRenderer {
                 } else {
                     regionIdx++;
                 }
+
+                long offset = cmdDmp.position()* 4L;
 
                 cmd.bindVertexs((VGlVkBuffer)((VkGlImmutableBuffer)region.getVertexBuffer().getBufferObject()).data);
 
@@ -472,20 +477,20 @@ public class VulkanChunkRenderer implements ChunkRenderer {
                         } else {
                             regionPassModelPartIdx++;
                         }
-                        vkCmdDrawIndexed(cmd.buffer,
-                                6 * (BufferSegment.getLength(modelPartSegment) >> 2),
-                                1,
-                                0,
-                                baseVertex + BufferSegment.getOffset(modelPartSegment),
-                                transformId);
+
+                        cmdDmp.put(6 * (BufferSegment.getLength(modelPartSegment) >> 2));
+                        cmdDmp.put(1);
+                        cmdDmp.put(0);
+                        cmdDmp.put(baseVertex + BufferSegment.getOffset(modelPartSegment));
+                        cmdDmp.put(transformId);
                     }
 
                     regionPassModelPartCount += sectionModelPartCount;
-
                     //largestVertexIndex = Math.max(largestVertexIndex, BufferSegment.getLength(sectionUploadedSegment));
                 }
-
+                vkCmdDrawIndexedIndirect(cmd.buffer, cmdBuff.buffer, offset, regionPassModelPartCount,4*5);
             }
+            cmdBuff.unmap();
             uniformChunkData[frameIndex].unmap();
             cmd.endRenderPass();
             cmd.end();
@@ -516,10 +521,15 @@ public class VulkanChunkRenderer implements ChunkRenderer {
 
         //glFinish();
         //glFinish();
-        waitSem.glSignal(new int[]{},new int[]{((VGlVkImage)theFrameBuffer.attachments[0].image).glId},new int[]{GL_LAYOUT_GENERAL_EXT});//TODO: provide the framebuffer depth and colour texture
-        queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()], waitSem, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, signalSem, null);//TODO: need to basicly submit all the layers at once with correct ordering, that way it can work on multiple render passes at the same time
+        waitSem.glSignal(new int[]{},new int[]{((VGlVkImage)theFrameBuffer.attachments[0].image).glId,((VGlVkImage)theFrameBuffer.attachments[1].image).glId},new int[]{GL_NONE, GL_NONE});//TODO: provide the framebuffer depth and colour texture
+        //glFlush();
+        queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()], waitSem, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT , signalSem, null);//TODO: need to basicly submit all the layers at once with correct ordering, that way it can work on multiple render passes at the same time
+
         //queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()]);
-        signalSem.glWait(new int[]{},new int[]{((VGlVkImage)theFrameBuffer.attachments[0].image).glId},new int[]{GL_LAYOUT_GENERAL_EXT});//TODO: provide the framebuffer depth and colour texture
+        signalSem.glWait(new int[]{},new int[]{((VGlVkImage)theFrameBuffer.attachments[0].image).glId,((VGlVkImage)theFrameBuffer.attachments[1].image).glId},new int[]{GL_LAYOUT_COLOR_ATTACHMENT_EXT, GL_LAYOUT_DEPTH_STENCIL_ATTACHMENT_EXT});//TODO: provide the framebuffer depth and colour texture
+        //glFlush();
+
+
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
         /*
