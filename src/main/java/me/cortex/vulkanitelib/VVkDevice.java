@@ -53,7 +53,7 @@ public class VVkDevice {
     public VVkDevice(VkDevice device, VVkContext vVkContext) {
         this.device = device;
         this.context = vVkContext;
-        this.allocator = new VVkAllocator(this, VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT);//TODO: make this dependent on extensions
+        this.allocator = new VVkAllocator(this, 0);//VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT//TODO: make this dependent on extensions
         this.exportedAllocator = new VVkExportedAllocator(this);
         transientPool = createCommandPool(0, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);//TODO: pass in transient family
 

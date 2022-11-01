@@ -10,6 +10,8 @@ import org.lwjgl.vulkan.VkPhysicalDeviceAccelerationStructureFeaturesKHR;
 import org.lwjgl.vulkan.VkPhysicalDeviceBufferDeviceAddressFeaturesKHR;
 import org.lwjgl.vulkan.VkPhysicalDeviceRayQueryFeaturesKHR;
 
+import static org.lwjgl.opengl.GL11C.GL_RENDERER;
+import static org.lwjgl.opengl.GL11C.glGetString;
 import static org.lwjgl.vulkan.EXTDescriptorIndexing.VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRBufferDeviceAddress.VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME;
@@ -37,7 +39,7 @@ public class VulkanContext {
     public static final Int2ObjectOpenHashMap<VGlVkImage> gl2vk_textures = new Int2ObjectOpenHashMap<>();
     public static VGlVkImage colorTex;
     public static VGlVkImage depthTex;
-    static {
+    static {glGetString(GL_RENDERER);
         context = new VContextBuilder(true)
                 .setVersion(1,3)
                 .addInstanceExtensions(
@@ -54,11 +56,13 @@ public class VulkanContext {
                         VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
                         VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
                         VK_KHR_SPIRV_1_4_EXTENSION_NAME,
-                        VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
+                        VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME//,
 
-                        VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
-                        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
-                ).addDeviceExtension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, (stack)->
+                        //VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+                        //VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
+                )
+                /*
+                .addDeviceExtension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, (stack)->
                         VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
                                 .calloc(stack)
                                 .sType$Default()
@@ -73,6 +77,9 @@ public class VulkanContext {
                                 .calloc(stack)
                                 .sType$Default()
                                 .accelerationStructure(true))
+
+                 */
+                .gpuFilter(glGetString(GL_RENDERER).split("/")[0])
                 .create();
         device = context.getDevice();
         System.out.println("Successfully initialized vulkan backend");

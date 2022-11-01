@@ -110,20 +110,27 @@ switch (OperatingSystem.current()) {
 repositories {
     mavenCentral()
 }
+project.ext.lwjglNatives = "natives-windows"
 
 dependencies {
     implementation platform("org.lwjgl:lwjgl-bom:$lwjglVersion")
 
-    implementation "org.lwjgl:lwjgl-meshoptimizer"
-    implementation "org.lwjgl:lwjgl-vma"
-    implementation "org.lwjgl:lwjgl-vulkan"
-    implementation "org.lwjgl:lwjgl-shaderc"
-    implementation "org.lwjgl:lwjgl-spvc"
-    runtimeOnly "org.lwjgl:lwjgl::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-meshoptimizer::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-vma::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-shaderc::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-spvc::$lwjglNatives"
+    include(implementation("org.lwjgl:lwjgl-meshoptimizer"))
+    include(implementation("org.lwjgl:lwjgl-vma"))
+    include(implementation("org.lwjgl:lwjgl-vulkan"))
+    include(implementation("org.lwjgl:lwjgl-shaderc"))
+    include(implementation("org.lwjgl:lwjgl-spvc"))
+    include(runtimeOnly("org.lwjgl:lwjgl:$lwjglVersion:$lwjglNatives"))
+    include(runtimeOnly("org.lwjgl:lwjgl-meshoptimizer:$lwjglVersion:$lwjglNatives"))
+    include(runtimeOnly("org.lwjgl:lwjgl-vma:$lwjglVersion:$lwjglNatives"))
+    include(runtimeOnly("org.lwjgl:lwjgl-shaderc:$lwjglVersion:$lwjglNatives"))
+    include(runtimeOnly("org.lwjgl:lwjgl-spvc:$lwjglVersion:$lwjglNatives"))
+
+    include(implementation("org.lwjgl:lwjgl:$lwjglVersion:$lwjglNatives"))
+    include(implementation("org.lwjgl:lwjgl-meshoptimizer:$lwjglVersion:$lwjglNatives"))
+    include(implementation("org.lwjgl:lwjgl-vma:$lwjglVersion:$lwjglNatives"))
+    include(implementation("org.lwjgl:lwjgl-shaderc:$lwjglVersion:$lwjglNatives"))
+    include(implementation("org.lwjgl:lwjgl-spvc:$lwjglVersion:$lwjglNatives"))
 
 
     implementation "org.lwjgl:lwjgl"
@@ -132,4 +139,35 @@ dependencies {
     runtimeOnly "org.lwjgl:lwjgl::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-glfw::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-opengl::$lwjglNatives"
+}
+
+
+project.ext.lwjglVersion = "3.3.1"
+project.ext.jomlVersion = "1.10.4"
+project.ext.winNatives = "natives-windows"
+project.ext.linuxNatives = "natives-linux"
+
+dependencies {
+    include(implementation("org.lwjgl:lwjgl:$lwjglVersion"))
+    include(implementation("org.lwjgl:lwjgl-vulkan:$lwjglVersion"))
+    include(implementation("org.lwjgl:lwjgl-vma:$lwjglVersion"))
+    include(implementation("org.joml:joml:${jomlVersion}"))
+    include(runtimeOnly("org.lwjgl:lwjgl-vma:$lwjglVersion:$winNatives"))
+    include(runtimeOnly("org.lwjgl:lwjgl-vma:$lwjglVersion:$linuxNatives"))
+
+    include(implementation("org.lwjgl:lwjgl-glfw:$lwjglVersion"))
+    include(runtimeOnly("org.lwjgl:lwjgl-glfw:$lwjglVersion:$winNatives"))
+    include(runtimeOnly("org.lwjgl:lwjgl-glfw:$lwjglVersion:$linuxNatives"))
+    include(implementation("org.lwjgl:lwjgl-stb:$lwjglVersion"))
+    include(runtimeOnly("org.lwjgl:lwjgl-stb:$lwjglVersion:$winNatives"))
+    include(runtimeOnly("org.lwjgl:lwjgl-stb:$lwjglVersion:$linuxNatives"))
+    include(implementation("org.lwjgl:lwjgl-openal:$lwjglVersion"))
+    include(runtimeOnly("org.lwjgl:lwjgl-openal:$lwjglVersion:$winNatives"))
+    include(runtimeOnly("org.lwjgl:lwjgl-openal:$lwjglVersion:$linuxNatives"))
+    include(runtimeOnly("org.lwjgl:lwjgl:$lwjglVersion:$winNatives"))
+    include(runtimeOnly("org.lwjgl:lwjgl:$lwjglVersion:$linuxNatives"))
+
+    include(implementation("org.lwjgl:lwjgl-shaderc:$lwjglVersion"))
+    include(runtimeOnly("org.lwjgl:lwjgl-shaderc:$lwjglVersion:$winNatives"))
+    include(runtimeOnly("org.lwjgl:lwjgl-shaderc:$lwjglVersion:$linuxNatives"))
 }

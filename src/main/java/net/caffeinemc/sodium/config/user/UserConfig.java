@@ -51,7 +51,7 @@ public class UserConfig {
         public boolean enableMemoryTracing = false;
         public boolean enableApiDebug = false;
         
-        public ChunkRendererBackend chunkRendererBackend = ChunkRendererBackend.DEFAULT;
+        public ChunkRendererBackend chunkRendererBackend = ChunkRendererBackend.VULKAN;
     }
 
     public static class QualitySettings {

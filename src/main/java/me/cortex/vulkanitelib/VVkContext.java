@@ -108,6 +108,14 @@ public class VVkContext {
                         }
                         supportedExtensions.add(entry.name);
                     }
+
+                    VkPhysicalDeviceProperties props = VkPhysicalDeviceProperties.calloc(stack);
+                    vkGetPhysicalDeviceProperties(new VkPhysicalDevice(devices.get(i), instance), props);
+                    if (builder.gpuFilter != null && !props.deviceNameString().equals(builder.gpuFilter)) {
+                        System.out.println("Ignoring '"+ props.deviceNameString() + "' as name does not match filter '"+builder.gpuFilter+"'");
+                        continue;
+                    }
+
                     if (best <= weighting) {
                         physicalDevice = new VkPhysicalDevice(devices.get(i), instance);
                         best = weighting;

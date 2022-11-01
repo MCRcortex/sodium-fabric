@@ -13,6 +13,7 @@ public class VContextBuilder {
     boolean DEBUG;
     String appName = "";
     String engineName = "";
+    String gpuFilter;
     int major, minor;
 
     public VContextBuilder(boolean debug) {
@@ -26,6 +27,11 @@ public class VContextBuilder {
     public VContextBuilder setVersion(int major, int minor) {
         this.major = major;
         this.minor = minor;
+        return this;
+    }
+
+    public VContextBuilder gpuFilter(String filter) {
+        this.gpuFilter = filter;
         return this;
     }
 
