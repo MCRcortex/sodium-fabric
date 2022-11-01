@@ -499,10 +499,11 @@ public class VulkanChunkRenderer implements ChunkRenderer {
 
     @Override
     public void render(ChunkRenderPass renderPass, ChunkRenderMatrices matrices, int frameIndex) {
+        glFlush();
         frameIndex %= terrainCommandBuffers.length;
         device.tickFences();//TODO: MOVE THIS SOMEWHERE BETTER
 
-        {
+        if (renderPass.getId() == 0){
             var ucdb = MemoryUtil.memAddress(uniformCameraData[frameIndex].map());
 
             matrices.projection().getToAddress(ucdb);
@@ -521,13 +522,13 @@ public class VulkanChunkRenderer implements ChunkRenderer {
 
         //glFinish();
         //glFinish();
-        waitSem.glSignal(new int[]{},new int[]{((VGlVkImage)theFrameBuffer.attachments[0].image).glId,((VGlVkImage)theFrameBuffer.attachments[1].image).glId},new int[]{GL_NONE, GL_NONE});//TODO: provide the framebuffer depth and colour texture
+        waitSem.glSignal(new int[]{},new int[]{},new int[]{});//TODO: provide the framebuffer depth and colour texture
         //glFlush();
         queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()], waitSem, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT , signalSem, null);//TODO: need to basicly submit all the layers at once with correct ordering, that way it can work on multiple render passes at the same time
 
         //queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()]);
-        signalSem.glWait(new int[]{},new int[]{((VGlVkImage)theFrameBuffer.attachments[0].image).glId,((VGlVkImage)theFrameBuffer.attachments[1].image).glId},new int[]{GL_LAYOUT_COLOR_ATTACHMENT_EXT, GL_LAYOUT_DEPTH_STENCIL_ATTACHMENT_EXT});//TODO: provide the framebuffer depth and colour texture
-        //glFlush();
+        signalSem.glWait(new int[]{},new int[]{},new int[]{});//TODO: provide the framebuffer depth and colour texture
+        glFlush();
 
 
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);
