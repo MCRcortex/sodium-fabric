@@ -61,12 +61,13 @@ public class VulkanContext {
                         //VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
                         //VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
                 )
-                /*
+
                 .addDeviceExtension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, (stack)->
                         VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
                                 .calloc(stack)
                                 .sType$Default()
                                 .bufferDeviceAddress(true))
+                /*
                 .addDeviceExtension(VK_KHR_RAY_QUERY_EXTENSION_NAME, (stack)->
                         VkPhysicalDeviceRayQueryFeaturesKHR
                                 .calloc(stack)

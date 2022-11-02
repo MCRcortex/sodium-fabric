@@ -9,6 +9,8 @@ import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPassManager;
 import net.caffeinemc.sodium.render.chunk.state.BuiltChunkGeometry;
 import net.caffeinemc.sodium.render.chunk.state.ChunkPassModel;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
+import net.caffeinemc.sodium.render.terrain.format.AccelerationBufferSink;
+import net.caffeinemc.sodium.render.terrain.format.AccelerationSink;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexSink;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.render.terrain.quad.properties.ChunkMeshFace;
@@ -25,6 +27,7 @@ import org.lwjgl.system.MemoryUtil;
 public class TerrainBuildBuffers {
     private final ChunkMeshBuilder[] delegates;
     private final VertexBufferBuilder[][] vertexBuffers;
+    public final AccelerationBufferSink accelerationSink;
     
     private final TerrainVertexType vertexType;
     
@@ -47,22 +50,26 @@ public class TerrainBuildBuffers {
             
             this.vertexBuffers[renderPass.getId()] = vertexBuffers;
         }
+        accelerationSink = new AccelerationBufferSink();
     }
     
     public void init(ChunkRenderData.Builder renderData) {
+        accelerationSink.reset();
         for (var renderPass : this.renderPassManager.getAllRenderPasses()) {
             int passId = renderPass.getId();
-            
             var buffers = this.vertexBuffers[passId];
             var sinks = new TerrainVertexSink[buffers.length];
-            
+
             for (int i = 0; i < sinks.length; i++) {
                 var buffer = buffers[i];
                 buffer.reset();
                 
                 sinks[i] = this.vertexType.createBufferWriter(buffer);
+                if (sinks[i] instanceof AccelerationSink as) {
+                    as.setAccelerationBuffer(accelerationSink);
+                }
             }
-            
+
             this.delegates[passId] = new DefaultChunkMeshBuilder(sinks, renderData);
         }
     }
@@ -150,5 +157,13 @@ public class TerrainBuildBuffers {
                 builder.destroy();
             }
         }
+        for (var as : this.delegates) {
+            for(var t : ChunkMeshFace.values()) {
+                if (as.getVertexSink(t) instanceof AccelerationSink as2) {
+                    as2.setAccelerationBuffer(null);
+                }
+            }
+        }
+        //accelerationSink.free();//TODO: FIX THIS: IDK WHY THIS CAUSES A DOUBLE FREE
     }
 }

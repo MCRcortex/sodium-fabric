@@ -27,7 +27,7 @@ public class VVkCommandBuffer extends VVkObject {
 
     @Override
     public void free() {
-        //Uhuhuhuhuh nani
+        vkFreeCommandBuffers(device.device, pool.pool, buffer);
     }
 
     public VVkCommandBuffer begin() {

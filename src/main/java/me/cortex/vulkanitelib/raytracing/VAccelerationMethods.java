@@ -3,14 +3,17 @@ package me.cortex.vulkanitelib.raytracing;
 import me.cortex.vulkanitelib.Pair;
 import me.cortex.vulkanitelib.VVkDevice;
 import me.cortex.vulkanitelib.memory.buffer.VVkBuffer;
+import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
 
-import java.lang.reflect.Member;
 import java.nio.LongBuffer;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static me.cortex.vulkanitelib.utils.VVkUtils._CHECK_;
+import static org.lwjgl.system.MemoryStack.create;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.*;
 import static org.lwjgl.vulkan.KHRBufferDeviceAddress.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR;
 import static org.lwjgl.vulkan.KHRRayTracingPipeline.VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
@@ -46,7 +49,7 @@ public class VAccelerationMethods {
 
     public interface IGeometryConsumer<T>{void fill(MemoryStack stack, T structure);}
     public interface IGeometrySetup<T>{Pair<VkAccelerationStructureGeometryDataKHR, T> setup(MemoryStack stack, IGeometryConsumer<T> consumer);}
-    public <T>  Pair<VVkAccelerationStructure, VVkBuffer> fillCreationData(MemoryStack stack, VkAccelerationStructureBuildGeometryInfoKHR pInfo, int type, int buildFlags, int geoType, int maxPrimatives, IGeometrySetup<T> settuper, List<IGeometryConsumer<T>> geometries) {
+    public <T>  Pair<VVkAccelerationStructure, VVkBuffer> fillCreationData(MemoryStack stack, VkAccelerationStructureBuildGeometryInfoKHR pInfo, int type, int buildFlags, int geoType, int[] maxPrimitives, IGeometrySetup<T> settuper, List<IGeometryConsumer<T>> geometries) {
         VkAccelerationStructureGeometryKHR.Buffer geos = VkAccelerationStructureGeometryKHR
                 .calloc(geometries.size(), stack);
         for (var consumer : geometries) {
@@ -76,7 +79,7 @@ public class VAccelerationMethods {
                 device.device,
                 VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
                 pInfo,
-                stack.ints(maxPrimatives),
+                stack.ints(maxPrimitives),
                 buildSizesInfo);
 
         VVkBuffer accelerationBuffer = device.allocator.createBuffer(buildSizesInfo.accelerationStructureSize(),
@@ -105,15 +108,39 @@ public class VAccelerationMethods {
     }
 
 
-    public VVkAccelerationStructure createBLAS() {
+    public record TriangleGeometry(int indexType, int maxIndex, int primitiveCount, int vertexFormat,  int vertexStride,
+                                   VkDeviceOrHostAddressConstKHR indices, VkDeviceOrHostAddressConstKHR vertices) {}
+    public record BLASBuildData(List<TriangleGeometry> geometries) {}
+
+    public List<VVkAccelerationStructure> createBLASs(List<BLASBuildData> buildList, Runnable fence) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            VkAccelerationStructureBuildGeometryInfoKHR.Buffer buildInfos = VkAccelerationStructureBuildGeometryInfoKHR.calloc(1, stack);
-            var data = fillCreationData(stack, buildInfos.get(0), VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,
-                    VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR, VK_GEOMETRY_TYPE_TRIANGLES_KHR,
-                    1000,
-                    VAccelerationMethods::setupTriangles,
-                    null
-            );
+            VkAccelerationStructureBuildGeometryInfoKHR.Buffer buildInfos = VkAccelerationStructureBuildGeometryInfoKHR.calloc(buildList.size(), stack);
+            PointerBuffer buildRanges = stack.mallocPointer(buildList.size());
+            List<VVkBuffer> scratchBuffers = new LinkedList<>();
+            List<VVkAccelerationStructure> retAcceleration = new LinkedList<>();
+            for (var buildData : buildList) {
+                VkAccelerationStructureBuildRangeInfoKHR.Buffer rangeInfo = VkAccelerationStructureBuildRangeInfoKHR.calloc(buildData.geometries.size(), stack);
+                var data = fillCreationData(stack, buildInfos.get(), VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,
+                        VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR, VK_GEOMETRY_TYPE_TRIANGLES_KHR,
+                        buildData.geometries.stream().mapToInt(a->a.primitiveCount).toArray(),
+                        VAccelerationMethods::setupTriangles,
+                        buildData.geometries.stream().map(geo-> (IGeometryConsumer<VkAccelerationStructureGeometryTrianglesDataKHR>)(stack2, structure) -> {
+                            structure.vertexFormat(geo.vertexFormat)
+                                    .vertexData(geo.vertices)
+                                    .vertexStride(geo.vertexStride)
+                                    .maxVertex(geo.maxIndex)
+                                    .indexType(VK_INDEX_TYPE_UINT16)
+                                    .indexData(geo.indices);
+                        }).collect(Collectors.toList())
+                );
+                scratchBuffers.add(data.b);
+                retAcceleration.add(data.a);
+                buildData.geometries.forEach(geo->rangeInfo.get().primitiveCount(geo.primitiveCount));
+                rangeInfo.rewind();
+                buildRanges.put(rangeInfo);
+            }
+            buildInfos.rewind();
+            buildRanges.rewind();
             device.singleTimeCommand(cmd -> {
                 vkCmdPipelineBarrier(cmd.buffer,
                         VK_PIPELINE_STAGE_TRANSFER_BIT, // <- copying of the instance data from the staging buffer to the GPU buffer
@@ -133,13 +160,7 @@ public class VAccelerationMethods {
                 vkCmdBuildAccelerationStructuresKHR(
                         cmd.buffer,
                         buildInfos,
-                        null); // <- number of instances/BLASes!
-//pointersOfElements(stack,
-//                                VkAccelerationStructureBuildRangeInfoKHR
-//                                        .calloc(1, stack)
-//                                        .primitiveCount(chunks.size()))
-
-
+                        buildRanges);
 
                 // insert barrier to let tracing wait for the TLAS build
                 vkCmdPipelineBarrier(cmd.buffer,
@@ -154,9 +175,11 @@ public class VAccelerationMethods {
                         null,
                         null);
             }, ()->{
-                data.b.free();//Free scratch buffer
+                scratchBuffers.forEach(VVkBuffer::free);//Free scratch buffers
+                if (fence != null)
+                    fence.run();
             });
-            return data.a;
+            return retAcceleration;
         }
     }
 }

@@ -130,6 +130,8 @@ public class TerrainBuildTask extends AbstractBuilderTask {
             }
         }
 
+        System.err.println(buffers.accelerationSink.position/(4*3*4));
+
         BuiltChunkGeometry geometry = buffers.buildGeometry();
 
         renderData.setModels(geometry.models());
