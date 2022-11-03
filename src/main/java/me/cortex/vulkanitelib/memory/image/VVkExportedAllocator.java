@@ -47,13 +47,13 @@ public class VVkExportedAllocator extends VVkAllocator {
                     //.flags(VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT)
                     ;
 
-            IntBuffer handleTypes = MemoryUtil.memAllocInt(5);
-            //FIXME: make it only on specific types or something, BETTER YET USE A VmaPool instead
-            handleTypes.put(0, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT);//VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-            handleTypes.put(1, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT);//VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-            handleTypes.put(2, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT);//VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-            handleTypes.put(3, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT);//VK_MEMORY_PROPERTY_HOST_CACHED_BIT
-            handleTypes.put(4, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT);//VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT
+            VkPhysicalDeviceMemoryProperties memoryProperties = VkPhysicalDeviceMemoryProperties.calloc(stack);
+            vkGetPhysicalDeviceMemoryProperties(device.device.getPhysicalDevice(), memoryProperties);
+
+            IntBuffer handleTypes = MemoryUtil.memAllocInt(memoryProperties.memoryTypeCount());
+            for (int i = 0; i < handleTypes.capacity(); i++) {
+                handleTypes.put(i, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT);
+            }
             allocatorCreateInfo.pTypeExternalMemoryHandleTypes(handleTypes);
 
 

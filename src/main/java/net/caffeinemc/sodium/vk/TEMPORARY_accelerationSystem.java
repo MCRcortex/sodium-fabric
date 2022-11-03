@@ -81,7 +81,7 @@ public class TEMPORARY_accelerationSystem {
                     entry.blas,
                     ~0,
                     0,
-                    VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR,
+                    0,
                     new Matrix4x3f().translate(entry.pos.getMinX(),entry.pos.getMinY(),entry.pos.getMinZ())
             ));
         }

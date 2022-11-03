@@ -15,6 +15,9 @@ import me.cortex.vulkanitelib.pipelines.VVkRenderPass;
 import me.cortex.vulkanitelib.pipelines.builders.GraphicsPipelineBuilder;
 import me.cortex.vulkanitelib.pipelines.builders.RenderPassBuilder;
 import net.caffeinemc.sodium.vk.VulkanContext;
+import org.joml.Matrix4f;
+import org.joml.Matrix4x3f;
+import org.joml.Vector3f;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkClearAttachment;
 import org.lwjgl.vulkan.VkClearRect;
@@ -85,25 +88,54 @@ public class VulkanRayRender {
                         
                         layout(location = 0) in vec3 pos;
                         layout(std140, binding = 0) uniform CameraInfo {
-                            vec3 cameraPos;
-                        };
+                          vec3 corners[4];
+                          mat4 viewInverse;
+                        } cam;
+                        
                         layout(binding = 1) uniform accelerationStructureEXT acc;
                         
                         layout(location=0) out vec4 color;
                                                 
                         void main(void) {
+                              vec2  p         = pos.xy;
+                              vec3  origin    = cam.viewInverse[3].xyz;
+                              vec3  target    = mix(mix(cam.corners[0], cam.corners[2], p.y), mix(cam.corners[1], cam.corners[3], p.y), p.x);
+                              vec4  direction = cam.viewInverse * vec4(normalize(target.xyz), 0.0);
+                        
                             rayQueryEXT rayQuery;
                             rayQueryInitializeEXT(rayQuery,
                                 acc,
                                 gl_RayFlagsOpaqueEXT,
                                 0xFF,
-                                vec3(pos.x*2,0.0,pos.y*2),
+                                origin,
                                 0.1,
-                                vec3(0,1,0),
-                                10.0);
+                                direction.xyz,
+                                512.0);
                             while(rayQueryProceedEXT(rayQuery)) {}
-                            float t = rayQueryGetIntersectionTEXT(rayQuery, true);
-                            color = vec4(t/10,t/10,t/10,1);
+                            float d = rayQueryGetIntersectionTEXT(rayQuery, true);
+                            int t = rayQueryGetIntersectionPrimitiveIndexEXT(rayQuery, true);
+                            
+                            
+                            vec3 hitPos = origin + direction.xyz*d;
+                            
+                            rayQueryEXT rayQuery2;
+                            rayQueryInitializeEXT(rayQuery2,
+                                acc,
+                                gl_RayFlagsOpaqueEXT,
+                                0xFF,
+                                hitPos+vec3(0,0.001,0),
+                                0.1,
+                                vec3(0.5,0.5,0),
+                                512.0);
+                            while(rayQueryProceedEXT(rayQuery2)) {}
+                            d = rayQueryGetIntersectionTEXT(rayQuery2, true);
+                            //int t = rayQueryGetIntersectionPrimitiveIndexEXT(rayQuery, true);
+                            
+                            //color = vec4(d/512,1,float(t&0xFF)/256.0f,1);
+                            
+                            color = vec4(0,0,1,1);
+                            if (d>500)
+                                color = vec4(1,1,0,1);
                         }
                                                 
                         """, VK_SHADER_STAGE_FRAGMENT_BIT));
@@ -119,7 +151,7 @@ public class VulkanRayRender {
         theFramebuffer = device.createFramebuffer(renderPass, destImage);
     }
     boolean ready;
-    public void render(int frameId) {
+    public void render(int frameId, ChunkRenderMatrices crm, Vector3f cameraOffset) {
 
         if (VulkanContext.acceleration.tick()) {
             ready = true;
@@ -130,6 +162,19 @@ public class VulkanRayRender {
         }
         if (!ready)
             return;
+        var mapped = cameraData[frameId].map();
+        Vector3f tmpv3 = new Vector3f();
+        Matrix4f invProjMatrix = new Matrix4f();
+        Matrix4f invViewMatrix = new Matrix4f();
+
+        crm.projection().invert(invProjMatrix);
+        crm.modelView().translate(cameraOffset.negate()).invert(invViewMatrix);
+        invProjMatrix.transformProject(-1, -1, 0, 1, tmpv3).get(mapped);
+        invProjMatrix.transformProject(+1, -1, 0, 1, tmpv3).get(4*Float.BYTES, mapped);
+        invProjMatrix.transformProject(-1, +1, 0, 1, tmpv3).get(8*Float.BYTES, mapped);
+        invProjMatrix.transformProject(+1, +1, 0, 1, tmpv3).get(12*Float.BYTES, mapped);
+        invViewMatrix.get(Float.BYTES * 16, mapped);
+        cameraData[frameId].unmap();
 
         device.singleTimeCommand(cmd->{//TODO: not use single time commands
             cmd.beginRenderPass(theFramebuffer);

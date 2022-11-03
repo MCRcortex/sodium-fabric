@@ -135,7 +135,7 @@ public class VAccelerationMethods {
                                     .vertexData(geo.vertices)
                                     .vertexStride(geo.vertexStride)
                                     .maxVertex(geo.maxIndex)
-                                    .indexType(VK_INDEX_TYPE_UINT16)
+                                    .indexType(geo.indexType)
                                     .indexData(geo.indices);
                         }).collect(Collectors.toList())
                 );

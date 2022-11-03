@@ -45,6 +45,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.MathHelper;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
@@ -322,6 +323,8 @@ public class VulkanChunkRenderer implements ChunkRenderer {
     protected static float getCameraTranslation(int chunkBlockPos, int cameraBlockPos, float cameraDeltaPos) {
         return (chunkBlockPos - cameraBlockPos) - cameraDeltaPos;
     }
+
+
     @Override
     public void createRenderLists(SortedTerrainLists lists, int frameIndex) {
         frameIndex %= terrainCommandBuffers.length;
@@ -515,7 +518,9 @@ public class VulkanChunkRenderer implements ChunkRenderer {
         queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()], waitSem, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT , signalSem, ()->{});//TODO: need to basicly submit all the layers at once with correct ordering, that way it can work on multiple render passes at the same time
 
         if (renderPass.getId() == 4){
-            composite.render(frameIndex);//TODO: add sync semaphores
+            composite.render(frameIndex, matrices, new Vector3f((float) this.cameraContext.getPosX(),
+                    (float) this.cameraContext.getPosY(),
+                    (float) this.cameraContext.getPosZ()));//TODO: add sync semaphores
         }
         //queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()]);
         signalSem.glWait(new int[]{},new int[]{},new int[]{});//TODO: provide the framebuffer depth and colour texture
