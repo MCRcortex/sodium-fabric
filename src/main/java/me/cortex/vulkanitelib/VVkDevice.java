@@ -90,7 +90,7 @@ public class VVkDevice {
         }
     }
 
-    public VVkPipeline build(GraphicsPipelineBuilder dsb) {
+    public VVkGraphicsPipeline build(GraphicsPipelineBuilder dsb) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
             VkPipelineLayoutCreateInfo layoutCreateInfo = dsb.generateLayout(stack);
             LongBuffer pLayout = stack.mallocLong(1);
@@ -235,7 +235,7 @@ public class VVkDevice {
         }
     }
 
-    public VVkDevice singleTimeCommand(Consumer<VVkCommandBuffer> acceptor, Runnable postFence) {
+    public synchronized VVkDevice singleTimeCommand(Consumer<VVkCommandBuffer> acceptor, Runnable postFence) {
         VVkCommandBuffer commandBuffer = transientPool.createCommandBuffer();
         commandBuffer.begin();
         acceptor.accept(commandBuffer);
@@ -244,7 +244,7 @@ public class VVkDevice {
         return this;
     }
 
-    public VVkFence createFence(boolean addToWatch) {
+    public synchronized VVkFence createFence(boolean addToWatch) {
         try (MemoryStack stack = MemoryStack.stackPush()){
             LongBuffer pFence = stack.mallocLong(1);
             _CHECK_(vkCreateFence(device, VkFenceCreateInfo
@@ -261,12 +261,12 @@ public class VVkDevice {
 
     //TODO: maybe move this from here somewhere else
     private final Set<VVkFence> fences = new HashSet<>();
-    public VVkDevice addFenceWatch(VVkFence fence) {
+    public synchronized VVkDevice addFenceWatch(VVkFence fence) {
         fences.add(fence);
         return this;
     }
     //TODO: maybe move this from here somewhere else
-    public VVkDevice tickFences() {
+    public synchronized VVkDevice tickFences() {
         Iterator<VVkFence> it = fences.iterator();
         while (it.hasNext()) {
             VVkFence e = it.next();

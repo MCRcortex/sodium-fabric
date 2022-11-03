@@ -84,16 +84,16 @@ public class VVkAllocator extends VVkObject {
 
     public VVkBuffer createBuffer(ByteBuffer data, int bufferUsage, int properties) {
         try (MemoryStack stack = stackPush()) {
-            VVkBuffer buffer = createBuffer(data.capacity(), bufferUsage, properties);
+            VVkBuffer buffer = createBuffer(data.limit(), bufferUsage, properties);
             //Create temporary upload buffer
-            VVkBuffer stageBuffer = createBuffer(data.capacity(),VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 0, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+            VVkBuffer stageBuffer = createBuffer(data.limit(),VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 0, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
             stageBuffer.map().put(data);//TODO: maybe make a memCpy
             stageBuffer.unmap();
             VVkCommandBuffer cmd = device.transientPool.createCommandBuffer();
             cmd.begin();
             vkCmdCopyBuffer(cmd.buffer, stageBuffer.buffer, buffer.buffer, VkBufferCopy
                     .calloc(1, stack)
-                    .size(data.capacity()));
+                    .size(data.limit()));
             cmd.end();
             device.fetchQueue().submit(cmd, stageBuffer::free);
             return buffer;

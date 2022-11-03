@@ -5,6 +5,7 @@ import me.cortex.vulkanitelib.descriptors.VVkDescriptorSetsPooled;
 import me.cortex.vulkanitelib.memory.buffer.VVkBuffer;
 import me.cortex.vulkanitelib.memory.image.VVkImageView;
 import me.cortex.vulkanitelib.memory.image.VVkSampler;
+import me.cortex.vulkanitelib.raytracing.VVkAccelerationStructure;
 import net.minecraft.util.Pair;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkDescriptorBufferInfo;
@@ -27,7 +28,7 @@ public class DescriptorUpdateBuilder {
         void prep(MemoryStack stack, VkWriteDescriptorSet write);
     }
     public interface IDescriptorWrite {
-        void write(int index, VkWriteDescriptorSet write);
+        void write(int index, VkWriteDescriptorSet write, MemoryStack stack);
     }
     public List<Pair<IDescriptorPrep, IDescriptorWrite>> updates = new LinkedList<>();
     public DescriptorUpdateBuilder(VVkDescriptorSetLayout layout) {
@@ -56,7 +57,7 @@ public class DescriptorUpdateBuilder {
     }
     public DescriptorUpdateBuilder buffer(int binding, VVkBuffer[] buffers, int type) {
         updates.add(new Pair<>(((stack, writer) -> {writer.descriptorCount(1).pBufferInfo(VkDescriptorBufferInfo.calloc(1, stack)).descriptorType(type);}),
-                (index, writer) -> {
+                (index, writer, stack) -> {
                     writer.dstBinding(binding).pBufferInfo().buffer(buffers[index].buffer).range(VK_WHOLE_SIZE);
                 }));
         return this;
@@ -64,18 +65,28 @@ public class DescriptorUpdateBuilder {
 
     public DescriptorUpdateBuilder buffer(int binding, VVkBuffer buffer, int type) {
         updates.add(new Pair<>((stack, writer) -> {writer.descriptorCount(1).pBufferInfo(VkDescriptorBufferInfo.calloc(1, stack)).descriptorType(type);},
-                (index, writer) -> {
+                (index, writer, stack) -> {
                     writer.dstBinding(binding).pBufferInfo().buffer(buffer.buffer).range(VK_WHOLE_SIZE);
                 }));
         return this;
     }
     public DescriptorUpdateBuilder image(int binding, int layoutType, VVkSampler sampler, VVkImageView view) {
         updates.add(new Pair<>(DescriptorUpdateBuilder::combImageSamplePrep,
-                (index, writer) -> {
+                (index, writer, stack) -> {
                     writer.dstBinding(binding).pImageInfo().imageView(view.view).sampler(sampler.sampler).imageLayout(layoutType);
                 }));
         return this;
     }
+
+    public DescriptorUpdateBuilder acceleration(int binding, VVkAccelerationStructure accelerationStructure) {
+        updates.add(new Pair<>(DescriptorUpdateBuilder::accelerationPrep,
+            (index, writer, stack) -> {
+                VkWriteDescriptorSetAccelerationStructureKHR.create(writer.dstBinding(binding).pNext())
+                        .pAccelerationStructures(stack.longs(accelerationStructure.acceleration));
+            }));
+        return this;
+    }
+
 }
 /*
 public class DescriptorUpdateBuilder {

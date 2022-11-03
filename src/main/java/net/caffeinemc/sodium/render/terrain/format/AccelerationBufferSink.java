@@ -1,6 +1,7 @@
 package net.caffeinemc.sodium.render.terrain.format;
 
 import net.caffeinemc.sodium.util.NativeBuffer;
+import net.caffeinemc.sodium.vk.AccelerationData;
 import org.lwjgl.system.MemoryUtil;
 
 public class AccelerationBufferSink {
@@ -26,5 +27,13 @@ public class AccelerationBufferSink {
 
     public void reset() {
         position = 0;
+    }
+
+    public AccelerationData bake() {
+        if (position % (12*4) != 0)
+            throw new IllegalStateException("Not quad in acceleration sink");
+        NativeBuffer baked = new NativeBuffer((int) position);
+        MemoryUtil.memCopy(buffer.getAddress(), baked.getAddress(), position);
+        return new AccelerationData(baked, (int) (position/(12*4)));
     }
 }

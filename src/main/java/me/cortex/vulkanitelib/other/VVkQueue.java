@@ -54,11 +54,22 @@ public class VVkQueue extends VVkObject {
         return new BatchSubmitter();
     }
 
+    public VVkQueue submit(VVkCommandBuffer cmdBuff, VVkSemaphore wait, int waitDstStageMsk, VVkSemaphore signal, Runnable fence) {
+        return submit(cmdBuff, new VVkSemaphore[]{wait}, new int[]{waitDstStageMsk}, new VVkSemaphore[]{signal}, fence);
+    }
     public VVkQueue submit(VVkCommandBuffer cmdBuff, VVkSemaphore wait, int waitDstStageMsk, VVkSemaphore signal, VVkFence fence) {
         return submit(cmdBuff, new VVkSemaphore[]{wait}, new int[]{waitDstStageMsk}, new VVkSemaphore[]{signal}, fence);
     }
 
-    public VVkQueue submit(VVkCommandBuffer cmdBuff, VVkSemaphore[] wait, int[] waitDstStageMsk, VVkSemaphore[] signal, VVkFence fence) {
+    public synchronized VVkQueue submit(VVkCommandBuffer cmd, VVkSemaphore[] wait, int[] waitDstStageMsk, VVkSemaphore[] signal, Runnable fence) {
+        VVkFence pFence = device.createFence(true);
+        pFence.add(fence);
+        if (cmd.pool == device.transientPool)
+            pFence.add(cmd::free);
+        return submit(cmd, wait, waitDstStageMsk, signal, pFence);
+    }
+
+    public synchronized VVkQueue submit(VVkCommandBuffer cmdBuff, VVkSemaphore[] wait, int[] waitDstStageMsk, VVkSemaphore[] signal, VVkFence fence) {
         if (wait == null)
             wait = new VVkSemaphore[0];
         if (waitDstStageMsk == null)
@@ -89,7 +100,7 @@ public class VVkQueue extends VVkObject {
     }
 
 
-    public VVkQueue submit(VVkCommandBuffer cmd, Runnable fence) {
+    public synchronized VVkQueue submit(VVkCommandBuffer cmd, Runnable fence) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
             VVkFence pFence = device.createFence(true);
             pFence.add(fence);

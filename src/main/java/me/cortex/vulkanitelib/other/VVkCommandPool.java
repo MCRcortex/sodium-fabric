@@ -35,7 +35,7 @@ public class VVkCommandPool extends VVkObject {
         return createCommandBuffers(1, level)[0];
     }
 
-    public VVkCommandBuffer[] createCommandBuffers(int count, int level) {
+    public synchronized VVkCommandBuffer[] createCommandBuffers(int count, int level) {
         try (MemoryStack stack = MemoryStack.stackPush()){
             PointerBuffer pCommandBuffer = stack.mallocPointer(count);
             _CHECK_(vkAllocateCommandBuffers(device.device,

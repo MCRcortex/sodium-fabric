@@ -1,5 +1,8 @@
 package net.caffeinemc.sodium.render.chunk.compile.tasks;
 
+import me.cortex.vulkanitelib.memory.buffer.VVkBuffer;
+import me.cortex.vulkanitelib.raytracing.VAccelerationMethods;
+import net.caffeinemc.sodium.render.chunk.draw.VulkanChunkRenderer;
 import net.caffeinemc.sodium.render.terrain.TerrainBuildContext;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.state.BuiltChunkGeometry;
@@ -7,6 +10,7 @@ import net.caffeinemc.sodium.render.chunk.state.ChunkRenderBounds;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.caffeinemc.sodium.render.terrain.context.PreparedTerrainRenderCache;
 import net.caffeinemc.sodium.util.tasks.CancellationSource;
+import net.caffeinemc.sodium.vk.VulkanContext;
 import net.caffeinemc.sodium.world.slice.WorldSlice;
 import net.caffeinemc.sodium.world.slice.WorldSliceData;
 import net.minecraft.block.BlockRenderType;
@@ -21,6 +25,15 @@ import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;
+import org.lwjgl.system.MemoryStack;
+
+import java.util.List;
+
+import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+import static org.lwjgl.vulkan.KHRBufferDeviceAddress.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR;
+import static org.lwjgl.vulkan.VK10.*;
+import static org.lwjgl.vulkan.VK12.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
 /**
  * Rebuilds all the meshes of a chunk for each given render pass with non-occluded blocks. The result is then uploaded
@@ -129,8 +142,6 @@ public class TerrainBuildTask extends AbstractBuilderTask {
                 }
             }
         }
-
-        System.err.println(buffers.accelerationSink.position/(4*3*4));
 
         BuiltChunkGeometry geometry = buffers.buildGeometry();
 

@@ -9,7 +9,7 @@ public abstract class VVkObject {
         this.device = device;
         cleaner.register(this, ()->{//TODO: Clean the object/yell at person that object was not freed
             //TODO: not yell if object was freed
-            System.out.println("ERROR: Vulkan object out of gc scope without cleaning");
+            //System.out.println("ERROR: Vulkan object out of gc scope without cleaning");
         });
     }
     public abstract void free();

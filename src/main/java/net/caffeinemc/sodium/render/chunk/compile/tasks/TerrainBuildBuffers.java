@@ -145,7 +145,7 @@ public class TerrainBuildBuffers {
         
         if (chunkVertexBuffer != null) {
             // if the buffer is there, there's at least one model entry that's non-null
-            return new BuiltChunkGeometry(new VertexData(vertexFormat, chunkVertexBuffer), models);
+            return new BuiltChunkGeometry(new VertexData(vertexFormat, chunkVertexBuffer), models, accelerationSink.bake());
         }
         
         return BuiltChunkGeometry.empty();
@@ -159,7 +159,7 @@ public class TerrainBuildBuffers {
         }
         for (var as : this.delegates) {
             for(var t : ChunkMeshFace.values()) {
-                if (as.getVertexSink(t) instanceof AccelerationSink as2) {
+                if (as!=null && as.getVertexSink(t) instanceof AccelerationSink as2) {
                     as2.setAccelerationBuffer(null);
                 }
             }

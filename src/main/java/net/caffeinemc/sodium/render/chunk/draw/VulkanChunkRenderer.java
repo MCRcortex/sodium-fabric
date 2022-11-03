@@ -63,7 +63,10 @@ import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL42C.GL_ALL_BARRIER_BITS;
 import static org.lwjgl.opengl.GL42C.glMemoryBarrier;
 import static org.lwjgl.util.vma.Vma.VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 import static org.lwjgl.vulkan.VK10.*;
+import static org.lwjgl.vulkan.VK12.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
 public class VulkanChunkRenderer implements ChunkRenderer {
     public static class IndexBuffer {
@@ -127,7 +130,7 @@ public class VulkanChunkRenderer implements ChunkRenderer {
     protected VVkFramebuffer theFrameBuffer;
     //protected final int glFb;
 
-    protected IndexBuffer indexBuffer;
+    public static final IndexBuffer indexBuffer = new IndexBuffer(100000, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR|VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
 
     protected final VVkBuffer[] uniformCameraData;
     protected final VVkBuffer[] uniformFogData;
@@ -136,6 +139,8 @@ public class VulkanChunkRenderer implements ChunkRenderer {
     protected final VVkBuffer[][] drawIndirectCommands;
 
     final int MAX_CHUNK_COUNT = 10000;
+
+    final VulkanRayRender composite;
 
     public VulkanChunkRenderer(RenderDevice glDevice, ChunkCameraContext camera, ChunkRenderPassManager renderPassManager, TerrainVertexType vertexType) {
         this.glDevice = glDevice;
@@ -151,8 +156,6 @@ public class VulkanChunkRenderer implements ChunkRenderer {
         uniformChunkData = new VVkBuffer[maxInFlightFrames];
 
         queue = device.fetchQueue();
-
-        indexBuffer = new IndexBuffer(100000);
 
 
         //TODO: (from: https://developer.nvidia.com/blog/vulkan-dos-donts/)
@@ -189,6 +192,7 @@ public class VulkanChunkRenderer implements ChunkRenderer {
                 .binding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT)//FogParameters
                 .binding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)//tex_diffuse
                 .binding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT)//tex_light
+                //.binding(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT)//funni acceleration buffer
         );
         VGlVkImage blockTexture = VulkanContext.gl2vk_textures.get(GlTexture.getHandle(TextureUtil.getBlockAtlasTexture()));
         VGlVkImage lightTexture = VulkanContext.gl2vk_textures.get(GlTexture.getHandle(TextureUtil.getLightTexture()));
@@ -290,26 +294,9 @@ public class VulkanChunkRenderer implements ChunkRenderer {
             this.renderPipelines[chunkRenderPass.getId()] = device.build(pipelineBuilder);
         }
 
-
-        /*
-        VGlVkImage gc = device.exportedAllocator.createShared2DImage(2560,1377, 1, VK_FORMAT_R8G8B8A8_UNORM, GL_RGBA8, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_SAMPLED_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        VGlVkImage gd = device.exportedAllocator.createShared2DImage(2560,1377, 1, VK_FORMAT_D24_UNORM_S8_UINT, GL_DEPTH24_STENCIL8, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT|VK_IMAGE_USAGE_SAMPLED_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT , VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        theFrameBuffer = device.createFramebuffer(renderPass, gc.createView(VK_IMAGE_ASPECT_COLOR_BIT), gd.createView(VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT));
-        glFb = glCreateFramebuffers();
-        glNamedFramebufferTexture(glFb, GL_COLOR_ATTACHMENT0, gc.glId, 0);
-        glNamedFramebufferTexture(glFb, GL_DEPTH_ATTACHMENT, gd.glId, 0);
-        colourBuf = gc;*/
-        /*
-        glFb = glCreateFramebuffers();
-        glNamedFramebufferTexture(glFb, GL_COLOR_ATTACHMENT0, gc.glId, 0);
-        colourBuf = gc;
-        glNamedFramebufferTexture(glFb, GL_COLOR_ATTACHMENT0, theFrameBuffer.glId, 0);
-        glNamedFramebufferTexture(glFb, GL_DEPTH_ATTACHMENT, VulkanContext.depthTex.glId, 0);*
-
-         */
-
         theFrameBuffer = device.createFramebuffer(renderPass, VulkanContext.gl2vk_textures.get(MinecraftClient.getInstance().getFramebuffer().getColorAttachment()).createView(VK_IMAGE_ASPECT_COLOR_BIT), VulkanContext.gl2vk_textures.get(MinecraftClient.getInstance().getFramebuffer().getDepthAttachment()).createView(VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT));
 
+        composite = new VulkanRayRender(device, maxInFlightFrames, theFrameBuffer.attachments[0]);
     }
 
     protected static ShaderConstants.Builder getBaseShaderConstants(ChunkRenderPass pass, TerrainVertexType vertexType) {
@@ -335,11 +322,12 @@ public class VulkanChunkRenderer implements ChunkRenderer {
     protected static float getCameraTranslation(int chunkBlockPos, int cameraBlockPos, float cameraDeltaPos) {
         return (chunkBlockPos - cameraBlockPos) - cameraDeltaPos;
     }
-    private ChunkRenderMatrices crm;
-
     @Override
     public void createRenderLists(SortedTerrainLists lists, int frameIndex) {
         frameIndex %= terrainCommandBuffers.length;
+
+
+
         BlockPos cameraBlockPos = this.cameraContext.getBlockPos();
         float cameraDeltaX = this.cameraContext.getDeltaX();
         float cameraDeltaY = this.cameraContext.getDeltaY();
@@ -500,8 +488,8 @@ public class VulkanChunkRenderer implements ChunkRenderer {
     @Override
     public void render(ChunkRenderPass renderPass, ChunkRenderMatrices matrices, int frameIndex) {
         glFlush();
-        frameIndex %= terrainCommandBuffers.length;
         device.tickFences();//TODO: MOVE THIS SOMEWHERE BETTER
+        frameIndex %= terrainCommandBuffers.length;
 
         if (renderPass.getId() == 0){
             var ucdb = MemoryUtil.memAddress(uniformCameraData[frameIndex].map());
@@ -524,8 +512,11 @@ public class VulkanChunkRenderer implements ChunkRenderer {
         //glFinish();
         waitSem.glSignal(new int[]{},new int[]{},new int[]{});//TODO: provide the framebuffer depth and colour texture
         //glFlush();
-        queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()], waitSem, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT , signalSem, null);//TODO: need to basicly submit all the layers at once with correct ordering, that way it can work on multiple render passes at the same time
+        queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()], waitSem, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT , signalSem, ()->{});//TODO: need to basicly submit all the layers at once with correct ordering, that way it can work on multiple render passes at the same time
 
+        if (renderPass.getId() == 4){
+            composite.render(frameIndex);//TODO: add sync semaphores
+        }
         //queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()]);
         signalSem.glWait(new int[]{},new int[]{},new int[]{});//TODO: provide the framebuffer depth and colour texture
         glFlush();
@@ -533,17 +524,7 @@ public class VulkanChunkRenderer implements ChunkRenderer {
 
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
-        /*
-        if (renderPass.getId() == 4){
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, glFb);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, MinecraftClient.getInstance().getFramebuffer().fbo);
-            glBlitFramebuffer(0, 0, 2560, 1377,
-                    0, 0, 2560, 1377,
-                    GL_COLOR_BUFFER_BIT,
-                    GL_LINEAR);
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        }*/
+
         //
     }
 

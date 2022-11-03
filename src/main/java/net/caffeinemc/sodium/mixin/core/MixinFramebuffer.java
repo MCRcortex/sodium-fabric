@@ -37,8 +37,6 @@ public abstract class MixinFramebuffer {
         this.colorAttachment = im.glId;
         GlStateManager._bindTexture(this.colorAttachment);
         VulkanContext.gl2vk_textures.put(this.colorAttachment, im);
-        if (VulkanContext.colorTex == null)
-            VulkanContext.colorTex = im;
 
         GlStateManager._glFramebufferTexture2D(36160, 36064, 3553, this.colorAttachment, 0);
 
@@ -48,8 +46,6 @@ public abstract class MixinFramebuffer {
         this.depthAttachment = db.glId;
         GlStateManager._bindTexture(this.depthAttachment);
         VulkanContext.gl2vk_textures.put(this.depthAttachment, db);
-        if (VulkanContext.depthTex == null)
-            VulkanContext.depthTex = db;
 
         GlStateManager._glFramebufferTexture2D(36160, 36096, 3553, this.depthAttachment, 0);
 

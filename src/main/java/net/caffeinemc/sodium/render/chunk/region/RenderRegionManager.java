@@ -211,7 +211,11 @@ public class RenderRegionManager {
             // Only submit an upload job if there is data in the first place
             if (vertices != null) {
                 uploads.add(new PendingUpload(section, vertices.buffer()));
+
+                //Add chunk data to acceleration rebuild queue
+                VulkanContext.acceleration.enqueueChunkRebuild(section.getChunkPos(), geometry.accelerationData());
             }
+
         }
 
         // If we have nothing to upload, don't attempt to allocate a region

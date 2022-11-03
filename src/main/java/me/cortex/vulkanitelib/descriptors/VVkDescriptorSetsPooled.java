@@ -32,11 +32,13 @@ public class VVkDescriptorSetsPooled extends VVkObject {
             }
             writers.rewind();
             for (int i = 0; i < sets.length; i++) {
-                for (var updater : writer.updates) {
-                    updater.getRight().write(i, writers.get().dstSet(sets[i]));
+                try (MemoryStack innerStack = MemoryStack.stackPush()){
+                    for (var updater : writer.updates) {
+                        updater.getRight().write(i, writers.get().dstSet(sets[i]), innerStack);
+                    }
+                    writers.rewind();
+                    vkUpdateDescriptorSets(device.device, writers, null);
                 }
-                writers.rewind();
-                vkUpdateDescriptorSets(device.device, writers, null);
             }
             /*
             VkWriteDescriptorSet.Buffer writers = writer.init(stack);//Maybe dont do this and have stuff malloced instead
