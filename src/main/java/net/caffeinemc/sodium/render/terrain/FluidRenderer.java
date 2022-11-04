@@ -427,7 +427,7 @@ public class FluidRenderer {
 
             sink.writeVertex(offset, x, y, z, color, u, v, light);
             if (sink instanceof AccelerationSink ac)
-                ac.writeAccelerationVertex(offset.getX() + x, offset.getY() + y, offset.getZ() + z, offset.hashCode());
+                ac.writeAccelerationVertex(offset.getX() + x, offset.getY() + y, offset.getZ() + z);
 
             vertexIdx += lightOrder;
         }

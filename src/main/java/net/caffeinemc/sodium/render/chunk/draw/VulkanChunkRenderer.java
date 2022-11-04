@@ -236,12 +236,13 @@ public class VulkanChunkRenderer implements ChunkRenderer {
 
 
         VVkSampler sampler1 = device.createSampler(blockTexture.mipLayers);
+        var blockAtlasView = blockTexture.createView(VK_IMAGE_ASPECT_COLOR_BIT);
         VVkSampler sampler2 = device.createSampler();
         DescriptorUpdateBuilder dub = new DescriptorUpdateBuilder(uniformLayout)
                 .ubuffer(0, uniformCameraData)
                 .sbuffer(1, uniformChunkData)
                 .ubuffer(2, uniformFogData)
-                .image(3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler1, blockTexture.createView(VK_IMAGE_ASPECT_COLOR_BIT))
+                .image(3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler1, blockAtlasView)
                 .image(4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler2, lightTexture.createView(VK_IMAGE_ASPECT_COLOR_BIT));
 
         descriptorSets = uniformLayout.createDescriptorSetsAndPool(maxInFlightFrames);
@@ -297,7 +298,7 @@ public class VulkanChunkRenderer implements ChunkRenderer {
 
         theFrameBuffer = device.createFramebuffer(renderPass, VulkanContext.gl2vk_textures.get(MinecraftClient.getInstance().getFramebuffer().getColorAttachment()).createView(VK_IMAGE_ASPECT_COLOR_BIT), VulkanContext.gl2vk_textures.get(MinecraftClient.getInstance().getFramebuffer().getDepthAttachment()).createView(VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT));
 
-        composite = new VulkanRayRender(device, maxInFlightFrames, theFrameBuffer.attachments[0]);
+        composite = new VulkanRayRender(device, maxInFlightFrames, theFrameBuffer.attachments[0], sampler1, blockAtlasView);
     }
 
     protected static ShaderConstants.Builder getBaseShaderConstants(ChunkRenderPass pass, TerrainVertexType vertexType) {
@@ -511,7 +512,7 @@ public class VulkanChunkRenderer implements ChunkRenderer {
         VGlVkSemaphore waitSem = waitSemaphores[frameIndex][renderPass.getId()];
         VGlVkSemaphore signalSem = signalSemaphores[frameIndex][renderPass.getId()];
 
-        if (true) {
+        if (false) {
             //glFinish();
             //glFinish();
             waitSem.glSignal(new int[]{}, new int[]{}, new int[]{});//TODO: provide the framebuffer depth and colour texture
@@ -524,9 +525,11 @@ public class VulkanChunkRenderer implements ChunkRenderer {
             glFlush();
         }
         if (renderPass.getId() == 4){
+            glFinish();
             composite.render(frameIndex, matrices, new Vector3f((float) this.cameraContext.getPosX(),
                     (float) this.cameraContext.getPosY(),
                     (float) this.cameraContext.getPosZ()));//TODO: add sync semaphores
+            vkQueueWaitIdle(device.fetchQueue().queue);
         }
 
 

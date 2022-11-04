@@ -16,14 +16,13 @@ public class AccelerationBufferSink {
         }
     }
 
-    public void write(float posX, float posY, float posZ, int meta) {
+    public void write(float posX, float posY, float posZ) {
         ensureRemainingCapacity(Float.BYTES*4);
         MemoryUtil.memPutFloat(buffer.getAddress()+position, posX);
         MemoryUtil.memPutFloat(buffer.getAddress()+position+4, posY);
         MemoryUtil.memPutFloat(buffer.getAddress()+position+8, posZ);
-        MemoryUtil.memPutInt(buffer.getAddress()+position+12, meta);
 
-        position+=16;
+        position+=12;
     }
     public void free() {
         buffer.free();
@@ -36,10 +35,10 @@ public class AccelerationBufferSink {
     }
 
     public AccelerationData bake() {
-        if (position % (16*4) != 0)
+        if (position % (12*4) != 0)
             throw new IllegalStateException("Not quad in acceleration sink");
         NativeBuffer baked = new NativeBuffer((int) position);
         MemoryUtil.memCopy(buffer.getAddress(), baked.getAddress(), position);
-        return new AccelerationData(baked, (int) (position/(16*4)));
+        return new AccelerationData(baked, (int) (position/(12*4)));
     }
 }

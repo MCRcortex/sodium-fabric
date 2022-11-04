@@ -8,6 +8,7 @@ import me.cortex.vulkanitelib.descriptors.builders.DescriptorUpdateBuilder;
 import me.cortex.vulkanitelib.memory.buffer.VVkBuffer;
 import me.cortex.vulkanitelib.memory.image.VVkFramebuffer;
 import me.cortex.vulkanitelib.memory.image.VVkImageView;
+import me.cortex.vulkanitelib.memory.image.VVkSampler;
 import me.cortex.vulkanitelib.other.VVkCommandBuffer;
 import me.cortex.vulkanitelib.other.VVkCommandPool;
 import me.cortex.vulkanitelib.pipelines.VVkGraphicsPipeline;
@@ -20,7 +21,6 @@ import net.caffeinemc.sodium.render.shader.ShaderParser;
 import net.caffeinemc.sodium.vk.VulkanContext;
 import net.minecraft.util.Identifier;
 import org.joml.Matrix4f;
-import org.joml.Matrix4x3f;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkClearAttachment;
@@ -41,7 +41,7 @@ public class VulkanRayRender {
     protected final VVkDescriptorSetsPooled descriptorSets;
     final VVkGraphicsPipeline compositePipeline;
     final VVkFramebuffer theFramebuffer;
-    public VulkanRayRender(VVkDevice device, int inflightFrames, VVkImageView destImage) {
+    public VulkanRayRender(VVkDevice device, int inflightFrames, VVkImageView destImage, VVkSampler sampler1, VVkImageView blockAtlasView) {
         this.device = device;
         this.inflightFrames = inflightFrames;
         this.cameraData = new VVkBuffer[inflightFrames];
@@ -55,6 +55,7 @@ public class VulkanRayRender {
                 .binding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT)//camera data
                 .binding(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, VK_SHADER_STAGE_FRAGMENT_BIT)//funni acceleration buffer
                 .binding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT)//funni buffer buffer
+                .binding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)//block texture
         );
         descriptorSets = layout.createDescriptorSetsAndPool(inflightFrames);
 
@@ -84,10 +85,10 @@ public class VulkanRayRender {
                             //output the position of each vertex
                             //const array of positions for the triangle
                             const vec3 positions[4] = vec3[4](
-                                vec3(0.f,0.f, 0.0f),
-                                vec3(0.f,1.f, 0.0f),
+                                vec3(-1.f,-1.f, 0.0f),
+                                vec3(-1.f,1.f, 0.0f),
                                 vec3(1.f,1.f, 0.0f),
-                                vec3(1.f,0.f, 0.0f)
+                                vec3(1.f,-1.f, 0.0f)
                             );
                             pos = positions[gl_VertexIndex];
                             //output the position of each vertex
@@ -101,7 +102,9 @@ public class VulkanRayRender {
         for (int i = 0; i < inflightFrames; i++) {
             cameraData[i] = device.allocator.createBuffer(1024, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
         }
-        DescriptorUpdateBuilder dub = new DescriptorUpdateBuilder(layout).buffer(0, cameraData, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        DescriptorUpdateBuilder dub = new DescriptorUpdateBuilder(layout)
+                .buffer(0, cameraData, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+                .image(3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler1, blockAtlasView);
         descriptorSets.update(dub);
 
         theFramebuffer = device.createFramebuffer(renderPass, destImage);

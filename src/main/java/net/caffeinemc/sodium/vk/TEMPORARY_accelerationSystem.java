@@ -36,7 +36,7 @@ public class TEMPORARY_accelerationSystem {
 
     private void tickRebuilds() {
         List<VAccelerationMethods.BLASBuildData> blasBuildData = new LinkedList<>();
-        List<VVkBuffer> vertexData = new LinkedList<>();
+        List<VVkBuffer> vertexPositionData = new LinkedList<>();
         List<ChunkSectionPos> positions = new LinkedList<>();
         try (MemoryStack stack = MemoryStack.stackPush()){
             for (var rebuild : rebuildQueue.entrySet()) {
@@ -44,14 +44,14 @@ public class TEMPORARY_accelerationSystem {
                         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
                                 VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
                 rebuild.getValue().delete();
-                vertexData.add(triangleData);
+                vertexPositionData.add(triangleData);
                 blasBuildData.add(new VAccelerationMethods.BLASBuildData(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR, List.of(
                         new VAccelerationMethods.TriangleGeometry(
                                 VK_INDEX_TYPE_UINT32,
                                 rebuild.getValue().quadCount*4,
                                 rebuild.getValue().quadCount*2,
                                 VK_FORMAT_R32G32B32_SFLOAT,
-                                4*3+4,
+                                4*3,
                                 VulkanChunkRenderer.indexBuffer.indexBuffer.deviceAddressConst(stack),
                                 triangleData.deviceAddressConst(stack)
                         )
@@ -60,16 +60,15 @@ public class TEMPORARY_accelerationSystem {
             }
             rebuildQueue.clear();
             var newBlass = VulkanContext.device.accelerator.createBLASs(blasBuildData, () -> {
+                vertexPositionData.forEach(VVkBuffer::free);
             });
             {
                 var posIter = positions.iterator();
                 var blasIter = newBlass.iterator();
-                var vertIter = vertexData.iterator();
                 while (posIter.hasNext()) {
                     var pos = posIter.next();
                     var blas = blasIter.next();
-                    var vert = vertIter.next();
-                    var oldBlas = loadedSections.put(pos, new BlasData(pos, blas, vert));
+                    var oldBlas = loadedSections.put(pos, new BlasData(pos, blas, null));
                     if (oldBlas != null) oldBlas.free();
                 }
             }
@@ -96,7 +95,7 @@ public class TEMPORARY_accelerationSystem {
                     entry.blas,
                     ~0,
                     i++,
-                    0,
+                    VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR,
                     new Matrix4x3f().translate(entry.pos.getMinX(),entry.pos.getMinY(),entry.pos.getMinZ())
             ));
             ref.put(entry.vertData.bufferAddress());

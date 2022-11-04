@@ -35,8 +35,8 @@ public class CompactTerrainVertexBufferWriterUnsafe extends VertexBufferWriterUn
 
     AccelerationBufferSink abs;
     @Override
-    public void writeAccelerationVertex(float posX, float posY, float posZ, int meta) {
-        abs.write(posX, posY, posZ, meta);
+    public void writeAccelerationVertex(float posX, float posY, float posZ) {
+        abs.write(posX, posY, posZ);
     }
 
     @Override

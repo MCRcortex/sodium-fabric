@@ -139,7 +139,7 @@ public class BlockRenderer {
 
             vertices.writeVertex(origin, x, y, z, color, u, v, lm);
             if (vertices instanceof AccelerationSink ac)
-                ac.writeAccelerationVertex(origin.getX() + x, origin.getY() + y, origin.getZ() + z, origin.hashCode());
+                ac.writeAccelerationVertex(origin.getX() + x, origin.getY() + y, origin.getZ() + z);
         }
 
         Sprite sprite = src.getSprite();
