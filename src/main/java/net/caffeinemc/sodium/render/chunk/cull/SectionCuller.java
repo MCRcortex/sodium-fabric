@@ -409,6 +409,10 @@ public class SectionCuller {
         if (fallback) {
             this.getStartingNodesFallback(originSectionX, originSectionY, originSectionZ);
         } else {
+            //FIXME:DODGY HACK TO FIX OCCLUSION
+            if (sectionTree.getSection(startSectionIdx) != null || sectionTree.getSection(startSectionIdx).getData() != null)
+                setVisibilityData(startSectionIdx, sectionTree.getSection(startSectionIdx).getData().occlusionData);
+
             currentQueue[0] = startSectionIdx;
             currentQueueSize = 1;
 
@@ -419,7 +423,7 @@ public class SectionCuller {
             }
 
             this.allowedTraversalDirections[startSectionIdx] = (byte) -1;
-            this.visibleTraversalDirections[startSectionIdx] = visible;
+            this.visibleTraversalDirections[startSectionIdx] = (byte) (visible|visibilityOverride);
         }
 
         int fallbackIndex = 0;
@@ -439,6 +443,9 @@ public class SectionCuller {
 
             for (int i = 0; i < currentQueueSize; i++) {
                 int sectionIdx = currentQueue[i];
+
+                if (sectionTree.getSection(sectionIdx) != null || sectionTree.getSection(sectionIdx).getData() != null)
+                    setVisibilityData(sectionIdx, sectionTree.getSection(sectionIdx).getData().occlusionData);
 
                 this.sortedVisibleSections[this.visibleSectionCount++] = sectionIdx;
                 this.sectionOcclusionVisibilityBits.set(sectionIdx);
@@ -755,10 +762,12 @@ public class SectionCuller {
         
         return (xDist * xDist) + (zDist * zDist) <= this.squaredFogDistance;
     }
-    
+
+    //TODO:FIX THIS!! i dont think this is always getting updated resulting in chunks being straight up incorrect data
     public void setVisibilityData(int x, int y, int z, ChunkOcclusionData data) {
-        int sectionIdx = this.sectionTree.getSectionIdx(x, y, z);
-        
+        setVisibilityData(this.sectionTree.getSectionIdx(x, y, z), data);
+    }
+    private void setVisibilityData(int sectionIdx, ChunkOcclusionData data) {
         if (sectionIdx == SectionTree.OUT_OF_BOUNDS_INDEX) {
             return;
         }

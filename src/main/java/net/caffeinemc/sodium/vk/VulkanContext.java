@@ -77,6 +77,7 @@ public class VulkanContext {
                                 .calloc(stack)
                                 .sType$Default()
                                 .accelerationStructure(true))
+                .deviceFeatures(features->features.shaderInt64(true).multiDrawIndirect(true))
 
 
                 .gpuFilter(glGetString(GL_RENDERER).split("/")[0])

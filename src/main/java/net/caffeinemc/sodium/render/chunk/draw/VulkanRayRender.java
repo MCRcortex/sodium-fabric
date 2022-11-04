@@ -54,6 +54,7 @@ public class VulkanRayRender {
         VVkDescriptorSetLayout layout = device.build(new DescriptorSetLayoutBuilder()
                 .binding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT)//camera data
                 .binding(VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, VK_SHADER_STAGE_FRAGMENT_BIT)//funni acceleration buffer
+                .binding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT)//funni buffer buffer
         );
         descriptorSets = layout.createDescriptorSetsAndPool(inflightFrames);
 
@@ -112,7 +113,8 @@ public class VulkanRayRender {
             ready = true;
             System.out.println("acceleration update");
             DescriptorUpdateBuilder dub = new DescriptorUpdateBuilder(descriptorSets.layouts[0])
-                    .acceleration(1, VulkanContext.acceleration.tlas);
+                    .acceleration(1, VulkanContext.acceleration.tlas)
+                    .sbuffer(2, VulkanContext.acceleration.gpuBlasRefBuffer);
             descriptorSets.update(dub);
         }
         if (!ready)

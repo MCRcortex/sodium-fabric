@@ -57,8 +57,10 @@ public class VVkContext {
                     .ppEnabledExtensionNames(extensions)
                     .ppEnabledLayerNames(layers)
                     .pQueueCreateInfos(queueCreateInfos);
-
-            createInfo.pEnabledFeatures(VkPhysicalDeviceFeatures.calloc(stack).multiDrawIndirect(true));
+            var features = VkPhysicalDeviceFeatures.calloc(stack);
+            if (builder.deviceFeaturesConsumer != null)
+                builder.deviceFeaturesConsumer.accept(features);
+            createInfo.pEnabledFeatures(features);
 
 
             //Construct the pNext chain

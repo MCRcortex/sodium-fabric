@@ -17,7 +17,7 @@ public class CompactTerrainVertexBufferWriterUnsafe extends VertexBufferWriterUn
     public void writeVertex(float posX, float posY, float posZ, int color, float u, float v, int light) {
         long i = this.writePointer;
 
-        writeAccelerationVertex(posX, posY, posZ);
+        //writeAccelerationVertex(posX, posY, posZ);
 
         MemoryUtil.memPutShort(i + 0, CompactTerrainVertexType.encodePosition(posX));
         MemoryUtil.memPutShort(i + 2, CompactTerrainVertexType.encodePosition(posY));
@@ -35,8 +35,8 @@ public class CompactTerrainVertexBufferWriterUnsafe extends VertexBufferWriterUn
 
     AccelerationBufferSink abs;
     @Override
-    public void writeAccelerationVertex(float posX, float posY, float posZ) {
-        abs.write(posX, posY, posZ);
+    public void writeAccelerationVertex(float posX, float posY, float posZ, int meta) {
+        abs.write(posX, posY, posZ, meta);
     }
 
     @Override

@@ -1,11 +1,24 @@
 #version 460 core
 #extension GL_EXT_ray_query : enable
+#extension GL_EXT_buffer_reference : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : enable
 
 layout(location = 0) in vec3 pos;
 layout(std140, binding = 0) uniform CameraInfo {
     vec3 corners[4];
     mat4 viewInverse;
 } cam;
+
+
+struct Vertex {
+    float x;
+    float y;
+    float z;
+    uint data;
+};
+layout(buffer_reference) buffer Verticies {Vertex verts[]; };
+
+layout(binding = 2) buffer BlasVertexAddresses { uint64_t address[]; } vertexBlobs;
 
 layout(binding = 1) uniform accelerationStructureEXT acc;
 
@@ -23,7 +36,7 @@ void main(void) {
     gl_RayFlagsOpaqueEXT,
     0xFF,
     origin,
-    0.1,
+    0.001,
     direction.xyz,
     512.0);
     while(rayQueryProceedEXT(rayQuery)) {}
@@ -39,7 +52,7 @@ void main(void) {
     gl_RayFlagsOpaqueEXT,
     0xFF,
     hitPos+vec3(0,0.001,0),
-    0.1,
+    0.001,
     vec3(0.5,0.5,0.5),
     512.0);
     while(rayQueryProceedEXT(rayQuery2)) {}
@@ -47,6 +60,11 @@ void main(void) {
     //int t = rayQueryGetIntersectionPrimitiveIndexEXT(rayQuery, true);
 
     //color = vec4(d/512,1,float(t&0xFF)/256.0f,1);
+    t>>=1;
 
-    color = vec4(1,1,1,1)*(1-d/64.0f);
+    int blasBlob = rayQueryGetIntersectionInstanceCustomIndexEXT(rayQuery, true);
+    Verticies vertexData = Verticies(vertexBlobs.address[blasBlob]);
+    uint r = vertexData.verts[t*4].data;
+    vec2 barry = rayQueryGetIntersectionBarycentricsEXT(rayQuery, true);
+    color = vec4(barry.x, barry.y,((r>>8)&15)/15.0,1)*((d>500)?1:0.25);
 }

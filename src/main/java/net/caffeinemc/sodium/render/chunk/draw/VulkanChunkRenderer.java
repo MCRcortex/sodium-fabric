@@ -511,20 +511,23 @@ public class VulkanChunkRenderer implements ChunkRenderer {
         VGlVkSemaphore waitSem = waitSemaphores[frameIndex][renderPass.getId()];
         VGlVkSemaphore signalSem = signalSemaphores[frameIndex][renderPass.getId()];
 
-        //glFinish();
-        //glFinish();
-        waitSem.glSignal(new int[]{},new int[]{},new int[]{});//TODO: provide the framebuffer depth and colour texture
-        //glFlush();
-        queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()], waitSem, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT , signalSem, ()->{});//TODO: need to basicly submit all the layers at once with correct ordering, that way it can work on multiple render passes at the same time
+        if (true) {
+            //glFinish();
+            //glFinish();
+            waitSem.glSignal(new int[]{}, new int[]{}, new int[]{});//TODO: provide the framebuffer depth and colour texture
+            //glFlush();
+            queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()], waitSem, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, signalSem, () -> {
+            });//TODO: need to basicly submit all the layers at once with correct ordering, that way it can work on multiple render passes at the same time
 
+            //queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()]);
+            signalSem.glWait(new int[]{}, new int[]{}, new int[]{});//TODO: provide the framebuffer depth and colour texture
+            glFlush();
+        }
         if (renderPass.getId() == 4){
             composite.render(frameIndex, matrices, new Vector3f((float) this.cameraContext.getPosX(),
                     (float) this.cameraContext.getPosY(),
                     (float) this.cameraContext.getPosZ()));//TODO: add sync semaphores
         }
-        //queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()]);
-        signalSem.glWait(new int[]{},new int[]{},new int[]{});//TODO: provide the framebuffer depth and colour texture
-        glFlush();
 
 
         //glMemoryBarrier(GL_ALL_BARRIER_BITS);

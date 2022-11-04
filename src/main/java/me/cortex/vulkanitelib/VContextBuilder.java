@@ -2,9 +2,12 @@ package me.cortex.vulkanitelib;
 
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Struct;
+import org.lwjgl.vulkan.VkPhysicalDeviceFeatures;
+import org.lwjgl.vulkan.VkPhysicalDeviceFeatures2KHR;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.lwjgl.vulkan.EXTDebugUtils.VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
@@ -82,6 +85,12 @@ public class VContextBuilder {
     public VContextBuilder addDeviceExtensions(String... extensions) {
         for (String i : extensions)
             addDeviceExtension(i);
+        return this;
+    }
+
+    Consumer<VkPhysicalDeviceFeatures> deviceFeaturesConsumer;
+    public VContextBuilder deviceFeatures(Consumer<VkPhysicalDeviceFeatures> consumer) {
+        deviceFeaturesConsumer = consumer;
         return this;
     }
 

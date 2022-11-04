@@ -4,6 +4,7 @@ import net.caffeinemc.sodium.interop.vanilla.mixin.BlockColorProviderRegistry;
 import net.caffeinemc.sodium.render.chunk.compile.buffers.ChunkMeshBuilder;
 import net.caffeinemc.sodium.render.terrain.color.ColorSampler;
 import net.caffeinemc.sodium.render.terrain.color.blender.ColorBlender;
+import net.caffeinemc.sodium.render.terrain.format.AccelerationSink;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexSink;
 import net.caffeinemc.sodium.render.terrain.light.LightMode;
 import net.caffeinemc.sodium.render.terrain.light.LightPipeline;
@@ -137,6 +138,8 @@ public class BlockRenderer {
             int lm = light.lm[j];
 
             vertices.writeVertex(origin, x, y, z, color, u, v, lm);
+            if (vertices instanceof AccelerationSink ac)
+                ac.writeAccelerationVertex(origin.getX() + x, origin.getY() + y, origin.getZ() + z, origin.hashCode());
         }
 
         Sprite sprite = src.getSprite();

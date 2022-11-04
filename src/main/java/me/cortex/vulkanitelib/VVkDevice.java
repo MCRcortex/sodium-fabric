@@ -1,6 +1,5 @@
 package me.cortex.vulkanitelib;
 
-import me.cortex.testbed.RayQueryTriangle;
 import me.cortex.vulkanitelib.descriptors.VVkDescriptorSetLayout;
 import me.cortex.vulkanitelib.descriptors.builders.DescriptorSetLayoutBuilder;
 import me.cortex.vulkanitelib.memory.VVkAllocator;

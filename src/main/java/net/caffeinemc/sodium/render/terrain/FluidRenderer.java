@@ -3,6 +3,7 @@ package net.caffeinemc.sodium.render.terrain;
 import net.caffeinemc.sodium.render.chunk.compile.buffers.ChunkMeshBuilder;
 import net.caffeinemc.sodium.render.terrain.color.ColorSampler;
 import net.caffeinemc.sodium.render.terrain.color.blender.ColorBlender;
+import net.caffeinemc.sodium.render.terrain.format.AccelerationSink;
 import net.caffeinemc.sodium.render.terrain.light.LightMode;
 import net.caffeinemc.sodium.render.terrain.light.LightPipeline;
 import net.caffeinemc.sodium.render.terrain.light.LightPipelineProvider;
@@ -425,6 +426,9 @@ public class FluidRenderer {
             int light = this.quadLightData.lm[vertexIdx];
 
             sink.writeVertex(offset, x, y, z, color, u, v, light);
+            if (sink instanceof AccelerationSink ac)
+                ac.writeAccelerationVertex(offset.getX() + x, offset.getY() + y, offset.getZ() + z, offset.hashCode());
+
             vertexIdx += lightOrder;
         }
 

@@ -59,6 +59,8 @@ public class VVkAllocator extends VVkObject {
         return createBuffer(size, bufferUsage, properties, 0);
     }
     public VVkBuffer createBuffer(long size, int bufferUsage, int properties, int flags) {
+        if (size == 0)
+            throw new IllegalStateException();
         try (MemoryStack stack = stackPush()) {
             LongBuffer pBuffer = stack.mallocLong(1);
             PointerBuffer pAllocation = stack.mallocPointer(1);
