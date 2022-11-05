@@ -190,7 +190,8 @@ public class VVkExportedAllocator extends VVkAllocator {
 
             int memoryObject = glCreateMemoryObjectsEXT();
             glImportMemoryWin32HandleEXT(memoryObject, req.size() + ai.offset(), GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, handle);
-
+            if (!glIsMemoryObjectEXT(memoryObject))
+                throw new IllegalStateException();
             glTextureStorageMem2DEXT(glId, mipLevels, glFormat, width, height, memoryObject, ai.offset());
             glTextureParameteri(glId, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTextureParameteri(glId, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

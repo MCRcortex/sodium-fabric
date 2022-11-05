@@ -59,13 +59,16 @@ public class VVkAllocator extends VVkObject {
         return createBuffer(size, bufferUsage, properties, 0);
     }
     public VVkBuffer createBuffer(long size, int bufferUsage, int properties, int flags) {
+        return createBuffer(size, 0, bufferUsage, properties, flags);
+    }
+    public VVkBuffer createBuffer(long size, long alignment, int bufferUsage, int properties, int flags) {
         if (size == 0)
             throw new IllegalStateException();
         try (MemoryStack stack = stackPush()) {
             LongBuffer pBuffer = stack.mallocLong(1);
             PointerBuffer pAllocation = stack.mallocPointer(1);
             VmaAllocationInfo ai = VmaAllocationInfo.calloc(stack);
-            _CHECK_(vmaCreateBuffer(allocator,
+            _CHECK_(vmaCreateBufferWithAlignment(allocator,
                             VkBufferCreateInfo
                                     .calloc(stack)
                                     .sType$Default()
@@ -76,6 +79,7 @@ public class VVkAllocator extends VVkObject {
                                     .usage(VMA_MEMORY_USAGE_AUTO)
                                     .requiredFlags(properties)
                                     .flags(flags),
+                            alignment,
                             pBuffer,
                             pAllocation,
                             ai),
@@ -85,10 +89,13 @@ public class VVkAllocator extends VVkObject {
     }
 
     public VVkBuffer createBuffer(ByteBuffer data, int bufferUsage, int properties) {
+        return createBuffer(data, 0, bufferUsage, properties);
+    }
+    public VVkBuffer createBuffer(ByteBuffer data, long alignment, int bufferUsage, int properties) {
         try (MemoryStack stack = stackPush()) {
             VVkBuffer buffer = createBuffer(data.limit(), bufferUsage, properties);
             //Create temporary upload buffer
-            VVkBuffer stageBuffer = createBuffer(data.limit(),VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 0, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+            VVkBuffer stageBuffer = createBuffer(data.limit(),alignment, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 0, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
             stageBuffer.map().put(data);//TODO: maybe make a memCpy
             stageBuffer.unmap();
             VVkCommandBuffer cmd = device.transientPool.createCommandBuffer();

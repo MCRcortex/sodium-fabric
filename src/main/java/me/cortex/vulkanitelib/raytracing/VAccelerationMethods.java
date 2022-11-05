@@ -85,8 +85,8 @@ public class VAccelerationMethods {
                 stack.ints(maxPrimitives),
                 buildSizesInfo);
 
-        VVkBuffer accelerationBuffer = device.allocator.createBuffer(buildSizesInfo.accelerationStructureSize(),
-                VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+        VVkBuffer accelerationBuffer = device.allocator.createBuffer(buildSizesInfo.accelerationStructureSize(),256,
+                VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0
         );
 
         LongBuffer pAccelerationStructure = stack.mallocLong(1);
@@ -99,9 +99,9 @@ public class VAccelerationMethods {
                 "Failed to create acceleration acceleration structure");
 
         // Create a scratch buffer for the build
-        VVkBuffer scratchBuffer = device.allocator.createBuffer(buildSizesInfo.buildScratchSize(),
+        VVkBuffer scratchBuffer = device.allocator.createBuffer(buildSizesInfo.buildScratchSize(), 256,// TODO: actually dynamically get this minAccelerationStructureScratchOffsetAlignment
                 VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0
         );
 
         // fill missing/remaining info into the build geometry info
