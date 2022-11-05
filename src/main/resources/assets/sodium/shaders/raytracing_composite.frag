@@ -59,7 +59,7 @@ Quad getRayQuad(rayQueryEXT ray) {
 }
 
 
-void trace(in rayQueryEXT rayQuery, vec3 origin, vec3 dir, float max) {
+void trace2(in rayQueryEXT rayQuery, vec3 origin, vec3 dir, float max) {
     rayQueryInitializeEXT(rayQuery,
         acc,
         gl_RayFlagsOpaqueEXT,
@@ -69,6 +69,40 @@ void trace(in rayQueryEXT rayQuery, vec3 origin, vec3 dir, float max) {
         dir,
         max);
     while(rayQueryProceedEXT(rayQuery));
+}
+
+void trace(in rayQueryEXT rayQuery, vec3 origin, vec3 dir, float max, out float distance, out vec4 colour, out Quad quad) {
+    float currentAlpha = 1.0;
+    while (true) {
+        rayQueryInitializeEXT(rayQuery,
+            acc,
+            gl_RayFlagsOpaqueEXT,
+            0xFF,
+            origin,
+            0.01,
+            dir,
+            max);
+        while (rayQueryProceedEXT(rayQuery));
+        float dist = rayQueryGetIntersectionTEXT(rayQuery, true);
+        if (dist > max-0.001) {
+            return;
+        }
+        origin = dir*dist + origin;
+        max -= dist;
+        quad = getRayQuad(rayQuery);
+        vec4 hitColour = textureLod(blockTex, ray2uvCoQu(rayQuery, quad), 0);
+        origin += dir * 0.00001;
+        if (hitColour.w < 0.01) {
+            continue;
+        }
+        currentAlpha *= 1-hitColour.w;
+        //colour = colour*(1-currentAlpha)+hitColour*currentAlpha;
+        colour = hitColour;
+
+        if (currentAlpha < 0.01) {
+            return;
+        }
+    }
 }
 vec3 uniformSampleHemisphere(const float r1, const float r2)
 {
@@ -118,8 +152,9 @@ void main(void) {
     rand();
 
     rayQueryEXT rayQuery;
-    trace(rayQuery, origin, direction.xyz, 1024.0);
-    float d = rayQueryGetIntersectionTEXT(rayQuery, true);
+    float d;
+    Quad quad;
+    trace(rayQuery, origin, direction.xyz, 1024.0, d, color, quad);
 
 
     state ^= floatBitsToUint(d);
@@ -127,20 +162,13 @@ void main(void) {
 
     vec3 hitPos = origin + direction.xyz*d;
 
+    Quad dump2;
+    vec4 dump;
     rayQueryEXT rayQuery2;
-    trace(rayQuery2, hitPos+vec3(0.0,0.01,0), vec3(0.7,0.5,0.1), 1024.0);
+    trace(rayQuery2, hitPos+vec3(0.0,0.01,0), vec3(0.7,0.5,0.1), 1024.0, d, dump, dump2);
 
-    d = rayQueryGetIntersectionTEXT(rayQuery2, true);
-
-    Quad quad = getRayQuad(rayQuery);
-    //color = texture(blockTex, mix(quad.uvs[0],vec2(quad.uvs[3].x, quad.uvs[1].y),ray2uvCo(rayQuery)));
-    color = texture(blockTex, ray2uvCoQu(rayQuery, quad));
-    //color = vec4(ray2uvCo(rayQuery),0,1);
     if (d<1000) {
         color*=0.5;
-        Quad quad2 = getRayQuad(rayQuery2);
-        vec4 shadowHitColour = texture(blockTex, ray2uvCoQu(rayQuery2, quad2));
-        //color += shadowHitColour*0.25;
     }
 
 
@@ -149,10 +177,10 @@ void main(void) {
         state ^= i<<4;
         rand();
         rayQueryEXT rayQuery3;
-        trace(rayQuery3, hitPos, randomDirection(quad.normal.xyz), 0.5);
-        float dist = rayQueryGetIntersectionTEXT(rayQuery3, true);
+        float dist;
+        trace(rayQuery3, hitPos, randomDirection(quad.normal.xyz), 1, dist, dump, dump2);
         if (dist<0.49) {
-            ao += (0.5-dist)*5/32.0;
+            ao += (1-dist)*2.5/32.0;
         }
     }
     color *= 1.0/ao;

@@ -221,13 +221,13 @@ public class VVkDevice {
                     .sType$Default()
                     .magFilter(VK_FILTER_NEAREST)
                     .minFilter(VK_FILTER_NEAREST)
-                    .mipmapMode(VK_SAMPLER_MIPMAP_MODE_NEAREST)
+                    .mipmapMode(VK_SAMPLER_MIPMAP_MODE_LINEAR)
                     .addressModeU(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
                     .addressModeV(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
                     .addressModeW(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
                     .compareOp(VK_COMPARE_OP_NEVER)
                     .maxLod(maxLod)
-                    .borderColor(VK_BORDER_COLOR_INT_OPAQUE_BLACK)
+                    .borderColor(VK_BORDER_COLOR_INT_TRANSPARENT_BLACK)
                     .maxAnisotropy(1.0f);
             _CHECK_(vkCreateSampler(device, sci, null, pSampler));
             return new VVkSampler(this, pSampler.get(0));
