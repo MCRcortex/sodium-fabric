@@ -85,12 +85,12 @@ public class VulkanRayRender {
                             //output the position of each vertex
                             //const array of positions for the triangle
                             const vec3 positions[4] = vec3[4](
-                                vec3(-1.f,-1.f, 0.0f),
-                                vec3(-1.f,1.f, 0.0f),
+                                vec3(0.f,0.f, 0.0f),
+                                vec3(0.f,1.f, 0.0f),
                                 vec3(1.f,1.f, 0.0f),
-                                vec3(1.f,-1.f, 0.0f)
+                                vec3(1.f,0.f, 0.0f)
                             );
-                            pos = positions[gl_VertexIndex];
+                            pos = (positions[gl_VertexIndex]+1)/2;
                             //output the position of each vertex
                             gl_Position = vec4(positions[gl_VertexIndex], 1.0f);
                         }

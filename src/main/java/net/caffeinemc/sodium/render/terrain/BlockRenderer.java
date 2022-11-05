@@ -25,6 +25,7 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Xoroshiro128PlusPlusRandom;
 import net.minecraft.world.BlockRenderView;
+import org.joml.Vector3f;
 
 import java.util.List;
 
@@ -138,9 +139,29 @@ public class BlockRenderer {
             int lm = light.lm[j];
 
             vertices.writeVertex(origin, x, y, z, color, u, v, lm);
-            if (vertices instanceof AccelerationSink ac)
+            if (vertices instanceof AccelerationSink ac) {
                 ac.writeAccelerationVertex(origin.getX() + x, origin.getY() + y, origin.getZ() + z);
+                ac.writeMeta(u,v);
+            }
         }
+
+        Vector3f[] vecs = new Vector3f[4];
+        for (int i = 0; i < 4; i++) {
+            int j = orientation.getVertexIndex(i);
+
+            float x = src.getX(j) + (float) blockOffset.getX();
+            float y = src.getY(j) + (float) blockOffset.getY();
+            float z = src.getZ(j) + (float) blockOffset.getZ();
+            vecs[i] = new Vector3f(origin.getX() + x, origin.getY() + y, origin.getZ() + z);
+        }
+
+        Vector3f cross = (vecs[1].sub(vecs[0]).normalize()).cross(vecs[3].sub(vecs[0]).normalize()).normalize();
+
+        if (vertices instanceof AccelerationSink ac) {
+            ac.writeMeta(cross.x, cross.y);
+            ac.writeMeta(cross.z, 0);
+        }
+
 
         Sprite sprite = src.getSprite();
 

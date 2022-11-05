@@ -4,6 +4,7 @@ import me.cortex.vulkanitelib.memory.buffer.VVkBuffer;
 import me.cortex.vulkanitelib.raytracing.VAccelerationMethods;
 import me.cortex.vulkanitelib.raytracing.VVkAccelerationStructure;
 import net.caffeinemc.sodium.render.chunk.draw.VulkanChunkRenderer;
+import net.caffeinemc.sodium.util.NativeBuffer;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.joml.Matrix4x3f;
 import org.lwjgl.system.MemoryStack;
@@ -38,13 +39,14 @@ public class TEMPORARY_accelerationSystem {
         List<VAccelerationMethods.BLASBuildData> blasBuildData = new LinkedList<>();
         List<VVkBuffer> vertexPositionData = new LinkedList<>();
         List<ChunkSectionPos> positions = new LinkedList<>();
+        List<NativeBuffer> metaData = new LinkedList<>();
         try (MemoryStack stack = MemoryStack.stackPush()){
             for (var rebuild : rebuildQueue.entrySet()) {
                 VVkBuffer triangleData = VulkanContext.device.allocator.createBuffer(rebuild.getValue().buffer.getDirectBuffer(),
                         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
                                 VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-                rebuild.getValue().delete();
                 vertexPositionData.add(triangleData);
+                metaData.add(rebuild.getValue().metaBuffer);
                 blasBuildData.add(new VAccelerationMethods.BLASBuildData(VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR, List.of(
                         new VAccelerationMethods.TriangleGeometry(
                                 VK_INDEX_TYPE_UINT32,
@@ -58,20 +60,23 @@ public class TEMPORARY_accelerationSystem {
                 )));
                 positions.add(rebuild.getKey());
             }
-            rebuildQueue.clear();
             var newBlass = VulkanContext.device.accelerator.createBLASs(blasBuildData, () -> {
                 vertexPositionData.forEach(VVkBuffer::free);
             });
             {
                 var posIter = positions.iterator();
                 var blasIter = newBlass.iterator();
+                var metaIter = metaData.iterator();
                 while (posIter.hasNext()) {
                     var pos = posIter.next();
                     var blas = blasIter.next();
-                    var oldBlas = loadedSections.put(pos, new BlasData(pos, blas, null));
+                    var meta = metaIter.next();
+                    var oldBlas = loadedSections.put(pos, new BlasData(pos, blas, VulkanContext.device.allocator.createBuffer(meta.getDirectBuffer(), VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)));
                     if (oldBlas != null) oldBlas.free();
                 }
             }
+            rebuildQueue.values().forEach(AccelerationData::delete);
+            rebuildQueue.clear();
         }
     }
 

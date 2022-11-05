@@ -37,6 +37,7 @@ import net.minecraft.world.BlockRenderView;
 import org.apache.commons.lang3.mutable.MutableFloat;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
 
 public class FluidRenderer {
     // TODO: allow this to be changed by vertex format
@@ -426,10 +427,29 @@ public class FluidRenderer {
             int light = this.quadLightData.lm[vertexIdx];
 
             sink.writeVertex(offset, x, y, z, color, u, v, light);
-            if (sink instanceof AccelerationSink ac)
+            if (sink instanceof AccelerationSink ac) {
                 ac.writeAccelerationVertex(offset.getX() + x, offset.getY() + y, offset.getZ() + z);
+                ac.writeMeta(u, v);
+            }
 
             vertexIdx += lightOrder;
+        }
+
+
+
+        Vector3f[] vecs = new Vector3f[4];
+        for (int i = 0; i < 4; i++) {
+            float x = quad.getX(i);
+            float y = quad.getY(i);
+            float z = quad.getZ(i);
+            vecs[i] = new Vector3f(offset.getX() + x, offset.getY() + y, offset.getZ() + z);
+        }
+
+        Vector3f cross = (vecs[0].sub(vecs[1])).cross(vecs[2].sub(vecs[1]));
+
+        if (sink instanceof AccelerationSink ac) {
+            ac.writeMeta(cross.x, cross.y);
+            ac.writeMeta(cross.z, 0);
         }
 
         sink.flush();

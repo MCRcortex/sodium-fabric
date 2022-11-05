@@ -375,7 +375,7 @@ public class VulkanChunkRenderer implements ChunkRenderer {
                     VkClearRect.Buffer clearRects = VkClearRect.calloc(2, stack);
                     clearRects.get(0).layerCount(1).rect().extent().set(theFrameBuffer.width, theFrameBuffer.height);
                     clearRects.get(1).layerCount(1).rect().extent().set(theFrameBuffer.width, theFrameBuffer.height);
-                    //vkCmdClearAttachments(cmd.buffer, clearAttachments, clearRects);
+                    vkCmdClearAttachments(cmd.buffer, clearAttachments, clearRects);
                 }
             }
 
@@ -512,7 +512,7 @@ public class VulkanChunkRenderer implements ChunkRenderer {
         VGlVkSemaphore waitSem = waitSemaphores[frameIndex][renderPass.getId()];
         VGlVkSemaphore signalSem = signalSemaphores[frameIndex][renderPass.getId()];
 
-        if (false) {
+        if (true) {
             //glFinish();
             //glFinish();
             waitSem.glSignal(new int[]{}, new int[]{}, new int[]{});//TODO: provide the framebuffer depth and colour texture
@@ -523,6 +523,7 @@ public class VulkanChunkRenderer implements ChunkRenderer {
             //queue.submit(terrainCommandBuffers[frameIndex][renderPass.getId()]);
             signalSem.glWait(new int[]{}, new int[]{}, new int[]{});//TODO: provide the framebuffer depth and colour texture
             glFlush();
+
         }
         if (renderPass.getId() == 4){
             glFinish();

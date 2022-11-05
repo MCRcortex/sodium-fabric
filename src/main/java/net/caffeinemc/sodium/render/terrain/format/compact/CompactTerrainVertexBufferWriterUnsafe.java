@@ -40,6 +40,12 @@ public class CompactTerrainVertexBufferWriterUnsafe extends VertexBufferWriterUn
     }
 
     @Override
+    public void writeMeta(float u, float v) {
+        abs.writeMeta(u, v);
+    }
+
+
+    @Override
     public AccelerationBufferSink getAccelerationBuffer() {
         return abs;
     }
