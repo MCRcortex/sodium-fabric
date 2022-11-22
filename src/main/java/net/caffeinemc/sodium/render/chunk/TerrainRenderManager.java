@@ -232,8 +232,7 @@ public class TerrainRenderManager {
 
     public void onChunkRemoved(int x, int z) {
         for (int y = this.world.getBottomSectionCoord(); y < this.world.getTopSectionCoord(); y++) {
-            this.needsUpdate |= this.sectionCuller.isSectionVisible(x, y, z)
-                                && this.unloadSection(x, y, z);
+            this.needsUpdate |= this.unloadSection(x, y, z) && this.sectionCuller.isSectionVisible(x, y, z);
         }
     }
 
@@ -410,6 +409,9 @@ public class TerrainRenderManager {
 
     public void scheduleRebuild(int x, int y, int z, boolean important) {
         this.sectionCache.invalidate(x, y, z);
+        //TODO:FIXME: find the correct way to do this
+        if (!this.sectionCuller.isChunkInDrawDistance(x, z))
+            return;
 
         RenderSection section = this.sectionTree.getSection(x, y, z);
 

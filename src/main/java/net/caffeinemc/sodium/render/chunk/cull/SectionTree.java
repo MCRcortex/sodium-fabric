@@ -154,13 +154,16 @@ public class SectionTree {
     }
     
     public RenderSection add(int x, int y, int z) {
-        this.totalLoadedSections++;
-        
-        RenderSection section = new RenderSection(x, y, z);
-    
         // TODO: make this not unchecked?
         int sectionIdx = this.getSectionIdxUnchecked(x, y, z);
-    
+
+        if (this.sections[sectionIdx] != null) {
+            System.err.println("ADDED TO A NON NULL SECTION: "+x+","+y+","+z+" : "+this.sections[sectionIdx]);
+        }
+
+        this.totalLoadedSections++;
+        RenderSection section = new RenderSection(x, y, z);
+
 //        if (sectionIdx != OUT_OF_BOUNDS_INDEX) {
 //            RenderSection existing = this.sections[sectionIdx];
             
@@ -188,18 +191,23 @@ public class SectionTree {
 //        } else {
 //            this.backupSections.put(ChunkSectionPos.asLong(x, y, z), section);
 //        }
-    
+        if (totalLoadedSections != sectionExistenceBits.count()) {
+            System.err.println("SECTION TREE DESYNC ADD");
+        }
         return section;
     }
     
     public RenderSection remove(int x, int y, int z) {
-        this.totalLoadedSections--;
         
         int sectionIdx = this.getSectionIdxUnchecked(x, y, z);
         
         
 //        if (sectionIdx != OUT_OF_BOUNDS_INDEX) {
             RenderSection section = this.sections[sectionIdx];
+            if (section == null)
+                return section;
+
+            this.totalLoadedSections--;
             this.sections[sectionIdx] = null;
     
             boolean prevExists = this.sectionExistenceBits.getAndUnset(sectionIdx);
@@ -211,18 +219,21 @@ public class SectionTree {
                     this.nodeLoadedSections[nodeIdx]--;
                 }
             }
-            
+
+        if (totalLoadedSections != sectionExistenceBits.count()) {
+            System.err.println("SECTION TREE DESYNC REMOVE prev:"+section);
+        }
             return section;
 //        } else {
 //            return this.backupSections.remove(ChunkSectionPos.asLong(x, y, z));
 //        }
-    
+
     }
     
     public RenderSection getSection(int x, int y, int z) {
         var section = this.getSection(this.getSectionIdx(x, y, z));
         if (section!=null&&(section.getSectionX() != x || section.getSectionY() != y || section.getSectionZ() != z))
-            throw new IllegalStateException();
+            System.err.println("REQUESTED CHUNK NOT CORRECT CHUNK");
         return section;
     }
     

@@ -405,7 +405,7 @@ public class SectionCuller {
     
         int startSectionIdx = this.sectionTree.getSectionIdx(originSectionX, originSectionY, originSectionZ);
         
-        boolean fallback = startSectionIdx == SectionTree.OUT_OF_BOUNDS_INDEX;
+        boolean fallback = startSectionIdx == SectionTree.OUT_OF_BOUNDS_INDEX || sectionTree.sections[startSectionIdx] == null;
         if (fallback) {
             this.getStartingNodesFallback(originSectionX, originSectionY, originSectionZ);//TODO: FIX THIS
         } else {
@@ -439,6 +439,16 @@ public class SectionCuller {
 
             for (int i = 0; i < currentQueueSize; i++) {
                 int sectionIdx = currentQueue[i];
+
+                if (sectionTree.getSection(sectionIdx) != null && sectionTree.getSection(sectionIdx).getData() != null) {
+                    vertifyVisiblityData(sectionIdx, sectionTree.getSection(sectionIdx).getData().occlusionData);
+                    //setVisibilityData(sectionIdx, sectionTree.getSection(sectionIdx).getData().occlusionData);
+                }
+
+                if (SectionCuller.this.sectionTree.sections[sectionIdx] == null) {
+                    System.err.println("NULL CHUNK IN LIST");
+                    continue;
+                }
 
                 this.sortedVisibleSections[this.visibleSectionCount++] = sectionIdx;
                 this.sectionOcclusionVisibilityBits.set(sectionIdx);
@@ -757,6 +767,29 @@ public class SectionCuller {
         double zDist = cameraPos.getZ() - centerZ;
         
         return (xDist * xDist) + (zDist * zDist) <= this.squaredFogDistance;
+    }
+
+    private void vertifyVisiblityData(int sectionIdx, ChunkOcclusionData data) {
+        if (sectionIdx == SectionTree.OUT_OF_BOUNDS_INDEX) {
+            return;
+        }
+
+        for (var from : DirectionUtil.ALL_DIRECTIONS) {
+            int bits = 0;
+
+            if (data != null) {
+                for (var to : DirectionUtil.ALL_DIRECTIONS) {
+                    if (data.isVisibleThrough(from, to)) {
+                        bits |= 1 << to.ordinal();
+                    }
+                }
+            }
+
+            boolean same = this.sectionDirVisibilityData[(sectionIdx * DirectionUtil.COUNT) + from.ordinal()] == (byte) bits;
+            if (!same) {
+                System.err.println("ERROR");
+            }
+        }
     }
 
     //TODO:FIX THIS!! i dont think this is always getting updated resulting in chunks being straight up incorrect data
