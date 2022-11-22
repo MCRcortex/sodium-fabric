@@ -220,7 +220,10 @@ public class SectionTree {
     }
     
     public RenderSection getSection(int x, int y, int z) {
-        return this.getSection(this.getSectionIdx(x, y, z));
+        var section = this.getSection(this.getSectionIdx(x, y, z));
+        if (section!=null&&(section.getSectionX() != x || section.getSectionY() != y || section.getSectionZ() != z))
+            throw new IllegalStateException();
+        return section;
     }
     
     public RenderSection getSection(int sectionIdx) {
