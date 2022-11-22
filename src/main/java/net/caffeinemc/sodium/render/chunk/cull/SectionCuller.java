@@ -407,7 +407,7 @@ public class SectionCuller {
         
         boolean fallback = startSectionIdx == SectionTree.OUT_OF_BOUNDS_INDEX;
         if (fallback) {
-            this.getStartingNodesFallback(originSectionX, originSectionY, originSectionZ);
+            this.getStartingNodesFallback(originSectionX, originSectionY, originSectionZ);//TODO: FIX THIS
         } else {
             currentQueue[0] = startSectionIdx;
             currentQueueSize = 1;
@@ -419,7 +419,7 @@ public class SectionCuller {
             }
 
             this.allowedTraversalDirections[startSectionIdx] = (byte) -1;
-            this.visibleTraversalDirections[startSectionIdx] = visible;
+            this.visibleTraversalDirections[startSectionIdx] = (byte) (visible|((byte)visibilityOverride));
         }
 
         int fallbackIndex = 0;
@@ -440,6 +440,15 @@ public class SectionCuller {
             for (int i = 0; i < currentQueueSize; i++) {
                 int sectionIdx = currentQueue[i];
 
+                if (sectionTree.getSection(sectionIdx) != null && sectionTree.getSection(sectionIdx).getData() != null) {
+                    vertifyVisiblityData(sectionIdx, sectionTree.getSection(sectionIdx).getData().occlusionData);
+                    setVisibilityData(sectionIdx, sectionTree.getSection(sectionIdx).getData().occlusionData);
+                }
+
+                if (SectionCuller.this.sectionTree.sections[sectionIdx] == null) {
+                    System.err.println("NULL CHUNK IN LIST");
+                    continue;
+                }
                 this.sortedVisibleSections[this.visibleSectionCount++] = sectionIdx;
                 this.sectionOcclusionVisibilityBits.set(sectionIdx);
 
@@ -472,7 +481,10 @@ public class SectionCuller {
                         System.out.println(adjacentNodeIdx2);
                     }
 
-                    if (adjacentNodeIdx == SectionTree.OUT_OF_BOUNDS_INDEX || !this.sectionVisibilityBits.get(adjacentNodeIdx)) {
+                    if (adjacentNodeIdx == SectionTree.OUT_OF_BOUNDS_INDEX) {
+                        continue;
+                    }
+                    if (!this.sectionVisibilityBits.get(adjacentNodeIdx)) {
                         continue;
                     }
 
@@ -755,10 +767,36 @@ public class SectionCuller {
         
         return (xDist * xDist) + (zDist * zDist) <= this.squaredFogDistance;
     }
-    
+
+    private void vertifyVisiblityData(int sectionIdx, ChunkOcclusionData data) {
+        if (sectionIdx == SectionTree.OUT_OF_BOUNDS_INDEX) {
+            return;
+        }
+
+        for (var from : DirectionUtil.ALL_DIRECTIONS) {
+            int bits = 0;
+
+            if (data != null) {
+                for (var to : DirectionUtil.ALL_DIRECTIONS) {
+                    if (data.isVisibleThrough(from, to)) {
+                        bits |= 1 << to.ordinal();
+                    }
+                }
+            }
+
+            boolean same = this.sectionDirVisibilityData[(sectionIdx * DirectionUtil.COUNT) + from.ordinal()] == (byte) bits;
+            if (!same) {
+                System.err.println("ERROR");
+            }
+        }
+    }
+
+    //TODO:FIX THIS!! i dont think this is always getting updated resulting in chunks being straight up incorrect data
     public void setVisibilityData(int x, int y, int z, ChunkOcclusionData data) {
-        int sectionIdx = this.sectionTree.getSectionIdx(x, y, z);
-        
+        setVisibilityData(this.sectionTree.getSectionIdx(x, y, z), data);
+    }
+
+    private void setVisibilityData(int sectionIdx, ChunkOcclusionData data) {
         if (sectionIdx == SectionTree.OUT_OF_BOUNDS_INDEX) {
             return;
         }
