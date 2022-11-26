@@ -441,7 +441,7 @@ public class SectionCuller {
                 int sectionIdx = currentQueue[i];
 
                 if (sectionTree.getSection(sectionIdx) != null && sectionTree.getSection(sectionIdx).getData() != null) {
-                    vertifyVisiblityData(sectionIdx, sectionTree.getSection(sectionIdx).getData().occlusionData);
+                    //vertifyVisiblityData(sectionIdx, sectionTree.getSection(sectionIdx).getData().occlusionData);
                     //setVisibilityData(sectionIdx, sectionTree.getSection(sectionIdx).getData().occlusionData);
                 }
 
