@@ -410,10 +410,15 @@ public class TerrainRenderManager {
     public void scheduleRebuild(int x, int y, int z, boolean important) {
         this.sectionCache.invalidate(x, y, z);
         //TODO:FIXME: find the correct way to do this
-        if (!this.sectionCuller.isChunkInDrawDistance(x, z))
+        if (!this.sectionTree.isSectionInLoadBounds(x,y,z))
             return;
 
+
         RenderSection section = this.sectionTree.getSection(x, y, z);
+        if (section == null) {//TODO: FIXME: THIS IS VERY VERY VEEEEEEERY HACKY AND SHOULD NOT BE DONE
+            loadSection(x, y, z);
+            section = sectionTree.getSection(x, y, z);
+        }
 
         if (section != null && section.isBuilt()) {
             if (!this.alwaysDeferChunkUpdates && (important || this.isBlockUpdatePrioritized(section))) {

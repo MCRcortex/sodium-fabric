@@ -158,7 +158,11 @@ public class SectionTree {
         int sectionIdx = this.getSectionIdxUnchecked(x, y, z);
 
         if (this.sections[sectionIdx] != null) {
-            System.err.println("ADDED TO A NON NULL SECTION: "+x+","+y+","+z+" : "+this.sections[sectionIdx]);
+            //System.err.println("ADDED TO A NON NULL SECTION: "+x+","+y+","+z+" : "+this.sections[sectionIdx]);
+            var section = this.sections[sectionIdx];
+            if (section.getSectionX() != x || section.getSectionY() != y || section.getSectionZ() != z)
+                System.err.println("INVALID CHUNK SECTION THINGIE");
+            return this.sections[sectionIdx];
         }
 
         this.totalLoadedSections++;
@@ -193,6 +197,9 @@ public class SectionTree {
 //        }
         if (totalLoadedSections != sectionExistenceBits.count()) {
             System.err.println("SECTION TREE DESYNC ADD");
+        }
+        if (getSection(x, y, z) != section) {
+            System.err.println("SECTION JUST SET IS NOT CORRECT");
         }
         return section;
     }
@@ -232,8 +239,11 @@ public class SectionTree {
     
     public RenderSection getSection(int x, int y, int z) {
         var section = this.getSection(this.getSectionIdx(x, y, z));
+        if (isSectionInLoadBounds(x,y,z) && section== null) {
+            //System.err.println("Null???");//TODO: THIS SEEMS TO BE THE ISSUE?
+        }
         if (section!=null&&(section.getSectionX() != x || section.getSectionY() != y || section.getSectionZ() != z))
-            System.err.println("REQUESTED CHUNK NOT CORRECT CHUNK");
+                System.err.println("REQUESTED CHUNK NOT CORRECT CHUNK");
         return section;
     }
     
