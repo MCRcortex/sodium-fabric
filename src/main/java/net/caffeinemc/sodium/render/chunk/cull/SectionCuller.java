@@ -403,7 +403,7 @@ public class SectionCuller {
         int originSectionY = this.sectionTree.camera.getSectionY();
         int originSectionZ = this.sectionTree.camera.getSectionZ();
     
-        int startSectionIdx = this.sectionTree.getSectionIdx(originSectionX, originSectionY, originSectionZ);
+        int startSectionIdx = this.sectionTree.getSectionIdx(originSectionX, ChunkSectionPos.getSectionCoord(this.sectionTree.camera.getBlockY()), originSectionZ);
         
         boolean fallback = startSectionIdx == SectionTree.OUT_OF_BOUNDS_INDEX || sectionTree.sections[startSectionIdx] == null;
         if (fallback) {
@@ -441,7 +441,7 @@ public class SectionCuller {
                 int sectionIdx = currentQueue[i];
 
                 if (sectionTree.getSection(sectionIdx) != null && sectionTree.getSection(sectionIdx).getData() != null) {
-                    vertifyVisiblityData(sectionIdx, sectionTree.getSection(sectionIdx).getData().occlusionData);
+                    //vertifyVisiblityData(sectionIdx, sectionTree.getSection(sectionIdx).getData().occlusionData);
                     //setVisibilityData(sectionIdx, sectionTree.getSection(sectionIdx).getData().occlusionData);
                 }
 
