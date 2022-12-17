@@ -247,6 +247,7 @@ public class TerrainRenderManager {
             renderSection.setData(ChunkRenderData.EMPTY);
         } else {
             renderSection.markForUpdate(ChunkUpdateType.INITIAL_BUILD);
+            this.sectionCuller.markUpdateNeeded(x,y,z);
         }
         
         this.onChunkDataChanged(x, y, z, ChunkRenderData.ABSENT, renderSection.getData());
@@ -343,6 +344,7 @@ public class TerrainRenderManager {
             }
 
             section.onBuildSubmitted(future);
+            this.sectionCuller.unmarkUpdateNeeded(section.getSectionX(), section.getSectionY(), section.getSectionZ());
 
             budget--;
         }
@@ -366,6 +368,7 @@ public class TerrainRenderManager {
         ListUtil.updateList(this.globalBlockEntities, prev.globalBlockEntities, next.globalBlockEntities);
 
         this.sectionCuller.setVisibilityData(x, y, z, next.occlusionData);
+        this.sectionCuller.setFlagData(x, y, z, next.getFlags());
     }
 
     public AbstractBuilderTask createTerrainBuildTask(RenderSection render) {
@@ -419,6 +422,10 @@ public class TerrainRenderManager {
             } else {
                 section.markForUpdate(ChunkUpdateType.REBUILD);
             }
+        }
+
+        if (sectionTree.isSectionInLoadBounds(x, y, z)) {
+            this.sectionCuller.markUpdateNeeded(x,y,z);
         }
 
         this.needsUpdate = true;

@@ -154,73 +154,73 @@ public class SectionTree {
     }
     
     public RenderSection add(int x, int y, int z) {
-        this.totalLoadedSections++;
-        
-        RenderSection section = new RenderSection(x, y, z);
-    
+
         // TODO: make this not unchecked?
         int sectionIdx = this.getSectionIdxUnchecked(x, y, z);
-    
-//        if (sectionIdx != OUT_OF_BOUNDS_INDEX) {
-//            RenderSection existing = this.sections[sectionIdx];
-            
-//            if (existing != null) {
-//                this.backupSections.put(
-//                        ChunkSectionPos.asLong(
-//                                existing.getSectionX(),
-//                                existing.getSectionY(),
-//                                existing.getSectionZ()
-//                        ),
-//                        existing
-//                );
-//            }
-            
-            this.sections[sectionIdx] = section;
-            boolean prevExists = this.sectionExistenceBits.getAndSet(sectionIdx);
-            
-            if (!prevExists) {
-                // skip bottom level of nodes
-                for (int depth = 1; depth <= this.maxDepth; depth++) {
-                    int nodeIdx = this.getNodeIdx(depth, x, y, z);
-                    this.nodeLoadedSections[nodeIdx]++;
-                }
+        if (this.sections[sectionIdx] != null) {
+            //System.err.println("ADDED TO A NON NULL SECTION: "+x+","+y+","+z+" : "+this.sections[sectionIdx]);
+            var section = this.sections[sectionIdx];
+            if (section.getSectionX() != x || section.getSectionY() != y || section.getSectionZ() != z)
+                System.err.println("INVALID CHUNK SECTION THINGIE");
+            return this.sections[sectionIdx];
+        }
+
+        this.totalLoadedSections++;
+        RenderSection section = new RenderSection(x, y, z);
+
+        this.sections[sectionIdx] = section;
+        boolean prevExists = this.sectionExistenceBits.getAndSet(sectionIdx);
+
+        if (!prevExists) {
+            // skip bottom level of nodes
+            for (int depth = 1; depth <= this.maxDepth; depth++) {
+                int nodeIdx = this.getNodeIdx(depth, x, y, z);
+                this.nodeLoadedSections[nodeIdx]++;
             }
-//        } else {
-//            this.backupSections.put(ChunkSectionPos.asLong(x, y, z), section);
-//        }
-    
+        }
+        if (totalLoadedSections != sectionExistenceBits.count()) {
+            System.err.println("SECTION TREE DESYNC ADD");
+        }
+        if (getSection(x, y, z) != section) {
+            System.err.println("SECTION JUST SET IS NOT CORRECT");
+        }
         return section;
     }
     
     public RenderSection remove(int x, int y, int z) {
-        this.totalLoadedSections--;
-        
         int sectionIdx = this.getSectionIdxUnchecked(x, y, z);
-        
-        
-//        if (sectionIdx != OUT_OF_BOUNDS_INDEX) {
-            RenderSection section = this.sections[sectionIdx];
-            this.sections[sectionIdx] = null;
-    
-            boolean prevExists = this.sectionExistenceBits.getAndUnset(sectionIdx);
-    
-            // skip bottom level of nodes
-            if (prevExists) {
-                for (int depth = 1; depth <= this.maxDepth; depth++) {
-                    int nodeIdx = this.getNodeIdx(depth, x, y, z);
-                    this.nodeLoadedSections[nodeIdx]--;
-                }
-            }
-            
+
+
+        RenderSection section = this.sections[sectionIdx];
+        if (section == null)
             return section;
-//        } else {
-//            return this.backupSections.remove(ChunkSectionPos.asLong(x, y, z));
-//        }
-    
+        this.totalLoadedSections--;
+        this.sections[sectionIdx] = null;
+
+        boolean prevExists = this.sectionExistenceBits.getAndUnset(sectionIdx);
+
+        // skip bottom level of nodes
+        if (prevExists) {
+            for (int depth = 1; depth <= this.maxDepth; depth++) {
+                int nodeIdx = this.getNodeIdx(depth, x, y, z);
+                this.nodeLoadedSections[nodeIdx]--;
+            }
+        }
+        if (section.getSectionX() != x || section.getSectionY() != y || section.getSectionZ() != z)
+            System.err.println("REMOVED NON CORRECT SECTION");
+        if (totalLoadedSections != sectionExistenceBits.count())
+            System.err.println("SECTION TREE DESYNC REMOVE prev:"+section);
+        return section;
     }
     
     public RenderSection getSection(int x, int y, int z) {
-        return this.getSection(this.getSectionIdx(x, y, z));
+        var section = this.getSection(this.getSectionIdx(x, y, z));
+        if (isSectionInLoadBounds(x,y,z) && section== null) {
+            //System.err.println("Null???");//TODO: THIS SEEMS TO BE THE ISSUE?
+        }
+        if (section!=null&&(section.getSectionX() != x || section.getSectionY() != y || section.getSectionZ() != z))
+            System.err.println("REQUESTED CHUNK NOT CORRECT CHUNK");
+        return section;
     }
     
     public RenderSection getSection(int sectionIdx) {
