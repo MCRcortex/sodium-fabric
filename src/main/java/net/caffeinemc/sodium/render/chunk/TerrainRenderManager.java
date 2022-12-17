@@ -182,7 +182,11 @@ public class TerrainRenderManager {
     
         while (sectionItr.hasNext()) {
             RenderSection section = sectionItr.next();
-
+            if (section == null) {//TODO: FIGURE THIS OUT
+                int x = 0;
+                x +=1;
+                continue;
+            }
             if (section.getPendingUpdate() != null) {
                 this.schedulePendingUpdates(section);
             }

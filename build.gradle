@@ -18,7 +18,7 @@ loom {
     if (findProperty("sodium.use_custom_jvm_args") != "false") {
         runs {
             it.configureEach {
-                vmArgs("-Xmx3G", "-XX:+UseZGC")
+                vmArgs("-Xmx8G", "-XX:+UseZGC")
             }
         }
     }
