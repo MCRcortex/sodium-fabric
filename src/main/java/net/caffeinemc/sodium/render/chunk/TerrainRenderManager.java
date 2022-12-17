@@ -165,7 +165,7 @@ public class TerrainRenderManager {
         profiler.swap("create_render_lists");
         this.sortedTerrainLists.update(this.visibleMeshedSections);
         this.chunkRenderer.createRenderLists(this.sortedTerrainLists, this.frameIndex);
-        
+        sectionTree.verifyIntegrety();
         this.needsUpdate = false;
     }
 

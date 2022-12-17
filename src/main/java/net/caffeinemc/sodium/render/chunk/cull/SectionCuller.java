@@ -413,12 +413,25 @@ public class SectionCuller {
         visibleChunksQueue = 0;
         stuffCount = 0;
 
-        visibleChunks[0] = this.sectionTree.getSectionIdx(sectionTree.camera.getSectionX(),
+        short override = (short) (useOcclusion?0:-1);
+        int startSectionIdx = this.sectionTree.getSectionIdx(sectionTree.camera.getSectionX(),
                 sectionTree.camera.getSectionY(),
                 sectionTree.camera.getSectionZ());
-        cullMeta[visibleChunks[0]] = -1;//All outbound directions
+        boolean fallback = startSectionIdx == SectionTree.OUT_OF_BOUNDS_INDEX;
+        if (fallback) {
+            this.getStartingNodesFallback(sectionTree.camera.getSectionX(),
+                    sectionTree.camera.getSectionY(),
+                    sectionTree.camera.getSectionZ());
+        } else {
+            visibleChunks[0] = startSectionIdx;
+            cullMeta[visibleChunks[0]] = -1;//All outbound directions
+        }
 
+
+
+        //TODO:FIXME: FALLBACK
         while (visibleChunksQueue != visibleChunksCount) {
+
             int sectionId = visibleChunks[visibleChunksQueue++];
 
             byte flags = sectionFlagData[sectionId];//TODO: compact into 4 bits
@@ -427,7 +440,7 @@ public class SectionCuller {
             }
 
             sectionVisibilityBits.unset(sectionId);//Performance hack, means it ignores sections if its already visited them
-            short meta = cullMeta[sectionId];
+            short meta = (short) (cullMeta[sectionId] | override);
             cullMeta[sectionId] = 0;//Reset the meta, meaning dont need to fill the array
             meta &= ((meta>>8)&0xFF)|0xFF00;//Apply inbound chunk filter to prevent backwards traversal
             for (int outgoingDir = 0; outgoingDir < DirectionUtil.COUNT; outgoingDir++) {

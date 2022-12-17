@@ -47,7 +47,7 @@ public class SectionTree {
     protected final short[] nodeLoadedSections;
     
     private int totalLoadedSections;
-    
+
     public SectionTree(int maxDepth, int chunkLoadDistance, HeightLimitView heightLimitView, ChunkCameraContext camera) {
         this.sectionHeightMin = heightLimitView.getBottomSectionCoord();
         this.sectionHeightMax = heightLimitView.getTopSectionCoord();
@@ -104,6 +104,18 @@ public class SectionTree {
 //        this.backupSections = new Long2ReferenceOpenHashMap<>(this.sectionTableSize / 8);
         
         this.camera = camera;
+    }
+
+    public void verifyIntegrety() {
+        for (var section : sections) {
+            if (section == null)
+                continue;
+            if (!this.isSectionInLoadBounds(section.getSectionX(), section.getSectionY(), section.getSectionZ()))
+                System.err.println("Integrety check failed, section out of bounds");
+            if (getSection(section.getSectionX(), section.getSectionY(), section.getSectionZ()) != section)
+                System.err.println("Integrety check failed, section not correct");
+
+        }
     }
     
     public int getSectionIdx(int x, int y, int z) {
