@@ -114,7 +114,9 @@ public class RenderSectionManager {
     private final int sectionHeightMask;
     private final int heightShift;
     private final BitArray queuedChunks;
+    private final byte[] occlusionTree;
 
+    private static final int OCCLUSION_LEVELS = 4;
     public RenderSectionManager(SodiumWorldRenderer worldRenderer, BlockRenderPassManager renderPassManager, ClientWorld world, int renderDistance, CommandList commandList) {
         this.chunkRenderer = new RegionChunkRenderer(RenderDevice.INSTANCE, ChunkModelVertexFormats.DEFAULT);
 
@@ -150,6 +152,11 @@ public class RenderSectionManager {
         this.widthShift = Integer.numberOfTrailingZeros(this.sectionWidth);
 
         this.queuedChunks = new BitArray(this.sectionWidth * this.sectionHeight * this.sectionWidth);
+        int size = 0;
+        for (int i = 0; i < OCCLUSION_LEVELS; i++) {
+            size += this.sectionWidth * this.sectionHeight * this.sectionWidth/(1<<(i<<3));
+        }
+        occlusionTree = new byte[size];
     }
 
     public void reloadChunks(ChunkTracker tracker) {
@@ -202,6 +209,7 @@ public class RenderSectionManager {
         Vector3f cameraSectionOrigin = new Vector3f(MathHelper.floor(cameraPos.x / 16.0) * 16, MathHelper.floor(cameraPos.y / 16.0) * 16, MathHelper.floor(cameraPos.z / 16.0) * 16);
 
         boolean isRayCullEnabled = SodiumClientMod.options().performance.useRasterOcclusionCulling;
+        Arrays.fill(occlusionTree, (byte) 0);
 
         for (int i = 0; i < queue.size(); i++) {
             RenderSection section = queue.getRender(i);
@@ -618,48 +626,62 @@ public class RenderSectionManager {
         int currVoxelY = MathHelper.floor(originY);
         int currVoxelZ = MathHelper.floor(originZ);
 
-        final int stepX = sign(directionX);
-        final int stepY = sign(directionY);
-        final int stepZ = sign(directionZ);
 
-        final float tDeltaX = (stepX == 0) ? Float.MAX_VALUE : (stepX / directionX);
-        final float tDeltaY = (stepY == 0) ? Float.MAX_VALUE : (stepY / directionY);
-        final float tDeltaZ = (stepZ == 0) ? Float.MAX_VALUE : (stepZ / directionZ);
+        float sx = 0;
+        float sy = 0;
+        float sz = 0;
 
-        float tMaxX = tDeltaX * (stepX > 0 ? frac1(originX) : frac0(originX));
-        float tMaxY = tDeltaY * (stepY > 0 ? frac1(originY) : frac0(originY));
-        float tMaxZ = tDeltaZ * (stepZ > 0 ? frac1(originZ) : frac0(originZ));
-
-        maxDistance /= (float) Math.sqrt(directionX * directionX + directionY * directionY + directionZ * directionZ);
+        float distance = 0;
+        //maxDistance /= (float) Math.sqrt(directionX * directionX + directionY * directionY + directionZ * directionZ);
 
         int invalid = 0;
         int valid = 0;
 
-        while ((valid < 3 || invalid > 1)) {
-            if (tMaxX < tMaxY) {
-                if (tMaxX < tMaxZ) {
-                    if (tMaxX > maxDistance) break;
-                    currVoxelX += stepX;
-                    tMaxX += tDeltaX;
-                } else {
-                    if (tMaxZ > maxDistance) break;
-                    currVoxelZ += stepZ;
-                    tMaxZ += tDeltaZ;
-                }
-            } else {
-                if (tMaxY < tMaxZ) {
-                    if (tMaxY > maxDistance) break;
-                    currVoxelY += stepY;
-                    tMaxY += tDeltaY;
-                } else {
-                    if (tMaxZ > maxDistance) break;
-                    currVoxelZ += stepZ;
-                    tMaxZ += tDeltaZ;
+
+        outer:
+        while ((valid < 50 && invalid < 2)) {
+            int maxLevel = OCCLUSION_LEVELS-1;
+            for (; maxLevel != -1; maxLevel--) {
+                if (occlusionTree[getSectionId(currVoxelX, currVoxelY, currVoxelZ, maxLevel)] == -1) {
+                    break;
                 }
             }
+            float delta = 1;
+            if (maxLevel > -1) {
+
+                int alignmentMsk = (1 << (maxLevel + 1)) - 1;
+                int alignmentSize = (1 << (maxLevel + 1));
+                int xB = (currVoxelX) & (~alignmentMsk);
+                int yB = (currVoxelY) & (~alignmentMsk);
+                int zB = (currVoxelZ) & (~alignmentMsk);
+
+                //Snap to voxel
+                float nt = Math.max((xB - (currVoxelX + sx)) / directionX, (xB + alignmentSize - (currVoxelX + sx)) / directionX);
+                nt = Math.min(nt, Math.max((yB - (currVoxelY + sy)) / directionY, (yB + alignmentSize - (currVoxelY + sy)) / directionY));
+                nt = Math.min(nt, Math.max((zB - (currVoxelZ + sz)) / directionZ, (zB + alignmentSize - (currVoxelZ + sz)) / directionZ));
+                delta = (float) Math.ceil(nt+0.01f);
+                valid += delta;
+            }
+
+            sx += delta * directionX;
+            sy += delta * directionY;
+            sz += delta * directionZ;
+
+            distance += delta;
+
+            if (distance*16 >= maxDistance) {
+                break;
+            }
+
+            currVoxelX += Math.floor(sx);
+            currVoxelY += Math.floor(sy);
+            currVoxelZ += Math.floor(sz);
+            sx -= Math.floor(sx);
+            sy -= Math.floor(sy);
+            sz -= Math.floor(sz);
 
             if (currVoxelY < this.bottomSectionCoord || currVoxelY > this.topSectionCoord) {
-                break;
+                break outer;
             }
 
             if (this.queuedChunks.get(this.getSectionId(currVoxelX, currVoxelY, currVoxelZ))) {
@@ -667,8 +689,8 @@ public class RenderSectionManager {
             } else {
                 invalid++;
             }
-        }
 
+        }
         return invalid >= 2;
     }
 
@@ -699,12 +721,13 @@ public class RenderSectionManager {
         float dY = this.cameraY - rY;
         float dZ = this.cameraZ - rZ;
 
-        float scalar = 1.0f / (float) Math.sqrt(dX * dX + dY * dY + dZ * dZ);
+        float distance = (float) Math.sqrt(dX * dX + dY * dY + dZ * dZ);
+        float scalar = 1.0f / (distance);
         dX = dX * scalar;
         dY = dY * scalar;
         dZ = dZ * scalar;
 
-        return this.raycast(rX / 16.0f, rY / 16.0f, rZ / 16.0f, dX, dY, dZ, 60.0f / 16.0f);
+        return this.raycast(rX / 16.0f, rY / 16.0f, rZ / 16.0f, dX, dY, dZ, distance);
     }
 
     private static float frac0(float number) {
@@ -722,13 +745,34 @@ public class RenderSectionManager {
     private int getSectionId(int x, int y, int z) {
         return ((x & this.sectionWidthMask) << (this.widthShift + this.heightShift)) | ((z & this.sectionWidthMask) << (this.heightShift)) | (y & this.sectionHeightMask);
     }
+    private int getSectionId(int x, int y, int z, int level) {
+        int offset = ((sectionWidth<<1) * sectionHeight) * ((1<<level)-1);
+        level+=1;
+        return offset + ((((x & this.sectionWidthMask)>>(level)) << (this.widthShift + this.heightShift - level*2)) | (((z & this.sectionWidthMask)>>(level)) << (this.heightShift-level)) | ((y & this.sectionHeightMask)>>(level)));
+    }
+    private int getBit(int x, int y, int z, int level) {
+        return (((x>>level)&1)<<2) | (((z>>level)&1)<<1) | (((y>>level)&1));
+    }
 
+    private void unpack(int xo, int y, int zo) {
+        int pack = getSectionId(xo, y, zo);
+        int z = ((pack>>(heightShift))&sectionWidthMask) | (((int)cameraZ>>(4+widthShift))<<widthShift);
+        int x = ((pack>>(widthShift+heightShift))&sectionWidthMask) | (((int)cameraX>>(4+widthShift))<<widthShift);
+        int pack2 = getSectionId(x, y, z);
+        if (pack2 != pack) {
+            System.err.println("waaaaaaaaaa");
+        }
+    }
     private void bfsEnqueue(RenderSection parent, RenderSection render, Direction flow, boolean doRayCull) {
         ChunkGraphInfo info = render.getGraphInfo();
 
         int sId = this.getSectionId(render.getChunkX(), render.getChunkY(), render.getChunkZ());
-
+        unpack(render.getChunkX(), render.getChunkY(), render.getChunkZ());
         if (this.queuedChunks.get(sId)) {
+            return;
+        }
+
+        if (this.useFogCulling && render.getSquaredDistanceXZ(this.cameraX, this.cameraZ) >= this.fogRenderCutoff) {
             return;
         }
 
@@ -748,6 +792,14 @@ public class RenderSectionManager {
         info.setCullingState(parent.getGraphInfo().getCullingState(), flow);
 
         this.queuedChunks.set(sId);
+        for (int level = 0; level < OCCLUSION_LEVELS; level++) {
+            int node = getSectionId(render.getChunkX(), render.getChunkY(), render.getChunkZ(), level);
+            byte c = (byte) (occlusionTree[node] | (1 << getBit(render.getChunkX(), render.getChunkY(), render.getChunkZ(), level)));
+            occlusionTree[node] = c;
+            if (c != -1) {
+                break;
+            }//NOTE: in the case c == 0xFF it is not marked in the occlusionTree, this saves a memory op
+        }
 
         this.addVisible(render, flow);
     }
@@ -755,9 +807,6 @@ public class RenderSectionManager {
     private void addVisible(RenderSection render, Direction flow) {
         this.iterationQueue.add(render, flow);
 
-        if (this.useFogCulling && render.getSquaredDistanceXZ(this.cameraX, this.cameraZ) >= this.fogRenderCutoff) {
-            return;
-        }
 
         if (!render.isEmpty()) {
             this.addChunkToVisible(render);
