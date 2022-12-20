@@ -243,9 +243,9 @@ public class RenderSection {
     }
 
     public void markForUpdate(ChunkUpdateType type) {
-        worldRenderer.getRenderSectionManager().sstate.setChunkDataFlags(this);
         if (this.pendingUpdate == null || type.ordinal() > this.pendingUpdate.ordinal()) {
             this.pendingUpdate = type;
+            worldRenderer.getRenderSectionManager().sstate.setChunkDataFlags(this);
         }
     }
 

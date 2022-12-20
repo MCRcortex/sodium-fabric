@@ -1,5 +1,6 @@
 package me.jellysquid.mods.sodium.client.render.chunk;
 
+import me.jellysquid.mods.sodium.client.render.chunk.data.ChunkRenderData;
 import me.jellysquid.mods.sodium.client.util.collections.BitArray;
 import me.jellysquid.mods.sodium.common.util.DirectionUtil;
 import net.minecraft.client.render.chunk.ChunkOcclusionData;
@@ -91,12 +92,15 @@ public class SectionState {
         sectionExistenceBits.set(id);
     }
 
-    public void unmarkLoaded(int x, int y, int z) {
+    public RenderSection unmarkLoaded(int x, int y, int z) {
         int id = getSectionIdx(x, y, z);
         if (sections[id] == null)
             throw new IllegalStateException();
+        RenderSection ret = sections[id];
         sections[id] = null;
         sectionExistenceBits.unset(id);
+        setChunkVisibility(x,y,z, ChunkRenderData.EMPTY.getOcclusionData());
+        return ret;
     }
 
     public void setChunkVisibility(int x, int y, int z, ChunkOcclusionData data) {

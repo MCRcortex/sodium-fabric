@@ -6,7 +6,9 @@ import me.jellysquid.mods.sodium.client.util.frustum.Frustum;
 import me.jellysquid.mods.sodium.common.util.DirectionUtil;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.Vec3d;
+import org.joml.Vector2f;
 import org.joml.Vector3d;
+import org.joml.Vector3f;
 
 public class SectionCulling {
     public final SectionState state;
@@ -450,4 +452,15 @@ public class SectionCulling {
         };
     }
 
+    public boolean isVisible(int x, int y, int z) {
+        return sectionVisibilityBitsPass2.get(state.getSectionIdx(x, y, z));
+    }
+
+
+    public boolean isInRenderDistance(int x, int y, int z) {
+        if (y < state.sectionHeightMin || y >= state.sectionHeightMax) {//TODO: check the inclusivity state of max
+            return false;
+        }
+        return Vector2f.distance(((int) camera.x)>>4, ((int) camera.z)>>4, x, z) < state.renderDistance;
+    }
 }
