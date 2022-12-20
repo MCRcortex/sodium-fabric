@@ -33,7 +33,7 @@ public class RenderSection {
 
     private ChunkUpdateType pendingUpdate;
 
-    private int flags;
+    public int flags;
     private boolean disposed;
 
     private int lastAcceptedBuildTime = -1;
@@ -112,6 +112,7 @@ public class RenderSection {
         if (!info.getBlockEntities().isEmpty()) {
             this.flags |= ChunkDataFlags.HAS_BLOCK_ENTITIES;
         }
+        worldRenderer.getRenderSectionManager().sstate.setChunkDataFlags(this);
     }
 
     /**
@@ -242,6 +243,7 @@ public class RenderSection {
     }
 
     public void markForUpdate(ChunkUpdateType type) {
+        worldRenderer.getRenderSectionManager().sstate.setChunkDataFlags(this);
         if (this.pendingUpdate == null || type.ordinal() > this.pendingUpdate.ordinal()) {
             this.pendingUpdate = type;
         }
@@ -255,6 +257,7 @@ public class RenderSection {
 
         this.rebuildTask = task;
         this.pendingUpdate = null;
+        worldRenderer.getRenderSectionManager().sstate.setChunkDataFlags(this);
     }
 
     public boolean isBuilt() {

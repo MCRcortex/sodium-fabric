@@ -4,7 +4,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import it.unimi.dsi.fastutil.PriorityQueue;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
@@ -41,6 +40,7 @@ import net.minecraft.util.math.*;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 
 import java.util.*;
@@ -111,6 +111,7 @@ public class RenderSectionManager {
         private final int sectionHeightMask;
         private final int heightShift;
         private final BitArray queuedChunks;
+        private final BitArray nonVisibleChunks;
         private final RenderSection[] sections;
         private final long[] visibilityData;
         private final byte[] cullingState;
@@ -127,6 +128,7 @@ public class RenderSectionManager {
             int arraySize = sectionWidth * sectionHeight * sectionWidth;
 
             this.queuedChunks = new BitArray(arraySize);
+            this.nonVisibleChunks = new BitArray(arraySize);
             this.sections = new RenderSection[arraySize];
             this.visibilityData = new long[arraySize];
             this.cullingState = new byte[arraySize];
@@ -136,6 +138,7 @@ public class RenderSectionManager {
 
         public void reset() {
             this.queuedChunks.clear();
+            this.nonVisibleChunks.clear();
 
             Arrays.fill(this.cullingState, (byte) 0);
         }
@@ -204,9 +207,18 @@ public class RenderSectionManager {
 
             return section;
         }
+
+        public void setnotViewCulled(int sectionX, int sectionY, int sectionZ) {
+            nonVisibleChunks.set(getSectionId(sectionX, sectionY, sectionZ));
+        }
+        public boolean isnotViewCulled(int id) {
+            return nonVisibleChunks.get(id);
+        }
     }
 
     private final State state;
+    final SectionState sstate;
+    private final SectionCulling scull;
 
     public RenderSectionManager(SodiumWorldRenderer worldRenderer, BlockRenderPassManager renderPassManager, ClientWorld world, int renderDistance, CommandList commandList) {
         this.chunkRenderer = new RegionChunkRenderer(RenderDevice.INSTANCE, ChunkModelVertexFormats.DEFAULT);
@@ -233,6 +245,9 @@ public class RenderSectionManager {
         this.topSectionCoord = this.world.getTopSectionCoord();
 
         this.state = new State(this.world, renderDistance);
+
+        sstate = new SectionState(renderDistance, world);
+        scull = new SectionCulling(sstate);
     }
 
     public void reloadChunks(ChunkTracker tracker) {
@@ -248,6 +263,18 @@ public class RenderSectionManager {
 
         this.setup(camera);
         this.iterateChunks(camera, frustum, frame, spectator);
+
+        scull.calculateVisibleSections(frustum, true, new Vector3d(camera.getPos().x, camera.getPos().y, camera.getPos().z));
+        chunkRenderList.clear();
+        for (int i = 0; i < scull.sortedSectionList.terrainSectionCount; i++) {
+            chunkRenderList.add(sstate.sections[scull.sortedSectionList.terrainSectionIdxs[i]]);
+        }
+        for (int i = 0; i < scull.sortedSectionList.importantUpdateSectionCount; i++) {
+            performScheduling(sstate.sections[scull.sortedSectionList.importantUpdatableSectionIdxs[i]]);
+        }
+        for (int i = 0; i < scull.sortedSectionList.secondaryUpdateSectionCount; i++) {
+            performScheduling(sstate.sections[scull.sortedSectionList.secondaryUpdatableSectionIdxs[i]]);
+        }
 
         this.needsUpdate = false;
     }
@@ -313,7 +340,7 @@ public class RenderSectionManager {
 
                     if (this.state.isLoaded(adjId)) {
                         this.bfsEnqueue(sectionId, adjId, adjX, adjY, adjZ,
-                                DirectionUtil.getOpposite(outgoingDirection).ordinal(), doRayCull);
+                                DirectionUtil.getOppositeId(outgoingDirection.ordinal()), doRayCull);
                     }
                 }
             }
@@ -376,6 +403,7 @@ public class RenderSectionManager {
         region.addChunk(render);
 
         this.state.setSection(id, render);
+        sstate.markLoaded(x, y, z, render);
 
         return true;
     }
@@ -395,6 +423,8 @@ public class RenderSectionManager {
         region.removeChunk(chunk);
 
         this.readyColumns.remove(ChunkSectionPos.asLong(x, y, z));
+
+        sstate.unmarkLoaded(x, y, z);
 
         return true;
     }
@@ -601,6 +631,7 @@ public class RenderSectionManager {
     }
 
     public void onChunkRenderUpdates(int x, int y, int z, ChunkRenderData data) {
+        sstate.setChunkVisibility(x,y,z, data.getOcclusionData());
         this.state.setOcclusionData(data.getOcclusionData(), this.state.getSectionId(x, y, z));
     }
 
@@ -689,48 +720,46 @@ public class RenderSectionManager {
         final int stepY = sign(directionY);
         final int stepZ = sign(directionZ);
 
-        final float tDeltaX = (stepX == 0) ? Float.MAX_VALUE : (stepX / directionX);
-        final float tDeltaY = (stepY == 0) ? Float.MAX_VALUE : (stepY / directionY);
-        final float tDeltaZ = (stepZ == 0) ? Float.MAX_VALUE : (stepZ / directionZ);
-
-        float tMaxX = tDeltaX * (stepX > 0 ? frac1(originX) : frac0(originX));
-        float tMaxY = tDeltaY * (stepY > 0 ? frac1(originY) : frac0(originY));
-        float tMaxZ = tDeltaZ * (stepZ > 0 ? frac1(originZ) : frac0(originZ));
+        float sx = 0;
+        float sy = 0;
+        float sz = 0;
 
         maxDistance /= (float) Math.sqrt(directionX * directionX + directionY * directionY + directionZ * directionZ);
 
         int invalid = 0;
         int valid = 0;
 
-        while ((valid < 3 || invalid > 1)) {
-            if (tMaxX < tMaxY) {
-                if (tMaxX < tMaxZ) {
-                    if (tMaxX > maxDistance) break;
-                    currVoxelX += stepX;
-                    tMaxX += tDeltaX;
-                } else {
-                    if (tMaxZ > maxDistance) break;
-                    currVoxelZ += stepZ;
-                    tMaxZ += tDeltaZ;
-                }
-            } else {
-                if (tMaxY < tMaxZ) {
-                    if (tMaxY > maxDistance) break;
-                    currVoxelY += stepY;
-                    tMaxY += tDeltaY;
-                } else {
-                    if (tMaxZ > maxDistance) break;
-                    currVoxelZ += stepZ;
-                    tMaxZ += tDeltaZ;
-                }
+        while ((valid < 50 && invalid < 2)) {
+            sx += directionX;
+            sy += directionY;
+            sz += directionZ;
+            if (sx > 1 || sx < 0) {
+                sx -= stepX;
+                currVoxelX += stepX;
+            }
+            if (sy > 1 || sy < 0) {
+                sy -= stepY;
+                currVoxelY += stepY;
+            }
+
+            if (sz > 1 || sz < 0) {
+                sz -= stepZ;
+                currVoxelZ += stepZ;
             }
 
             if (currVoxelY < this.bottomSectionCoord || currVoxelY > this.topSectionCoord) {
                 break;
             }
 
-            if (this.state.isVisible(this.state.getSectionId(currVoxelX, currVoxelY, currVoxelZ))) {
+            if (Vector3f.distance(currVoxelX, currVoxelY, currVoxelZ, centerChunkX, centerChunkY, centerChunkZ) < 6) {
+                break;
+            }
+
+
+            int id = this.state.getSectionId(currVoxelX, currVoxelY, currVoxelZ);
+            if (this.state.isVisible(id) ) {
                 valid++;
+                //invalid = 0;
             } else {
                 invalid++;
             }
@@ -797,6 +826,7 @@ public class RenderSectionManager {
         if (this.isCulledByView(sectionX, sectionY, sectionZ)) {
             return;
         }
+        state.setnotViewCulled(sectionX, sectionY, sectionZ);
 
         if (doRayCull && this.isCulledByRaycast(sectionX, sectionY, sectionZ, dir)) {
             return;
@@ -866,7 +896,7 @@ public class RenderSectionManager {
             return true;
         }
 
-        return !this.frustum.isBoxVisible(centerX - 8.0f, centerY - 8.0f, centerZ - 8.0f,
+        return !this.frustum.containsBox(centerX - 8.0f, centerY - 8.0f, centerZ - 8.0f,
                 centerX + 8.0f, centerY + 8.0f, centerZ + 8.0f);
     }
 
@@ -910,6 +940,7 @@ public class RenderSectionManager {
                 render.setData(ChunkRenderData.EMPTY);
             } else {
                 render.markForUpdate(ChunkUpdateType.INITIAL_BUILD);
+                sstate.setChunkDataFlags(render);
             }
         }
     }

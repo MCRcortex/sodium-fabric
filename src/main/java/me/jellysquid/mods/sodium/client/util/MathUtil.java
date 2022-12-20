@@ -26,4 +26,9 @@ public class MathUtil {
         int mask = ~additive;
         return (num + additive) & mask;
     }
+
+    public static double floorMod(double x, double y){
+        // x mod y behaving the same way as Math.floorMod but with doubles
+        return (x - java.lang.Math.floor(x / y) * y);
+    }
 }
