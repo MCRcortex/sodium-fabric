@@ -650,7 +650,7 @@ public class RenderSectionManager {
     private boolean raycast(float originX, float originY, float originZ,
                             float directionX, float directionY, float directionZ,
                             int maxDistance) {
-        long maxDistanceL = (long) maxDistance <<48;
+
 
         byte invalid = 0;
         byte valid = 0;
@@ -659,28 +659,29 @@ public class RenderSectionManager {
         int y = (int) Math.floor(originY);
         int z = (int) Math.floor(originZ);
 
-        short sx = (short) (Math.abs(directionX) * Short.MAX_VALUE);
-        short sy = (short) (Math.abs(directionY) * Short.MAX_VALUE);
-        short sz = (short) (Math.abs(directionZ) * Short.MAX_VALUE);
+        byte sx = (byte) (Math.abs(directionX) * Byte.MAX_VALUE);
+        byte sy = (byte) (Math.abs(directionY) * Byte.MAX_VALUE);
+        byte sz = (byte) (Math.abs(directionZ) * Byte.MAX_VALUE);
 
-        short dx = (short) (directionX<0?Short.MAX_VALUE:0);
-        short dy = (short) (directionY<0?Short.MAX_VALUE:0);
-        short dz = (short) (directionZ<0?Short.MAX_VALUE:0);
+        byte dx = (byte) (directionX<0?Byte.MAX_VALUE:0);
+        byte dy = (byte) (directionY<0?Byte.MAX_VALUE:0);
+        byte dz = (byte) (directionZ<0?Byte.MAX_VALUE:0);
 
         int ox = sign(directionX);
         int oy = sign(directionY);
         int oz = sign(directionZ);
 
-        long dataVector = ((long)dx<<32)|((long)dy<<16)|(long)dz;
-        long incrementVector = ((((long)sx)<<32)|(((long)sy)<<16)|((long)sz))|1L<<48;
-        long mskVector = (((1L<<16)-1)<<48)|(((1L<<15)-1)<<32)|(((1L<<15)-1)<<16)|(((1L<<15)-1));
+        int dataVector = (dx<<16)|(dy<<8)|dz;
+        int incrementVector = 1<<24 | sx<<16 | sy<<8 |sz;
+        int mskVector = ((1<<8)-1)<<24 | ((1<<7)-1)<<16 | ((1<<7)-1) <<8 | ((1<<7)-1);
 
+        maxDistance <<= 24;
 
-        while ((valid < 3 && invalid < 2) && dataVector < maxDistanceL) {
+        while ((valid < 4 && invalid < 2) && dataVector < maxDistance) {
             dataVector += incrementVector;
-            x += ox*((dataVector>>47)&1);
-            y += oy*((dataVector>>31)&1);
-            z += oz*((dataVector>>15)&1);
+            x += ox*((dataVector>>23)&1);
+            y += oy*((dataVector>>15)&1);
+            z += oz*((dataVector>>7)&1);
             dataVector &= mskVector;
 
             var id = this.state.getIndex(x, y, z);
