@@ -167,7 +167,7 @@ public class RenderSectionManager {
         this.builder.init(world, renderPassManager);
 
         this.needsUpdate = true;
-        this.renderDistance = renderDistance;
+        this.renderDistance = renderDistance+3;//I hate this but it makes everything work
 
         this.regions = new RenderRegionManager(commandList);
 
@@ -179,6 +179,18 @@ public class RenderSectionManager {
         this.topSectionCoord = this.world.getTopSectionCoord();
 
         this.state = new State(this.world, renderDistance);
+
+
+
+        BlockPos origin = MinecraftClient.getInstance().gameRenderer.getCamera().getBlockPos();
+
+        int chunkX = origin.getX() >> 4;
+        int chunkY = origin.getY() >> 4;
+        int chunkZ = origin.getZ() >> 4;
+
+        this.centerChunkX = chunkX;
+        this.centerChunkY = chunkY;
+        this.centerChunkZ = chunkZ;
     }
 
     public void update(Camera camera, Frustum frustum, int frame, boolean spectator) {
@@ -235,16 +247,9 @@ public class RenderSectionManager {
                 if (useOcclusionCulling && canCull(this.state.cullingState[fromId], toDirection)) {
                     continue;
                 }
-                /*
+
                 if (useOcclusionCulling && !isVisibleThrough(this.state.visibilityData[fromId], fromDirection, toDirection)) {
                     continue;
-                }*/
-                if (useOcclusionCulling) {
-                    if (state.sections[fromId].getData().getOcclusionData() != null) {
-                        if (!state.sections[fromId].getData().getOcclusionData().isVisibleThrough(DirectionUtil.getEnum(fromDirection), DirectionUtil.getEnum(toDirection))) {
-                            continue;
-                        }
-                    }
                 }
 
                 var offset = DirectionUtil.getOffset(toDirection);
@@ -719,16 +724,29 @@ public class RenderSectionManager {
         this.needsUpdate = true;
     }
 
-    private void loadSection(int x, int y, int z) {
-        var id = this.state.getIndex(x, y, z);
+    public boolean isInRenderDistance(int x, int y, int z) {
+        if (y<bottomSectionCoord || topSectionCoord<=y) {
+            return false;
+        }
+        int dX = centerChunkX - x;
+        int dZ = centerChunkZ - z;
+        return (dX*dX)+(dZ*dZ)<(renderDistance+1)*(renderDistance+1);
+    }
 
-        if (this.state.sections[id] != null) {
-            throw new IllegalStateException("Section is already loaded [x=%s, y=%s, z=%s]".formatted(x, y, z));
+    private void loadSection(int x, int y, int z) {
+        if (!this.isInRenderDistance(x, y, z)) {
+            return;
+        }
+
+        var id = this.state.getIndex(x, y, z);
+        RenderSection render = this.state.sections[id];
+        if (render != null) {
+            throw new IllegalStateException("Section is already loaded [x=%s, y=%s, z=%s] [x=%s, y=%s, z=%s]".formatted(x, y, z, this.state.sections[id].getChunkX(), this.state.sections[id].getChunkY() , this.state.sections[id].getChunkZ()));
         }
 
         RenderRegion region = this.regions.createRegionForChunk(x, y, z);
 
-        RenderSection render = new RenderSection(this.worldRenderer, x, y, z, region);
+        render = new RenderSection(this.worldRenderer, x, y, z, region);
         region.addChunk(render);
 
         this.state.sections[id] = render;
@@ -757,8 +775,12 @@ public class RenderSectionManager {
         var id = this.state.getIndex(x, y, z);
         var section = this.state.sections[id];
 
-        if (section == null) {
-            throw new IllegalStateException("Section is not loaded " + ChunkSectionPos.from(x, y, z));
+        if (section == null) {//Its ok cause it might have gotten removed twice or something
+            //throw new IllegalStateException("Section is not loaded " + ChunkSectionPos.from(x, y, z));
+            return;
+        }
+        if (section.getChunkX() != x || section.getChunkY() != y || section.getChunkZ() != z) {
+            throw new IllegalStateException("Removed incorrect section " + ChunkSectionPos.from(x, y, z));
         }
 
         this.state.sections[id] = null;
