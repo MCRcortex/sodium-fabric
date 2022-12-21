@@ -649,8 +649,8 @@ public class RenderSectionManager {
 
     private boolean raycast(float originX, float originY, float originZ,
                             float directionX, float directionY, float directionZ,
-                            short maxDistance) {
-        short d = 0;
+                            int maxDistance) {
+        long maxDistanceL = (long) maxDistance <<48;
 
         byte invalid = 0;
         byte valid = 0;
@@ -671,17 +671,17 @@ public class RenderSectionManager {
         int oy = sign(directionY);
         int oz = sign(directionZ);
 
+        long dataVector = ((long)dx<<32)|((long)dy<<16)|(long)dz;
+        long incrementVector = ((((long)sx)<<32)|(((long)sy)<<16)|((long)sz))|1L<<48;
+        long mskVector = (((1L<<16)-1)<<48)|(((1L<<15)-1)<<32)|(((1L<<15)-1)<<16)|(((1L<<15)-1));
 
-        while ((valid < 3 && invalid < 2) && d < maxDistance) {
-            d += 1;
-            dx += sx;
-            dy += sy;
-            dz += sz;
 
-            if (dx<0) { dx -= Short.MAX_VALUE; x+=ox; }
-            if (dy<0) { dy -= Short.MAX_VALUE; y+=oy; }
-            if (dz<0) { dz -= Short.MAX_VALUE; z+=oz; }
-
+        while ((valid < 3 && invalid < 2) && dataVector < maxDistanceL) {
+            dataVector += incrementVector;
+            x += ox*((dataVector>>47)&1);
+            y += oy*((dataVector>>31)&1);
+            z += oz*((dataVector>>15)&1);
+            dataVector &= mskVector;
 
             var id = this.state.getIndex(x, y, z);
             if (hasAnyDirection(this.state.direction[id])) {
@@ -775,7 +775,7 @@ public class RenderSectionManager {
         dY = dY * norm;
         dZ = dZ * norm;
 
-        return this.raycast(rX / 16.0f, rY / 16.0f, rZ / 16.0f, dX, dY, dZ, (short) Math.floor(dist / 16.0f));
+        return this.raycast(rX / 16.0f, rY / 16.0f, rZ / 16.0f, dX, dY, dZ, (int) Math.floor(dist / 16.0f));
     }
 
 
