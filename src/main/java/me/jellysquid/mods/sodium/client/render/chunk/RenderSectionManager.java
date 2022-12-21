@@ -87,6 +87,8 @@ public class RenderSectionManager {
         public final long[] queuedChunks;
         public final byte[] cullingState;
 
+        private final long[] frustumVisibilityCache;
+
         public State(World world, int renderDistance) {
             int sizeXZ = MathHelper.smallestEncompassingPowerOfTwo((renderDistance * 2) + 1);
             int sizeY = MathHelper.smallestEncompassingPowerOfTwo(world.getTopSectionCoord() - world.getBottomSectionCoord());
@@ -103,6 +105,7 @@ public class RenderSectionManager {
             this.visibilityData = new long[arraySize];
 
             this.queuedChunks = BitArray.create(arraySize);
+            this.frustumVisibilityCache = BitArray.create(arraySize * 2);
             this.cullingState = new byte[arraySize];
 
             Arrays.fill(this.visibilityData, DEFAULT_VISIBILITY_DATA);
@@ -110,6 +113,7 @@ public class RenderSectionManager {
 
         public void reset() {
             BitArray.clear(this.queuedChunks);
+            BitArray.clear(this.frustumVisibilityCache);
             Arrays.fill(this.cullingState, (byte) 0);
         }
 
@@ -734,12 +738,21 @@ public class RenderSectionManager {
     }
 
     private boolean isCulledByFrustum(int chunkX, int chunkY, int chunkZ) {
+        int id = state.getIndex(chunkX, chunkY, chunkZ) * 2;
+        if (BitArray.get(state.frustumVisibilityCache, id)) {
+            return BitArray.get(state.frustumVisibilityCache, id+1);
+        }
         float centerX = (chunkX << 4) + 8;
         float centerY = (chunkY << 4) + 8;
         float centerZ = (chunkZ << 4) + 8;
 
-        return !this.frustum.isBoxVisible(centerX - 8.0f, centerY - 8.0f, centerZ - 8.0f,
+        boolean culled = !this.frustum.isBoxVisible(centerX - 8.0f, centerY - 8.0f, centerZ - 8.0f,
                 centerX + 8.0f, centerY + 8.0f, centerZ + 8.0f);
+
+        //TODO: OPTIMIZE AND MERGE INTO A SINGLE SET IF POSSIBLE
+        BitArray.put(state.frustumVisibilityCache, id, true);
+        BitArray.put(state.frustumVisibilityCache, id+1, culled);
+        return culled;
     }
 
     public void loadChunk(int x, int z) {
