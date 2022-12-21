@@ -245,7 +245,7 @@ public class RenderSectionManager {
                     continue;
                 }
 
-                if (useOcclusionCulling && this.isCulledByFrustum(toX, toY, toZ)) {
+                if (useOcclusionCulling && this.isCulledByFrustum(toX, toY, toZ, toId)) {
                     continue;
                 }
 
@@ -649,18 +649,61 @@ public class RenderSectionManager {
 
     private boolean raycast(float originX, float originY, float originZ,
                             float directionX, float directionY, float directionZ,
-                            float maxDistance) {
-        float d = 0.0f;
+                            short maxDistance) {
+        short d = 0;
 
-        int invalid = 0;
-        int valid = 0;
+        byte invalid = 0;
+        byte valid = 0;
 
+        int x = (int) Math.floor(originX);
+        int y = (int) Math.floor(originY);
+        int z = (int) Math.floor(originZ);
+
+        short sx = (short) (Math.abs(directionX) * Short.MAX_VALUE);
+        short sy = (short) (Math.abs(directionY) * Short.MAX_VALUE);
+        short sz = (short) (Math.abs(directionZ) * Short.MAX_VALUE);
+
+        short dx = (short) (directionX<0?Short.MAX_VALUE:0);
+        short dy = (short) (directionY<0?Short.MAX_VALUE:0);
+        short dz = (short) (directionZ<0?Short.MAX_VALUE:0);
+
+        int ox = sign(directionX);
+        int oy = sign(directionY);
+        int oz = sign(directionZ);
+
+
+        while ((valid < 3 && invalid < 2) && d < maxDistance) {
+            d += 1;
+            dx += sx;
+            dy += sy;
+            dz += sz;
+
+            if (dx<0) { dx -= Short.MAX_VALUE; x+=ox; }
+            if (dy<0) { dy -= Short.MAX_VALUE; y+=oy; }
+            if (dz<0) { dz -= Short.MAX_VALUE; z+=oz; }
+
+
+            var id = this.state.getIndex(x, y, z);
+            if (hasAnyDirection(this.state.direction[id])) {
+                valid++;
+            } else if (this.isCulledByFrustum(x, y, z, id)) {
+                return false;
+            } else {
+                invalid++;
+            }
+        }
+
+
+        /*
         while ((valid < 4 && invalid < 2) && d < maxDistance) {
-            d += 1.0f;
+            d++;
 
-            int x = MathHelper.floor(originX + (directionX * d));
-            int y = MathHelper.floor(originY + (directionY * d));
-            int z = MathHelper.floor(originZ + (directionZ * d));
+            sx += directionX;
+            sy += directionY;
+            sz += directionZ;
+
+            if (sx)
+
 
             if (y < this.bottomSectionCoord || y > this.topSectionCoord) {
                 break;
@@ -669,14 +712,18 @@ public class RenderSectionManager {
             var id = this.state.getIndex(x, y, z);
             if (hasAnyDirection(this.state.direction[id])) {
                 valid++;
-            } else if (this.isCulledByFrustum(x, y, z)) {
+            } else if (this.isCulledByFrustum(x, y, z, id)) {
                 return false;
             } else {
                 invalid++;
             }
-        }
+        }*/
 
         return invalid > 1;
+    }
+
+    private static int sign(float directionZ) {
+        return directionZ<0.0f?-1:1;
     }
 
     private boolean isCulledByRaycast(int sectionX, int sectionY, int sectionZ, int dir) {
@@ -728,7 +775,7 @@ public class RenderSectionManager {
         dY = dY * norm;
         dZ = dZ * norm;
 
-        return this.raycast(rX / 16.0f, rY / 16.0f, rZ / 16.0f, dX, dY, dZ, dist / 16.0f);
+        return this.raycast(rX / 16.0f, rY / 16.0f, rZ / 16.0f, dX, dY, dZ, (short) Math.floor(dist / 16.0f));
     }
 
 
@@ -759,7 +806,10 @@ public class RenderSectionManager {
     }
 
     private boolean isCulledByFrustum(int chunkX, int chunkY, int chunkZ) {
-        int id = state.getIndex(chunkX, chunkY, chunkZ) * 2;
+        return isCulledByFrustum(chunkX, chunkY, chunkZ, state.getIndex(chunkX, chunkY, chunkZ));
+    }
+    private boolean isCulledByFrustum(int chunkX, int chunkY, int chunkZ, int id) {
+        id *= 2;
         if (BitArray.get(state.frustumVisibilityCache, id)) {
             return BitArray.get(state.frustumVisibilityCache, id+1);
         }
