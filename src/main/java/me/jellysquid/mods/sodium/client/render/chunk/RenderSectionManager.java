@@ -87,6 +87,8 @@ public class RenderSectionManager {
         public final byte[] cullingState;
         public final byte[] direction;
 
+        public final byte[] rayAnalytics;
+
         private final long[] frustumVisibilityCache;
 
         public int sectionCount = 0;
@@ -109,12 +111,16 @@ public class RenderSectionManager {
             this.cullingState = new byte[arraySize];
             this.frustumVisibilityCache = BitArray.create(arraySize * 2);
             this.direction = new byte[arraySize];
+
+            this.rayAnalytics = new byte[arraySize];
         }
 
         public void reset() {
             BitArray.clear(this.frustumVisibilityCache);
             Arrays.fill(this.cullingState, (byte) 0);
             Arrays.fill(this.direction, (byte) 0);
+
+            Arrays.fill(this.rayAnalytics, (byte) 0);
         }
 
         public int getIndex(int x, int y, int z) {
@@ -663,21 +669,17 @@ public class RenderSectionManager {
         byte sy = (byte) (Math.abs(directionY) * Byte.MAX_VALUE);
         byte sz = (byte) (Math.abs(directionZ) * Byte.MAX_VALUE);
 
-        byte dx = (byte) (directionX<0?Byte.MAX_VALUE:0);
-        byte dy = (byte) (directionY<0?Byte.MAX_VALUE:0);
-        byte dz = (byte) (directionZ<0?Byte.MAX_VALUE:0);
-
         int ox = sign(directionX);
         int oy = sign(directionY);
         int oz = sign(directionZ);
 
-        int dataVector = (dx<<16)|(dy<<8)|dz;
+        int dataVector = (sx<<16) | (sy<<8) | sz;
         int incrementVector = 1<<24 | sx<<16 | sy<<8 |sz;
         int mskVector = ((1<<8)-1)<<24 | ((1<<7)-1)<<16 | ((1<<7)-1) <<8 | ((1<<7)-1);
 
         maxDistance <<= 24;
 
-        while ((valid < 4 && invalid < 2) && dataVector < maxDistance) {
+        while ((valid < 3 && invalid < 2) && dataVector < maxDistance) {
             dataVector += incrementVector;
             x += ox*((dataVector>>23)&1);
             y += oy*((dataVector>>15)&1);
@@ -688,39 +690,14 @@ public class RenderSectionManager {
             if (hasAnyDirection(this.state.direction[id])) {
                 valid++;
             } else if (this.isCulledByFrustum(x, y, z, id)) {
-                return false;
+                break;
             } else {
                 invalid++;
             }
         }
 
-
-        /*
-        while ((valid < 4 && invalid < 2) && d < maxDistance) {
-            d++;
-
-            sx += directionX;
-            sy += directionY;
-            sz += directionZ;
-
-            if (sx)
-
-
-            if (y < this.bottomSectionCoord || y > this.topSectionCoord) {
-                break;
-            }
-
-            var id = this.state.getIndex(x, y, z);
-            if (hasAnyDirection(this.state.direction[id])) {
-                valid++;
-            } else if (this.isCulledByFrustum(x, y, z, id)) {
-                return false;
-            } else {
-                invalid++;
-            }
-        }*/
-
-        return invalid > 1;
+        boolean wasCulled = invalid > 1;
+        return wasCulled;
     }
 
     private static int sign(float directionZ) {
