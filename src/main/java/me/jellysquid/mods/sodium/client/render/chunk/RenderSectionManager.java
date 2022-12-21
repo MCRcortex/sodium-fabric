@@ -235,9 +235,16 @@ public class RenderSectionManager {
                 if (useOcclusionCulling && canCull(this.state.cullingState[fromId], toDirection)) {
                     continue;
                 }
-
+                /*
                 if (useOcclusionCulling && !isVisibleThrough(this.state.visibilityData[fromId], fromDirection, toDirection)) {
                     continue;
+                }*/
+                if (useOcclusionCulling) {
+                    if (state.sections[fromId].getData().getOcclusionData() != null) {
+                        if (!state.sections[fromId].getData().getOcclusionData().isVisibleThrough(DirectionUtil.getEnum(fromDirection), DirectionUtil.getEnum(toDirection))) {
+                            continue;
+                        }
+                    }
                 }
 
                 var offset = DirectionUtil.getOffset(toDirection);
