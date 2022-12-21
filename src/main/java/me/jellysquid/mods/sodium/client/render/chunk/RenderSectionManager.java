@@ -246,17 +246,15 @@ public class RenderSectionManager {
                 int adjY = from.getChunkY() + offset.getY();
                 int adjZ = from.getChunkZ() + offset.getZ();
 
-                if (this.isWithinRenderDistance(adjX, adjZ)) {
-                    var adjId = this.state.getIndex(adjX, adjY, adjZ);
+                var adjId = this.state.getIndex(adjX, adjY, adjZ);
 
-                    if (this.state.sections[adjId] != null) {
-                        if (BitArray.get(this.state.queuedChunks, adjId)) {
-                            continue;
-                        }
-
-                        this.bfsEnqueue(fromId, adjId, adjX, adjY, adjZ,
-                                DirectionUtil.getOpposite(toDirection), useRayCulling);
+                if (this.state.sections[adjId] != null) {
+                    if (BitArray.get(this.state.queuedChunks, adjId)) {
+                        continue;
                     }
+
+                    this.bfsEnqueue(fromId, adjId, adjX, adjY, adjZ,
+                            DirectionUtil.getOpposite(toDirection), useRayCulling);
                 }
             }
         }
@@ -504,10 +502,6 @@ public class RenderSectionManager {
         this.state.visibilityData[this.state.getIndex(x, y, z)] = calculateVisibilityData(occlusionData);
     }
 
-    private boolean isWithinRenderDistance(int adjX, int adjZ) {
-        return ThreadedAnvilChunkStorage.isWithinDistance(adjX, adjZ, this.centerChunkX, this.centerChunkZ, this.renderDistance);
-    }
-
     private void initSearch(Camera camera, Frustum frustum, int frame, boolean spectator) {
         this.currentFrame = frame;
         this.frustum = frustum;
@@ -563,66 +557,32 @@ public class RenderSectionManager {
     private boolean raycast(float originX, float originY, float originZ,
                             float directionX, float directionY, float directionZ,
                             float maxDistance) {
-        int currVoxelX = MathHelper.floor(originX);
-        int currVoxelY = MathHelper.floor(originY);
-        int currVoxelZ = MathHelper.floor(originZ);
-
-        final int stepX = sign(directionX);
-        final int stepY = sign(directionY);
-        final int stepZ = sign(directionZ);
-
-        final float tDeltaX = (stepX == 0) ? Float.MAX_VALUE : (stepX / directionX);
-        final float tDeltaY = (stepY == 0) ? Float.MAX_VALUE : (stepY / directionY);
-        final float tDeltaZ = (stepZ == 0) ? Float.MAX_VALUE : (stepZ / directionZ);
-
-        float tMaxX = tDeltaX * (stepX > 0 ? frac1(originX) : frac0(originX));
-        float tMaxY = tDeltaY * (stepY > 0 ? frac1(originY) : frac0(originY));
-        float tMaxZ = tDeltaZ * (stepZ > 0 ? frac1(originZ) : frac0(originZ));
-
-        maxDistance /= (float) Math.sqrt(directionX * directionX + directionY * directionY + directionZ * directionZ);
+        float d = 0.0f;
 
         int invalid = 0;
         int valid = 0;
 
-        while ((valid < 3 || invalid > 1)) {
-            if (tMaxX < tMaxY) {
-                if (tMaxX < tMaxZ) {
-                    if (tMaxX > maxDistance) break;
-                    currVoxelX += stepX;
-                    tMaxX += tDeltaX;
-                } else {
-                    if (tMaxZ > maxDistance) break;
-                    currVoxelZ += stepZ;
-                    tMaxZ += tDeltaZ;
-                }
-            } else {
-                if (tMaxY < tMaxZ) {
-                    if (tMaxY > maxDistance) break;
-                    currVoxelY += stepY;
-                    tMaxY += tDeltaY;
-                } else {
-                    if (tMaxZ > maxDistance) break;
-                    currVoxelZ += stepZ;
-                    tMaxZ += tDeltaZ;
-                }
-            }
+        while ((valid < 4 && invalid < 2) && d < maxDistance) {
+            d += 1.0f;
 
-            // TODO: Clip the line segment within the frustum instead
-            if (currVoxelY < this.bottomSectionCoord || currVoxelY > this.topSectionCoord) {
+            int x = MathHelper.floor(originX + (directionX * d));
+            int y = MathHelper.floor(originY + (directionY * d));
+            int z = MathHelper.floor(originZ + (directionZ * d));
+
+            if (y < this.bottomSectionCoord || y > this.topSectionCoord) {
                 break;
             }
 
-            if (BitArray.get(this.state.queuedChunks, this.state.getIndex(currVoxelX, currVoxelY, currVoxelZ))) {
+            if (BitArray.get(this.state.queuedChunks, this.state.getIndex(x, y, z))) {
                 valid++;
-            } else if (this.isCulledByFrustum(currVoxelX, currVoxelY, currVoxelZ)) {
-                // TODO: Clip the line segment within the frustum instead
+            } else if (this.isCulledByFrustum(x, y, z)) {
                 return false;
             } else {
                 invalid++;
             }
         }
 
-        return invalid >= 2;
+        return invalid > 1;
     }
 
     private boolean isCulledByRaycast(int sectionX, int sectionY, int sectionZ, int dir) {
@@ -641,9 +601,9 @@ public class RenderSectionManager {
         int zOffset;
 
         if (axis == Direction.Axis.X) {
-            xOffset = cameraOriginX <= chunkOriginX ? 0 : 16;
+            xOffset = cameraOriginX > chunkOriginX ? 16 : 0;
         } else {
-            xOffset = cameraOriginX >= chunkOriginX ? 0 : 16;
+            xOffset = cameraOriginX < chunkOriginX ? 16 : 0;
         }
 
         if (axis == Direction.Axis.Y) {
@@ -672,19 +632,7 @@ public class RenderSectionManager {
         dY = dY * scalar;
         dZ = dZ * scalar;
 
-        return this.raycast(rX / 16.0f, rY / 16.0f, rZ / 16.0f, dX, dY, dZ, 60.0f / 16.0f);
-    }
-
-    private static float frac0(float n) {
-        return (n - (float) Math.floor(n));
-    }
-
-    private static float frac1(float n) {
-        return ((1 - n + (float) Math.floor(n)));
-    }
-
-    private static int sign(float n) {
-        return (n > 0 ? 1 : (n < 0 ? -1 : 0));
+        return this.raycast(rX / 16.0f, rY / 16.0f, rZ / 16.0f, dX, dY, dZ, 5.0f);
     }
 
     private void bfsEnqueue(int fromId, int toId,
@@ -699,12 +647,12 @@ public class RenderSectionManager {
         }
 
         this.state.cullingState[toId] = mergeCullingState(this.state.cullingState[fromId], dir);
-        BitArray.set(this.state.queuedChunks, toId);
 
         this.addSectionToQueue(toId, dir);
     }
 
     private void addSectionToQueue(int sectionId, int dir) {
+        BitArray.set(this.state.queuedChunks, sectionId);
         this.iterationQueue.add(sectionId, dir);
     }
 
