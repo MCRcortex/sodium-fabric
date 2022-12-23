@@ -79,17 +79,17 @@ public class RenderSectionManager {
         private final int offsetZ, offsetY;
         private final int maskXZ, maskY;
 
+        private final int rOffsetZ, rOffsetY;
+        private final int rMaskXZ, rMaskY;
+
         public final RenderSection[] sections;
         public final long[] visible;
-        public final long[] culled;
-        public final byte[] visibilityData2;//NOTE/TODO:FIXME: merge this and sectionTraversalData into a single long[] array, will increase cache locality + it means no mult 6 to access direction
-
-
         public final byte[] frustumCache;
+        public final byte[] regionFrustumCache;
 
         public int sectionCount = 0;
 
-        public final short[] sectionTraversalData;
+        public final long[] sectionTraversalData;
         public final int[] sortedSections;
         public int visibleChunksCount;
         public int visibleChunksQueue;
@@ -107,28 +107,36 @@ public class RenderSectionManager {
             int arraySize = sizeXZ * sizeY * sizeXZ;
 
             this.visible = BitArray.create(arraySize);
-            this.culled = BitArray.create(arraySize);
 
             this.sections = new RenderSection[arraySize];
 
-            this.visibilityData2 = new byte[arraySize*6];
-
-            this.sectionTraversalData = new short[arraySize];
+            this.sectionTraversalData = new long[arraySize];
             this.sortedSections = new int[arraySize];
 
             this.frustumCache = new byte[arraySize / (4)];
+
+            int rArraySize = (sizeXZ>>3)*(sizeXZ>>3)*(sizeY>>2);
+            this.regionFrustumCache = new byte[rArraySize / (4)];
+            this.rMaskXZ = (sizeXZ>>3) - 1;
+            this.rMaskY = (sizeY>>2) - 1;
+            this.rOffsetZ = Integer.numberOfTrailingZeros(sizeXZ>>3);
+            this.rOffsetY = this.rOffsetZ * 2;
         }
 
         public void reset() {
             BitArray.clear(this.visible);
-            BitArray.clear(this.culled);
 
             Arrays.fill(this.frustumCache, (byte) 0);
+            Arrays.fill(this.regionFrustumCache, (byte) 0);
 
         }
 
         public int getIndex(int x, int y, int z) {
             return ((y & this.maskY) << this.offsetY) |((z & this.maskXZ) << (this.offsetZ)) | (x & this.maskXZ);
+        }
+
+        public int getRIndex(int x, int y, int z) {
+            return ((y & this.rMaskY) << this.rOffsetY) |((z & this.rMaskXZ) << (this.rOffsetZ)) | (x & this.rMaskXZ);
         }
     }
 
@@ -163,7 +171,7 @@ public class RenderSectionManager {
         this.resetLists();
         initSearch(camera, frustum, frame, spectator);
         this.setup(camera);
-        this.iterateChunks2();
+        this.iterateChunks3();
         this.needsUpdate = false;
     }
 
@@ -193,43 +201,40 @@ public class RenderSectionManager {
             }
         }
 
+        long pack = 0;
         for (int fromIdx = 0; fromIdx < DirectionUtil.COUNT; fromIdx++) {
             byte toBits = (byte) (bits & ((1<<6)-1));
             bits >>= DirectionUtil.COUNT;
 
-            this.state.visibilityData2[(sectionIdx * DirectionUtil.COUNT) + fromIdx] = toBits;
+            pack |= Byte.toUnsignedLong(toBits)<<((fromIdx+2)<<3);
         }
+        this.state.sectionTraversalData[sectionIdx] = pack;
     }
 
-    private byte getVisibilityData(int sectionIdx, int incomingDirection) {
-        return this.state.visibilityData2[(sectionIdx * DirectionUtil.COUNT) + incomingDirection];
+    private byte getVisibilityData(long data, int incomingDirection) {
+        return (byte) (data>>((incomingDirection+2)<<3));
     }
 
-    private void stepSection() {
-
-    }
-
-    private void iterateChunks2() {
+    private void iterateChunks3() {
         int traversalOverride = 0;
         state.sortedSections[state.visibleChunksCount++] = state.getIndex(centerChunkX, centerChunkY, centerChunkZ);
-        state.sectionTraversalData[state.sortedSections[0]] = -1;
+        state.sectionTraversalData[state.sortedSections[0]] |= 0xFFFFL;
 
         while (this.state.visibleChunksQueue != this.state.visibleChunksCount) {
             int sectionIdx = this.state.sortedSections[this.state.visibleChunksQueue++];
 
-            BitArray.set(this.state.visible, sectionIdx);
-
-            short traversalData = (short) (this.state.sectionTraversalData[sectionIdx] | traversalOverride);
+            long sectionData = this.state.sectionTraversalData[sectionIdx];
+            short traversalData = (short) (sectionData | traversalOverride);
             traversalData &= ((traversalData >> 8) & 0xFF) | 0xFF00; // Apply inbound chunk filter to prevent backwards traversal
 
-            this.state.sectionTraversalData[sectionIdx] = 0; // Reset the traversalData, meaning don't need to fill the array
+            this.state.sectionTraversalData[sectionIdx] = sectionData&(~(0xFFFFL)); // Reset the traversalData
 
+            BitArray.set(this.state.visible, sectionIdx);
             RenderSection section = state.sections[sectionIdx];
             if (section == null) {
                 continue;
             }
             this.addSectionToLists(sectionIdx, section);
-
             if (raycast(section.getChunkX(), section.getChunkY(), section.getChunkZ(), centerChunkX, centerChunkY, centerChunkZ)) {
                 continue;
             }
@@ -239,39 +244,27 @@ public class RenderSectionManager {
                     continue;
                 }
 
-                //TODO: add cache to mark if culled, if culled ignore section
-
-
-                int ny = section.getChunkY()+DirectionUtil.getOffsetY(outgoingDir);
-                if (ny<-4 || 20<=ny) {//FIXME:DONT HARDCODE
-                    continue;
-                }
-
-                int neighborSectionIdx = this.state.getIndex(section.getChunkX() + DirectionUtil.getOffsetX(outgoingDir), ny, section.getChunkZ() + DirectionUtil.getOffsetZ(outgoingDir));
-                if (BitArray.get(this.state.culled, neighborSectionIdx)) {
-                    continue;
-                }
+                int neighborSectionIdx = this.state.getIndex(section.getChunkX() + DirectionUtil.getOffsetX(outgoingDir), section.getChunkY()+DirectionUtil.getOffsetY(outgoingDir), section.getChunkZ() + DirectionUtil.getOffsetZ(outgoingDir));
                 RenderSection neighborSection = this.state.sections[neighborSectionIdx];
-                if (neighborSection == null) {//TODO: make and use existance bits
-                    BitArray.set(this.state.culled, neighborSectionIdx);
+                if (neighborSection == null) {
                     continue;
                 }
 
                 if (isCulledByFrustum(neighborSection.getChunkX(),neighborSection.getChunkY(),neighborSection.getChunkZ())) {
-                    BitArray.set(this.state.culled, neighborSectionIdx);
                     continue;
                 }
 
-                short neighborTraversalData = this.state.sectionTraversalData[neighborSectionIdx];
+                long neighborData = this.state.sectionTraversalData[neighborSectionIdx];
+                short neighborTraversalData = (short) neighborData;
                 if (neighborTraversalData == 0) {
                     this.state.sortedSections[this.state.visibleChunksCount++] = neighborSectionIdx;
-                    neighborTraversalData |= (short) (1 << 15) | (traversalData & 0xFF00);
+                    neighborTraversalData |= (1 << 15) | (traversalData & 0xFF00);
                 }
 
                 int inboundDir = DirectionUtil.getOpposite(outgoingDir);
-                neighborTraversalData |= this.getVisibilityData(neighborSectionIdx, inboundDir);
+                neighborTraversalData |= this.getVisibilityData(neighborData, inboundDir);
                 neighborTraversalData &= ~(1 << (8 + inboundDir)); // Un mark incoming direction
-                this.state.sectionTraversalData[neighborSectionIdx] = neighborTraversalData;
+                this.state.sectionTraversalData[neighborSectionIdx] = (neighborData&(~0xFFFFL))|Short.toUnsignedLong(neighborTraversalData);
             }
         }
         int x = 0;
@@ -607,7 +600,7 @@ public class RenderSectionManager {
                 this.useOcclusionCulling = false;
             }
 
-            state.sectionTraversalData[rootRenderId] = -1;
+            state.sectionTraversalData[rootRenderId] |= 0xFFFFL;
             state.sortedSections[state.visibleChunksCount++] = rootRenderId;
             BitArray.set(state.visible, rootRenderId);
         } else {
@@ -646,7 +639,7 @@ public class RenderSectionManager {
             IntIterator it = sorted.iterator();
             while (it.hasNext()) {
                 int id = it.nextInt();
-                state.sectionTraversalData[id] = -1;
+                state.sectionTraversalData[id] |= 0xFFFFL;
                 state.sortedSections[state.visibleChunksCount++] = id;
                 BitArray.set(state.visible, id);
             }
@@ -750,7 +743,27 @@ public class RenderSectionManager {
     private boolean isCulledByFrustum(int chunkX, int chunkY, int chunkZ) {
         return this.frustumCheck(chunkX, chunkY, chunkZ) == OUTSIDE;
     }
+    private int regionFrustumCheck(int x, int y, int z) {
+        int id = state.getRIndex(x,y,z);
+        byte shift = (byte) ((id&3)<<1);
+        byte cache = state.regionFrustumCache[id>>2];
+        int res = (cache>>shift)&3;
+        if (res!=0) {
+            return res;
+        }
+
+        float fx = (x << 7);
+        float fy = (y << 6);
+        float fz = (z << 7);
+        int frustumResult = this.frustum.testBox(fx, fy, fz, fx + 16.0f*8, fy + 16.0f*4, fz + 16.0f*8);
+        state.regionFrustumCache[id>>2] = (byte) (cache|(frustumResult<<shift));
+        return frustumResult;
+    }
     private int frustumCheck(int chunkX, int chunkY, int chunkZ) {
+        int rfc = regionFrustumCheck(chunkX>>3, chunkY>>2, chunkZ>>3);
+        if (rfc != INTERSECT) {
+            return rfc;
+        }
         int id = state.getIndex(chunkX, chunkY, chunkZ);
         byte shift = (byte) ((id&3)<<1);
         byte cache = state.frustumCache[id>>2];
@@ -785,9 +798,7 @@ public class RenderSectionManager {
         RenderSection render = new RenderSection(x, y, z);
 
         this.state.sections[id] = render;
-        for (int i = 0; i < 6; i++) {
-            this.state.visibilityData2[id*6+i] = 0;
-        }
+        this.state.sectionTraversalData[id] = 0;
 
         Chunk chunk = this.world.getChunk(x, z);
         ChunkSection section = chunk.getSectionArray()[this.world.sectionCoordToIndex(y)];
