@@ -239,7 +239,11 @@ public class RenderSectionManager {
                 continue;
             }
 
-            for (int outgoingDir = 0; outgoingDir < DirectionUtil.COUNT; outgoingDir++) {
+            byte loop = (byte) (traversalData&0xFF);
+            while (loop != 0) {
+                int outgoingDir = Integer.numberOfTrailingZeros(loop);
+                loop &= loop - 1;
+
                 if ((traversalData & (1 << outgoingDir)) == 0) {
                     continue;
                 }
@@ -762,6 +766,7 @@ public class RenderSectionManager {
     private int frustumCheck(int chunkX, int chunkY, int chunkZ) {
         int rfc = regionFrustumCheck(chunkX>>3, chunkY>>2, chunkZ>>3);
         if (rfc != INTERSECT) {
+            //state.frustumCache[id>>2] = (byte) (cache|(rfc<<shift));
             return rfc;
         }
         int id = state.getIndex(chunkX, chunkY, chunkZ);
