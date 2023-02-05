@@ -6,6 +6,8 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
+
+import me.cortex.nv.gl.NVState;
 import net.caffeinemc.gfx.api.array.VertexArrayDescription;
 import net.caffeinemc.gfx.api.array.VertexArrayResourceBinding;
 import net.caffeinemc.gfx.api.array.attribute.VertexAttributeBinding;
@@ -38,6 +40,11 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import org.joml.Matrix4f;
 import org.lwjgl.system.MemoryUtil;
+
+import static org.lwjgl.opengl.GL11C.glEnable;
+import static org.lwjgl.opengl.GL11C.glGetInteger;
+import static org.lwjgl.opengl.NVMeshShader.GL_MAX_TASK_TOTAL_MEMORY_SIZE_NV;
+import static org.lwjgl.opengl.NVRepresentativeFragmentTest.GL_REPRESENTATIVE_FRAGMENT_TEST_NV;
 
 // TODO: abstract buffer targets, abstract VAO creation, supply shader identifiers
 public abstract class AbstractMdChunkRenderer<B extends AbstractMdChunkRenderer.MdChunkRenderBatch> extends AbstractChunkRenderer {
@@ -176,7 +183,8 @@ public abstract class AbstractMdChunkRenderer<B extends AbstractMdChunkRenderer.
     }
     
     //// RENDER METHODS
-    
+
+    private NVState test = new NVState();
     @Override
     public void render(ChunkRenderPass renderPass, ChunkRenderMatrices matrices, int frameIndex) {
         // make sure a render list was created for this pass, if any
@@ -198,13 +206,15 @@ public abstract class AbstractMdChunkRenderer<B extends AbstractMdChunkRenderer.
         RenderPipeline<ChunkShaderInterface, BufferTarget> renderPipeline = this.renderPipelines[passId];
         
         this.device.useRenderPipeline(renderPipeline, (commandList, programInterface, pipelineState) -> {
+
             this.setupPerRenderList(renderPass, matrices, frameIndex,
                                     renderPipeline, commandList, programInterface, pipelineState);
             
             for (B batch : renderList) {
                 this.setupPerBatch(renderPass, matrices, frameIndex,
                                    renderPipeline, commandList, programInterface, pipelineState, batch);
-                
+                glEnable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
+                glGetInteger(GL_MAX_TASK_TOTAL_MEMORY_SIZE_NV);
                 this.issueDraw(renderPass, matrices, frameIndex,
                                renderPipeline, commandList, programInterface, pipelineState, batch);
             }

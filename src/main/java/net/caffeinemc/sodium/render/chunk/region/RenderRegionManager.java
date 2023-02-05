@@ -16,10 +16,12 @@ import net.caffeinemc.gfx.util.buffer.BufferPool;
 import net.caffeinemc.gfx.util.buffer.streaming.SectionedStreamingBuffer;
 import net.caffeinemc.gfx.util.buffer.streaming.StreamingBuffer;
 import net.caffeinemc.sodium.SodiumClientMod;
+import net.caffeinemc.sodium.render.SodiumWorldRenderer;
 import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
 import net.caffeinemc.sodium.render.buffer.arena.PendingUpload;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
+import net.caffeinemc.sodium.render.chunk.TerrainRenderManager;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderData;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
@@ -98,15 +100,33 @@ public class RenderRegionManager {
         this.bufferPool.prune(PRUNE_PERCENT_MODIFIER);
     }
 
-    public void uploadChunks(Iterator<TerrainBuildResult> queue, int frameIndex, @Deprecated RenderUpdateCallback callback) {
+    public void uploadChunks(Iterator<TerrainBuildResult> queue, int frameIndex, @Deprecated RenderUpdateCallback callback, TerrainRenderManager trm) {
         Profiler profiler = MinecraftClient.getInstance().getProfiler();
         
         profiler.push("chunk_upload");
-        
+
         // we have to use a list with a varied size here, because the upload method can create new regions
         ReferenceList<RenderRegion> writtenRegions = new ReferenceArrayList<>(Math.max(this.getRegionTableSize(), 16));
-        
-        for (var entry : this.setupUploadBatches(queue)) {
+
+        var batches = new Long2ReferenceOpenHashMap<List<TerrainBuildResult>>();
+
+        while (queue.hasNext()) {
+            TerrainBuildResult result = queue.next();
+            RenderSection render = result.render();
+
+            // TODO: this is kinda gross, maybe find a way to make the Future dispose of the result when cancelled?
+            if (render.isDisposed() || result.buildTime() <= render.getLastAcceptedBuildTime()) {
+                result.delete();
+                continue;
+            }
+            trm.pipeline.sectionManager.uploadSetSection(result);
+
+            var batch = batches.computeIfAbsent(render.getRegionKey(), key -> new ReferenceArrayList<>());
+            batch.add(result);
+        }
+
+
+        for (var entry : batches.long2ReferenceEntrySet()) {
             this.uploadGeometryBatch(entry.getLongKey(), entry.getValue(), frameIndex);
 
             for (TerrainBuildResult result : entry.getValue()) {
@@ -225,25 +245,6 @@ public class RenderRegionManager {
         region.submitUploads(uploads, frameIndex);
     }
 
-    private Iterable<Long2ReferenceMap.Entry<List<TerrainBuildResult>>> setupUploadBatches(Iterator<TerrainBuildResult> renders) {
-        var batches = new Long2ReferenceOpenHashMap<List<TerrainBuildResult>>();
-
-        while (renders.hasNext()) {
-            TerrainBuildResult result = renders.next();
-            RenderSection render = result.render();
-
-            // TODO: this is kinda gross, maybe find a way to make the Future dispose of the result when cancelled?
-            if (render.isDisposed() || result.buildTime() <= render.getLastAcceptedBuildTime()) {
-                result.delete();
-                continue;
-            }
-
-            var batch = batches.computeIfAbsent(render.getRegionKey(), key -> new ReferenceArrayList<>());
-            batch.add(result);
-        }
-
-        return batches.long2ReferenceEntrySet();
-    }
 
     public void delete() {
         for (RenderRegion region : this.regions.values()) {

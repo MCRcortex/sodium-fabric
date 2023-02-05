@@ -3,6 +3,7 @@ package net.caffeinemc.sodium.mixin.core;
 import com.mojang.blaze3d.systems.RenderSystem;
 import it.unimi.dsi.fastutil.PriorityQueue;
 import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
+import me.cortex.nv.gl.UploadingBufferStream;
 import net.caffeinemc.gfx.api.device.RenderConfiguration;
 import net.caffeinemc.gfx.api.sync.Fence;
 import net.caffeinemc.gfx.opengl.device.GlRenderDevice;
@@ -28,6 +29,7 @@ public class MixinRenderSystem {
         while (fences.size() > SodiumClientMod.options().advanced.cpuRenderAheadLimit) {
             var fence = fences.dequeue();
             fence.sync(true);
+            UploadingBufferStream.TickAllUploadingStreams();
         }
     }
     

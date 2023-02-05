@@ -1,5 +1,5 @@
 #version 450 core
-
+layout(early_fragment_tests) in;
 #import <sodium:include/terrain_fog.frag>
 #import <sodium:include/terrain_buffers.frag>
 #import <sodium:include/terrain_textures.glsl>

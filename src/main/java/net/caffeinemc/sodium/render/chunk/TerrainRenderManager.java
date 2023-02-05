@@ -6,6 +6,8 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+
+import me.cortex.nv.RenderPipeline;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.util.misc.MathUtil;
 import net.caffeinemc.sodium.SodiumClientMod;
@@ -50,6 +52,7 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
 
 public class TerrainRenderManager {
+    public final RenderPipeline pipeline = new RenderPipeline();
     /**
      * The maximum distance a chunk can be from the player's camera in order to be eligible for blocking updates.
      */
@@ -265,6 +268,7 @@ public class TerrainRenderManager {
 //            if (this.chunkGeometrySorter != null) {
 //                this.chunkGeometrySorter.removeSection(section);
 //            }
+            pipeline.sectionManager.deleteSection(section);
             section.delete();
             return true;
         } else {
@@ -307,7 +311,8 @@ public class TerrainRenderManager {
                             this.builder::stealTask
                     ),
                     this.frameIndex,
-                    this::onChunkDataChanged
+                    this::onChunkDataChanged,
+                    this
             );
         }
     
@@ -361,7 +366,7 @@ public class TerrainRenderManager {
             return false;
         }
 
-        this.regionManager.uploadChunks(it, this.frameIndex, this::onChunkDataChanged);
+        this.regionManager.uploadChunks(it, this.frameIndex, this::onChunkDataChanged, this);
 
         return true;
     }
