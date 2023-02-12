@@ -1,7 +1,7 @@
 package me.cortex.nv.managers;
 
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
-import me.cortex.nv.gl.BatchedUploadStreamer;
+import me.cortex.nv.gl.UploadingBufferStream;
 import me.cortex.nv.structs.SectionMetaStruct;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
@@ -14,7 +14,7 @@ public class SectionManager {
 
     private final Int2IntOpenHashMap sectionOffset = new Int2IntOpenHashMap();
 
-    BatchedUploadStreamer uploadStream = new BatchedUploadStreamer();
+    UploadingBufferStream uploadStream = new UploadingBufferStream();
 
     private int getSectionKey(int x, int y, int z) {
 
