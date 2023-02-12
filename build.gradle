@@ -61,7 +61,7 @@ dependencies {
     includeModImplementation fabricApi.module("fabric-rendering-data-attachment-v1", project.fabric_version)
     includeModImplementation fabricApi.module("fabric-resource-loader-v0", project.fabric_version)
 
-    includeImplementation 'io.github.douira:glsl-transformer:0.27.0'
+    includeImplementation 'io.github.douira:glsl-transformer:2.0.0-pre9'
 
     // Because we need the subprojects to be build as jars prior to their inclusion, we need to separate them to
     // order them correctly.
