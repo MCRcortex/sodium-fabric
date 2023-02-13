@@ -34,19 +34,34 @@ struct Region {//NOTE: if we up to 16 bytes we can include alot more information
     ivec2 data;
 };
 
+/*
 //V1
 struct Section {//64 bytes
-    //--header-- // Note: can reorganize and extend to not have 0.5 weird bits etc
-    //2.5 bytes for start chunk x,z axis and 1 byte for height
+//--header-- // Note: can reorganize and extend to not have 0.5 weird bits etc
+//2.5 bytes for start chunk x,z axis and 1 byte for height
+//3 bytes for AABB (4 bits per axis, 3 offset, 3 size)
+//3 bytes for base terrain offset (in vertex count/4 (quads)) // should probably extend to full 32 bit int
+//4 bytes free
+    ivec4 header;
+
+//--payload--
+//7*3*2+2 bytes for geometry data, which is just consecutive offsets, to get the count subtract offset by next offset
+    ivec4[3] packedLayers;
+//Have 4 bytes free in the packed layers for something
+};*/
+
+//V2
+struct Section {//48 bytes
+    //--header--
     //3 bytes for AABB (4 bits per axis, 3 offset, 3 size)
-    //3 bytes for base terrain offset (in vertex count/4 (quads)) // should probably extend to full 32 bit int
-    //4 bytes free
+    //3 bytes for start chunk x,z axis and 1 byte for height
+    //4 bytes for base terrain offset (in vertex count/4 (quads)) // NOT NEEDED
+    //2 bytes other meta
+    // -- total: 16 bytes
     ivec4 header;
 
     //--payload--
-    //7*3*2+2 bytes for geometry data, which is just consecutive offsets, to get the count subtract offset by next offset
-    ivec4[3] packedLayers;
-    //Have 4 bytes free in the packed layers for something
+    uint[8] payload;
 };
 
 
