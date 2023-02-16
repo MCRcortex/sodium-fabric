@@ -1,24 +1,25 @@
 package me.cortex.nv.managers;
 
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import me.cortex.nv.gl.UploadingBufferStream;
 import me.cortex.nv.structs.SectionMetaStruct;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
+import net.minecraft.util.math.ChunkSectionPos;
 
 public class SectionManager {
-    private static final int SIZE_OF_CLUMP = SectionMetaStruct.SIZE * RegionManager.SECTION_COUNT;
-
     //Sections should be grouped and batched into sizes of the count of sections in a region
     RegionManager regionManager = new RegionManager();
 
-    private final Int2IntOpenHashMap sectionOffset = new Int2IntOpenHashMap();
+    private final Long2IntOpenHashMap sectionOffset = new Long2IntOpenHashMap();
 
     UploadingBufferStream uploadStream = new UploadingBufferStream();
 
-    private int getSectionKey(int x, int y, int z) {
-
+    private long getSectionKey(int x, int y, int z) {
+        return ChunkSectionPos.asLong(x,y,z);
     }
+
     public void uploadSetSection(TerrainBuildResult result) {
         //TODO: will probably need to add a refactor method, so that sections are clumped closer together
         if (result.render() == null || result.geometry() == null || result.geometry().vertices() == null || result.data() == null) {
