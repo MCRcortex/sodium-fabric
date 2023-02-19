@@ -31,7 +31,7 @@ struct RegionV3 {//8 bytes
 };*/
 
 struct Region {//NOTE: if we up to 16 bytes we can include alot more information
-    ivec2 data;
+    uint64_t data;
 };
 
 /*
