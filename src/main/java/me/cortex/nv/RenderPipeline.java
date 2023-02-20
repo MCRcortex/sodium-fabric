@@ -3,8 +3,6 @@ package me.cortex.nv;
 import me.cortex.nv.managers.SectionManager;
 import me.cortex.nv.renderers.*;
 
-import static org.lwjgl.opengl.GL42C.glMemoryBarrier;
-
 public class RenderPipeline {
     //The rough pipeline outline is
 
@@ -20,15 +18,29 @@ public class RenderPipeline {
     //The main terrain buffer is a large gpu resident sparse buffer and holds the entire worlds data
 
 
-    public final SectionManager sectionManager = new SectionManager();
+    private final Resources resources;
 
-    private final PrimaryTerrainRasterizer terrainRasterizer = new PrimaryTerrainRasterizer();
-    private final MipGenerator mipper = new MipGenerator();
-    private final RegionRasterizer regionRasterizer = new RegionRasterizer();
-    private final SectionRasterizer sectionRasterizer = new SectionRasterizer();
-    private final TerrainCompute terrainCompute = new TerrainCompute();
+    public final SectionManager sectionManager;
 
+    private final PrimaryTerrainRasterizer terrainRasterizer;
+    private final MipGenerator mipper;
+    private final RegionRasterizer regionRasterizer;
+    private final SectionRasterizer sectionRasterizer;
+    private final TerrainCompute terrainCompute;
 
+    public RenderPipeline() {
+        resources = new Resources();
+        sectionManager = new SectionManager(resources.terrainMetaUploadStream,
+                resources.regionMetaBuffer,
+                resources.sectionMetaBuffer,
+                resources.terrainGeometryBuffer);
+
+        mipper = new MipGenerator();
+        terrainRasterizer = new PrimaryTerrainRasterizer();
+        regionRasterizer = new RegionRasterizer();
+        sectionRasterizer = new SectionRasterizer();
+        terrainCompute = new TerrainCompute();
+    }
 
     private void renderFrame() {//NOTE: can use any of the command list rendering commands to basicly draw X indirects using the same shader, thus allowing for terrain to be rendered very efficently
         sectionManager.commitChanges();//Commit all uploads done to the terrain and meta data

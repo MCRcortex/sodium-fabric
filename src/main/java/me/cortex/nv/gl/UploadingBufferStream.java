@@ -12,42 +12,47 @@ import static org.lwjgl.opengl.GL15C.glDeleteBuffers;
 
 public class UploadingBufferStream {
     private final SegmentedManager segments = new SegmentedManager();
-    private long currentAddr;
-
     private long baseAddr;
 
-    private boolean batching = false;
+    private long currentAddr;//Used to try and expand an allocation
+    private long currentOffset;
+
+    private ByteBuffer buffer;
+
     private final List<Batch> batchedCopies = new LinkedList<>();
     private record Batch(int dest, long destOffset, long sourceOffset, long size) { }
 
-    //Tells stream to queue up all the uploads and flush everything at once
-    public void beginBatched() {
-        if (batching) {
-            throw new IllegalStateException("Already batching");
-        }
-        batching = true;
-    }
 
-    //Commits all the uploaded data and copied them to the respective buffers
-    //TODO: Should flush then do GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT and then
-    // GL_BUFFER_UPDATE_BARRIER_BIT after all glCopyNamedBufferSubData has been committed
-    public void endBatched(boolean barrier) {
-        if (!batching) {
-            throw new IllegalStateException("Not batching");
-        }
-        batching = false;
-
-
+    public UploadingBufferStream(int frames) {
 
     }
 
     public ByteBuffer getUpload(int size) {
+        long addr = -1;
+        if (currentAddr == -1) {
+            currentAddr = segments.alloc(size);
+            currentOffset = size;
+        } else {
+            if (segments.expand(currentAddr, size)) {
+                addr = currentAddr + currentOffset;
+                currentOffset += size;
+            } else {
+                //TODO: need to record currentAddr with the current frame so that it can be freed
+            }
+        }
 
 
+        return buffer;
     }
 
     //Uploads the last requested buffer into the destination
     public void upload(int destBuffer, long destOffset) {
+        batchedCopies.add(new Batch(destBuffer, destOffset, ));
+
+        buffer = null;
+    }
+
+    public void commit() {
 
     }
 
@@ -57,9 +62,6 @@ public class UploadingBufferStream {
 
     private void tick() {
 
-    }
-
-    public UploadingBufferStream(int frames) {
     }
 
     //NOTE: THIS MUST BE TICKED ELSE IT DOES NOT WORK

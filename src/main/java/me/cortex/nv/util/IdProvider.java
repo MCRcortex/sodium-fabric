@@ -1,4 +1,4 @@
-package me.cortex.nv;
+package me.cortex.nv.util;
 
 import it.unimi.dsi.fastutil.ints.IntAVLTreeSet;
 import it.unimi.dsi.fastutil.ints.IntSortedSet;

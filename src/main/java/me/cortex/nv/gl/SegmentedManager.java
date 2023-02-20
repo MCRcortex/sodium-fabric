@@ -23,6 +23,11 @@ public class SegmentedManager {
         return (slot<<ADDR_BITS)|(slot>>>SIZE_BITS);
     }
 
+    /*
+    public long allocFromLargest(int size) {//Allocates from the largest avalible block, this is useful for expanding later on
+
+    }*/
+
     public long alloc(int size) {//TODO: add alignment support
         var iter = FREE.iterator((long) size << ADDR_BITS);
         if (!iter.hasNext()) {//No free space for allocation
@@ -59,11 +64,14 @@ public class SegmentedManager {
         }
 
         //TODO: need to attempt to merge multiple elements of FREE together
+
+        return 0;
     }
+
 
 
     //Attempts to expand an allocation, returns true on success
     public boolean expand(long addr, int extra) {
-
+        return false;
     }
 }
