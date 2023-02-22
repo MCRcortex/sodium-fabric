@@ -1,7 +1,7 @@
 package me.cortex.nv.managers;
 
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
-import me.cortex.nv.gl.GlBuffer;
+import me.cortex.nv.gl.buffers.GlBuffer;
 import me.cortex.nv.gl.BufferArena;
 import me.cortex.nv.gl.UploadingBufferStream;
 import me.cortex.nv.structs.SectionMetaStruct;
@@ -50,6 +50,8 @@ public class SectionManager {
 
 
         ByteBuffer geometryUpload = uploadStream.getUpload(result.geometry().vertices().buffer().getLength());
+
+
 
 
 

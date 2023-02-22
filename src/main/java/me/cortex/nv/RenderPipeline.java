@@ -29,7 +29,7 @@ public class RenderPipeline {
     private final TerrainCompute terrainCompute;
 
     public RenderPipeline() {
-        resources = new Resources();
+        resources = new Resources(-1);
         sectionManager = new SectionManager(resources.terrainMetaUploadStream,
                 resources.regionMetaBuffer,
                 resources.sectionMetaBuffer,

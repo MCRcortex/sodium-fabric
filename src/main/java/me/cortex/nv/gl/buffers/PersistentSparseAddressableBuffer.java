@@ -1,14 +1,6 @@
-package me.cortex.nv.gl;
+package me.cortex.nv.gl.buffers;
 
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
-import it.unimi.dsi.fastutil.longs.Long2LongAVLTreeMap;
-import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
-import it.unimi.dsi.fastutil.longs.LongRBTreeSet;
-import it.unimi.dsi.fastutil.objects.ObjectRBTreeSet;
-import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
-
-import javax.print.DocFlavor;
-import java.util.TreeSet;
 
 import static org.lwjgl.opengl.ARBDirectStateAccess.glCreateBuffers;
 import static org.lwjgl.opengl.ARBDirectStateAccess.glNamedBufferStorage;

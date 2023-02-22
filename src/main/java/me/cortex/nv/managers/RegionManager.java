@@ -3,7 +3,7 @@ package me.cortex.nv.managers;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import me.cortex.nv.util.IdProvider;
-import me.cortex.nv.gl.GlBuffer;
+import me.cortex.nv.gl.buffers.GlBuffer;
 import me.cortex.nv.gl.UploadingBufferStream;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.lwjgl.system.MemoryUtil;
