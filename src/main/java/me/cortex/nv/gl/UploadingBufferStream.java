@@ -1,71 +1,93 @@
 package me.cortex.nv.gl;
 
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongList;
+import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
+import me.cortex.nv.gl.buffers.PersistentMappedBuffer;
 import org.lwjgl.system.MemoryUtil;
 
-import java.lang.ref.PhantomReference;
+import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 
-import static org.lwjgl.opengl.ARBDirectStateAccess.*;
 import static org.lwjgl.opengl.GL15C.glDeleteBuffers;
 
 public class UploadingBufferStream {
     private final SegmentedManager segments = new SegmentedManager();
-    private long baseAddr;
 
-    private long currentAddr;//Used to try and expand an allocation
-    private long currentOffset;
+    private PersistentMappedBuffer buffer;
 
-    private ByteBuffer buffer;
-
-    private final List<Batch> batchedCopies = new LinkedList<>();
+    private final List<Batch> batchedCopies = new ReferenceArrayList<>();
     private record Batch(int dest, long destOffset, long sourceOffset, long size) { }
 
 
-    public UploadingBufferStream(int frames) {
-
+    private int cidx;
+    private final LongList[] allocations;
+    public UploadingBufferStream(RenderDevice device, int frames) {
+        WEAK_UPLOAD_LIST.add(new WeakReference<>(this));
+        allocations = new LongList[frames];
+        for (int i = 0; i < frames; i++) {
+            allocations[i] = new LongArrayList();
+        }
     }
 
+    private ByteBuffer cbuffer;
+    private long caddr = -1;
+    private long offset = 0;
     public ByteBuffer getUpload(int size) {
-        long addr = -1;
-        if (currentAddr == -1) {
-            currentAddr = segments.alloc(size);
-            currentOffset = size;
-        } else {
-            if (segments.expand(currentAddr, size)) {
-                addr = currentAddr + currentOffset;
-                currentOffset += size;
-            } else {
-                //TODO: need to record currentAddr with the current frame so that it can be freed
-            }
+        long addr;
+        if (caddr == -1 || !segments.expand(caddr, size)) {
+            caddr = segments.alloc(size);//TODO: replace with allocFromLargest
+            allocations[cidx].add(caddr);//Enqueue the allocation to be freed
+            offset = 0;
+            addr = caddr;
+        } else {//Could expand the allocation so just update it
+            addr = caddr + offset;
+            offset += size;
         }
-
-
-        return buffer;
+        cbuffer = MemoryUtil.memByteBuffer(buffer.clientAddress() + addr, size);
+        return cbuffer;
     }
 
     //Uploads the last requested buffer into the destination
     public void upload(int destBuffer, long destOffset) {
-        batchedCopies.add(new Batch(destBuffer, destOffset, ));
 
-        buffer = null;
+        cbuffer = null;
     }
 
     public void commit() {
 
+        batchedCopies.clear();
     }
 
     public void delete() {
 
     }
 
-    private void tick() {
 
+
+    private void tick() {
+        //if (batchedCopies.size() != 0)
+        //    throw new IllegalStateException("Upload buffer has uncommitted batches before tick");
+        //Need to free all of the next allocations
+        cidx = (cidx+1)%allocations.length;
+        for (long addr : allocations[cidx]) {
+            segments.free(addr);
+        }
+        allocations[cidx].clear();
     }
 
-    //NOTE: THIS MUST BE TICKED ELSE IT DOES NOT WORK
-    public static void TickAllUploadingStreams() {
-
+    private static final List<WeakReference<UploadingBufferStream>> WEAK_UPLOAD_LIST = new LinkedList<>();
+    public static void TickAllUploadingStreams() {//Should be called at the very end of the frame
+        var iter = WEAK_UPLOAD_LIST.iterator();
+        while (iter.hasNext()) {
+            var ref = iter.next().get() ;
+            if (ref != null) {
+                ref.tick();
+            } else {
+                iter.remove();
+            }
+        }
     }
 }

@@ -1,7 +1,7 @@
 package me.cortex.nv;
 
 import me.cortex.nv.gl.BufferArena;
-import me.cortex.nv.gl.GlBuffer;
+import me.cortex.nv.gl.buffers.GlBuffer;
 import me.cortex.nv.gl.UploadingBufferStream;
 
 public class Resources {
