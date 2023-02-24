@@ -16,6 +16,7 @@ import static org.lwjgl.opengl.GL15C.glDeleteBuffers;
 public class UploadingBufferStream {
     private final SegmentedManager segments = new SegmentedManager();
 
+    private final RenderDevice device;
     private PersistentMappedBuffer buffer;
 
     private final List<Batch> batchedCopies = new ReferenceArrayList<>();
@@ -24,12 +25,15 @@ public class UploadingBufferStream {
 
     private int cidx;
     private final LongList[] allocations;
-    public UploadingBufferStream(RenderDevice device, int frames) {
+    public UploadingBufferStream(RenderDevice device, int frames, long size) {
+        this.device = device;
         WEAK_UPLOAD_LIST.add(new WeakReference<>(this));
         allocations = new LongList[frames];
         for (int i = 0; i < frames; i++) {
             allocations[i] = new LongArrayList();
         }
+        segments.setLimit(size);
+        buffer = device.createClientMappedBuffer(size);
     }
 
     private ByteBuffer cbuffer;

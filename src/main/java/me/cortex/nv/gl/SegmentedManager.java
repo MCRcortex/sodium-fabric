@@ -18,6 +18,7 @@ public class SegmentedManager {
     private final LongAVLTreeSet FREE = new LongAVLTreeSet();//Size Address
     private final LongAVLTreeSet TAKEN = new LongAVLTreeSet();//Address Size
 
+    private long sizeLimit = Long.MAX_VALUE;
     private long totalSize;
     //Flags
     public boolean resized;//If the required memory of the entire buffer grew
@@ -37,6 +38,8 @@ public class SegmentedManager {
             //Create new allocation
             resized = true;
             long addr = totalSize;
+            if (totalSize+size>sizeLimit)
+                return -1;//throw new IllegalStateException("More memory than limit allows was attempted to be allocated");
             totalSize += size;
             TAKEN.add((addr<<SIZE_BITS)|((long) size));
             return addr;
@@ -133,6 +136,8 @@ public class SegmentedManager {
                 return false;//Not enough room to expand
             }
         } else {//We are at the end of the buffer, we can expand as we like
+            if (totalSize+extra>sizeLimit)//If expanding and we would exceed the size limit, dont resize
+                return false;
             iter.remove();
             TAKEN.add(updatedSlot);
             totalSize += extra;
@@ -202,5 +207,9 @@ public class SegmentedManager {
                 return;
             }
         }
+    }
+
+    public void setLimit(long size) {
+        this.sizeLimit = size;
     }
 }
