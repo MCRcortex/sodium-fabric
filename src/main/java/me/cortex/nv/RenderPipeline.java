@@ -1,5 +1,7 @@
 package me.cortex.nv;
 
+import me.cortex.nv.gl.RenderCommandList;
+import me.cortex.nv.gl.RenderDevice;
 import me.cortex.nv.managers.SectionManager;
 import me.cortex.nv.renderers.*;
 
@@ -18,25 +20,28 @@ public class RenderPipeline {
     //The main terrain buffer is a large gpu resident sparse buffer and holds the entire worlds data
 
 
+    private static final RenderDevice device = new RenderDevice();
     private final Resources resources;
 
     public final SectionManager sectionManager;
 
     private final PrimaryTerrainRasterizer terrainRasterizer;
     private final MipGenerator mipper;
+    private final ValueClearer clearer;//This is the weirdest thing here, it needs to reset the lists of all the commands etc
     private final RegionRasterizer regionRasterizer;
     private final SectionRasterizer sectionRasterizer;
     private final TerrainCompute terrainCompute;
 
     public RenderPipeline() {
-        resources = new Resources(-1);
+        resources = new Resources(device, 6, 32);
         sectionManager = new SectionManager(resources.terrainMetaUploadStream,
                 resources.regionMetaBuffer,
                 resources.sectionMetaBuffer,
                 resources.terrainGeometryBuffer);
 
-        mipper = new MipGenerator();
         terrainRasterizer = new PrimaryTerrainRasterizer();
+        mipper = new MipGenerator();
+        clearer = new ValueClearer();
         regionRasterizer = new RegionRasterizer();
         sectionRasterizer = new SectionRasterizer();
         terrainCompute = new TerrainCompute();
@@ -45,6 +50,13 @@ public class RenderPipeline {
     private void renderFrame() {//NOTE: can use any of the command list rendering commands to basicly draw X indirects using the same shader, thus allowing for terrain to be rendered very efficently
         sectionManager.commitChanges();//Commit all uploads done to the terrain and meta data
 
+        RenderCommandList renderList = device.createRenderList();
+        terrainRasterizer.raster(renderList);
+        mipper.mip(renderList);
+        clearer.clear(renderList);
+        regionRasterizer.raster(renderList);
+        sectionRasterizer.raster(renderList);
+        terrainCompute.compute(renderList);
     }
 }
 

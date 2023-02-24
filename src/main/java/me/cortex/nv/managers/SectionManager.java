@@ -1,9 +1,9 @@
 package me.cortex.nv.managers;
 
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
-import me.cortex.nv.gl.buffers.GlBuffer;
 import me.cortex.nv.gl.BufferArena;
 import me.cortex.nv.gl.UploadingBufferStream;
+import me.cortex.nv.gl.buffers.Buffer;
 import me.cortex.nv.structs.SectionMetaStruct;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
@@ -20,11 +20,11 @@ public class SectionManager {
 
     private final UploadingBufferStream uploadStream;
 
-    private final GlBuffer sectionBuffer;
+    private final Buffer sectionBuffer;
 
     private final BufferArena terrainBuffer;
 
-    public SectionManager(UploadingBufferStream uploadStream, GlBuffer regionBuffer, GlBuffer sectionBuffer, BufferArena terrainBuffer) {
+    public SectionManager(UploadingBufferStream uploadStream, Buffer regionBuffer, Buffer sectionBuffer, BufferArena terrainBuffer) {
         this.regionManager = new RegionManager(regionBuffer);
         this.uploadStream = uploadStream;
         this.sectionBuffer = sectionBuffer;
@@ -49,7 +49,7 @@ public class SectionManager {
 
 
 
-        ByteBuffer geometryUpload = uploadStream.getUpload(result.geometry().vertices().buffer().getLength());
+        //ByteBuffer geometryUpload = uploadStream.getUpload(result.geometry().vertices().buffer().getLength());
 
 
 
@@ -71,14 +71,12 @@ public class SectionManager {
     }
 
     private void updateSection(int sectionIdx) {
-        long segment = MemoryUtil.memAddress(uploadStream.getUpload(SectionMetaStruct.SIZE));
+        long segment = uploadStream.getUpload(sectionBuffer, sectionIdx * SectionMetaStruct.SIZE, SectionMetaStruct.SIZE);
         //TODO: UPDATE segment
-
-        uploadStream.upload(sectionBuffer.id(), sectionIdx * SectionMetaStruct.SIZE);
     }
 
     public void commitChanges() {
-        //uploadStream.commit();
+        uploadStream.commit();
     }
 
 }

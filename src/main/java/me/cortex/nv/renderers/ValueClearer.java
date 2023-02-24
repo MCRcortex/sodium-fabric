@@ -8,12 +8,13 @@ import net.minecraft.util.Identifier;
 
 import static me.cortex.nv.gl.shader.ShaderType.COMPUTE;
 
-public class MipGenerator extends Phase {
+public class ValueClearer extends Phase {
+    /*
     private final Shader shader = Shader.make()
                 .addSource(COMPUTE, ShaderParser.parseSodiumShader(ShaderLoader.MINECRAFT_ASSETS,
-                        new Identifier("cortex", "occlusion/mippers/mip4x4.comp"))).compile();
-
-    public void mip(RenderCommandList renderList) {
+                        new Identifier("cortex", "occlusion/clearer.comp"))).compile();
+    */
+    public void clear(RenderCommandList renderList) {
 
     }
 }

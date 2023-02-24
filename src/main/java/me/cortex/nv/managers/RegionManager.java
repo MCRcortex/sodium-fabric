@@ -2,8 +2,8 @@ package me.cortex.nv.managers;
 
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import me.cortex.nv.gl.buffers.Buffer;
 import me.cortex.nv.util.IdProvider;
-import me.cortex.nv.gl.buffers.GlBuffer;
 import me.cortex.nv.gl.UploadingBufferStream;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.lwjgl.system.MemoryUtil;
@@ -17,9 +17,9 @@ public class RegionManager {
 
     private final Long2ObjectOpenHashMap<Region> REGIONS = new Long2ObjectOpenHashMap<>();
     private final IdProvider idProvider = new IdProvider();
-    private final GlBuffer regionBuffer;
+    private final Buffer regionBuffer;
 
-    public RegionManager(GlBuffer regionBuffer) {
+    public RegionManager(Buffer regionBuffer) {
         this.regionBuffer = regionBuffer;
     }
 
@@ -84,9 +84,8 @@ public class RegionManager {
     }
 
     private void updateRegion(UploadingBufferStream uploadingStream, Region region) {
-        ByteBuffer segment = uploadingStream.getUpload(META_SIZE);
-        MemoryUtil.memPutLong(MemoryUtil.memAddress(segment), region.getPackedData());
-        uploadingStream.upload(regionBuffer.id(), (long) region.id * META_SIZE);
+        long segment = uploadingStream.getUpload(regionBuffer, (long) region.id * META_SIZE, META_SIZE);
+        MemoryUtil.memPutLong(segment, region.getPackedData());
     }
 
 

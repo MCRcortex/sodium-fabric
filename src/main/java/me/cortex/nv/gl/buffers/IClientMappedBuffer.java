@@ -1,5 +1,5 @@
 package me.cortex.nv.gl.buffers;
 
-public interface IClientMappedBuffer {
+public interface IClientMappedBuffer extends Buffer {
     long clientAddress();
 }

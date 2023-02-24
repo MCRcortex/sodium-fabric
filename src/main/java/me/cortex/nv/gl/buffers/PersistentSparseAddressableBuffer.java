@@ -10,7 +10,7 @@ import static org.lwjgl.opengl.GL15C.GL_READ_WRITE;
 import static org.lwjgl.opengl.GL15C.glDeleteBuffers;
 import static org.lwjgl.opengl.NVShaderBufferLoad.*;
 
-public class PersistentSparseAddressableBuffer extends GlBuffer {
+public class PersistentSparseAddressableBuffer implements IDeviceMappedBuffer {
     private static long alignUp(long number, long alignment) {
         long delta = number % alignment;
         return delta == 0?number: number + (alignment - delta);
@@ -67,8 +67,4 @@ public class PersistentSparseAddressableBuffer extends GlBuffer {
     }
 
 
-    @Override
-    public int id() {
-        return id;
-    }
 }
