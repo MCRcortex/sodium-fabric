@@ -1,4 +1,9 @@
 package me.cortex.nv.renderers;
 
-public class TerrainCompute extends Renderer {
+import me.cortex.nv.gl.RenderCommandList;
+
+public class TerrainCompute extends Phase {
+    public void compute(RenderCommandList renderList) {
+
+    }
 }

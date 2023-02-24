@@ -1,10 +1,6 @@
 package me.cortex.nv.gl.buffers;
 
-public class PersistentMappedBuffer extends GlBuffer implements IClientMappedBuffer {
-    @Override
-    public int id() {
-        return 0;
-    }
+public class PersistentMappedBuffer implements IClientMappedBuffer {
 
     @Override
     public long clientAddress() {

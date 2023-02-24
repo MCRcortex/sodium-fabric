@@ -3,6 +3,7 @@ package me.cortex.nv.gl;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
+import me.cortex.nv.gl.buffers.Buffer;
 import me.cortex.nv.gl.buffers.PersistentMappedBuffer;
 import org.lwjgl.system.MemoryUtil;
 
@@ -17,10 +18,11 @@ public class UploadingBufferStream {
     private final SegmentedManager segments = new SegmentedManager();
 
     private final RenderDevice device;
-    private PersistentMappedBuffer buffer;
+    private PersistentMappedBuffer buffer;//TODO: make it self resizing if full
 
     private final List<Batch> batchedCopies = new ReferenceArrayList<>();
-    private record Batch(int dest, long destOffset, long sourceOffset, long size) { }
+    private final LongList batchedFlushes = new LongArrayList();
+    private record Batch(Buffer dest, long destOffset, long sourceOffset, long size) { }
 
 
     private int cidx;
@@ -36,32 +38,34 @@ public class UploadingBufferStream {
         buffer = device.createClientMappedBuffer(size);
     }
 
-    private ByteBuffer cbuffer;
     private long caddr = -1;
     private long offset = 0;
-    public ByteBuffer getUpload(int size) {
+    public long getUpload(Buffer destBuffer, long destOffset, int size) {
         long addr;
         if (caddr == -1 || !segments.expand(caddr, size)) {
             caddr = segments.alloc(size);//TODO: replace with allocFromLargest
             allocations[cidx].add(caddr);//Enqueue the allocation to be freed
             offset = 0;
             addr = caddr;
+            batchedFlushes.add(caddr);
         } else {//Could expand the allocation so just update it
             addr = caddr + offset;
             offset += size;
         }
-        cbuffer = MemoryUtil.memByteBuffer(buffer.clientAddress() + addr, size);
-        return cbuffer;
+
+        batchedCopies.add(new Batch(destBuffer, destOffset, addr, size));
+
+        return buffer.clientAddress() + addr;
     }
 
-    //Uploads the last requested buffer into the destination
-    public void upload(int destBuffer, long destOffset) {
-
-        cbuffer = null;
-    }
 
     public void commit() {
-
+        for (long offset : batchedFlushes) {
+            device.flush(buffer, offset, (int)segments.getSize(offset));
+        }
+        for (var batch : batchedCopies) {
+            device.copy(buffer, batch.sourceOffset, batch.dest, batch.destOffset, batch.size);
+        }
         batchedCopies.clear();
     }
 

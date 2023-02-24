@@ -146,6 +146,12 @@ public class SegmentedManager {
         }
     }
 
+    public long getSize(long addr) {
+        addr &= ADDR_MSK;
+        var iter = TAKEN.iterator(addr);
+        return iter.nextLong()&SIZE_MSK;
+    }
+
 
     public static void main(String[] args) {
         /*
