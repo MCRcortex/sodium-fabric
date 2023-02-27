@@ -1,16 +1,13 @@
 package me.cortex.nv.managers;
 
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
-import me.cortex.nv.gl.BufferArena;
-import me.cortex.nv.gl.UploadingBufferStream;
+import me.cortex.nv.util.BufferArena;
+import me.cortex.nv.util.UploadingBufferStream;
 import me.cortex.nv.gl.buffers.Buffer;
 import me.cortex.nv.structs.SectionMetaStruct;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
 import net.minecraft.util.math.ChunkSectionPos;
-import org.lwjgl.system.MemoryUtil;
-
-import java.nio.ByteBuffer;
 
 public class SectionManager {
     //Sections should be grouped and batched into sizes of the count of sections in a region

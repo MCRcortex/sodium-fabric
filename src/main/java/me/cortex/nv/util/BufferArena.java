@@ -1,4 +1,6 @@
-package me.cortex.nv.gl;
+package me.cortex.nv.util;
+
+import me.cortex.nv.util.SegmentedManager;
 
 public class BufferArena {
     SegmentedManager segments = new SegmentedManager();

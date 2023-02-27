@@ -13,11 +13,7 @@ public class RenderDevice {
 
     }
 
-    public void copy(Buffer source, long sourceOffset, Buffer dest, long destOffset, long size) {
+    public void copyBuffer(Buffer src, Buffer dst, long srcOffset, long dstOffset, long size) {
 
-    }
-
-    public RenderCommandList createRenderList() {
-        return null;
     }
 }

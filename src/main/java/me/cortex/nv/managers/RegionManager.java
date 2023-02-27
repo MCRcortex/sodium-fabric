@@ -4,11 +4,10 @@ package me.cortex.nv.managers;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import me.cortex.nv.gl.buffers.Buffer;
 import me.cortex.nv.util.IdProvider;
-import me.cortex.nv.gl.UploadingBufferStream;
+import me.cortex.nv.util.UploadingBufferStream;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.lwjgl.system.MemoryUtil;
 
-import java.nio.ByteBuffer;
 import java.util.BitSet;
 
 //8x4x8
