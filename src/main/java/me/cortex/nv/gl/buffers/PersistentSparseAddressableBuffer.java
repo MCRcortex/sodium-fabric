@@ -32,10 +32,6 @@ public class PersistentSparseAddressableBuffer implements IDeviceMappedBuffer {
         }
     }
 
-    public void delete() {
-        glMakeNamedBufferNonResidentNV(id);
-        glDeleteBuffers(id);
-    }
 
     private final Int2IntOpenHashMap allocationCount = new Int2IntOpenHashMap();
     private void allocatePages(int page, int pageCount) {
@@ -66,5 +62,13 @@ public class PersistentSparseAddressableBuffer implements IDeviceMappedBuffer {
 
     }
 
+    @Override
+    public long getDeviceAddress() {
+        return addr;
+    }
 
+    public void delete() {
+        glMakeNamedBufferNonResidentNV(id);
+        glDeleteBuffers(id);
+    }
 }

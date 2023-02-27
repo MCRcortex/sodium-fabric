@@ -1,14 +1,13 @@
-package me.cortex.nv.gl;
+package me.cortex.nv.util;
 
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
+import me.cortex.nv.gl.RenderDevice;
 import me.cortex.nv.gl.buffers.Buffer;
 import me.cortex.nv.gl.buffers.PersistentMappedBuffer;
-import org.lwjgl.system.MemoryUtil;
 
 import java.lang.ref.WeakReference;
-import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -64,13 +63,13 @@ public class UploadingBufferStream {
             device.flush(buffer, offset, (int)segments.getSize(offset));
         }
         for (var batch : batchedCopies) {
-            device.copy(buffer, batch.sourceOffset, batch.dest, batch.destOffset, batch.size);
+            device.copyBuffer(buffer, batch.dest, batch.sourceOffset, batch.destOffset, batch.size);
         }
         batchedCopies.clear();
     }
 
     public void delete() {
-
+        buffer.delete();
     }
 
 

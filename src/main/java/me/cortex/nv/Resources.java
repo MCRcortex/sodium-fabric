@@ -1,10 +1,9 @@
 package me.cortex.nv;
 
-import me.cortex.nv.gl.BufferArena;
+import me.cortex.nv.util.BufferArena;
 import me.cortex.nv.gl.RenderDevice;
-import me.cortex.nv.gl.buffers.Buffer;
 import me.cortex.nv.gl.buffers.DeviceOnlyBuffer;
-import me.cortex.nv.gl.UploadingBufferStream;
+import me.cortex.nv.util.UploadingBufferStream;
 
 public class Resources {
     private final RenderDevice device;

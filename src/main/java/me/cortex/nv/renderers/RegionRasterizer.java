@@ -1,6 +1,5 @@
 package me.cortex.nv.renderers;
 
-import me.cortex.nv.gl.RenderCommandList;
 import me.cortex.nv.gl.shader.Shader;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
 import net.caffeinemc.sodium.render.shader.ShaderParser;
@@ -16,7 +15,7 @@ public class RegionRasterizer extends Phase {
                     new Identifier("cortex", "occlusion/region_raster/fragment.glsl")))
             .compile();
 
-    public void raster(RenderCommandList renderList) {
+    public void raster() {
 
     }
 }

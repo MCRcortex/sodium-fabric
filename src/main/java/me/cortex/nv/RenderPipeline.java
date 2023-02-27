@@ -1,6 +1,5 @@
 package me.cortex.nv;
 
-import me.cortex.nv.gl.RenderCommandList;
 import me.cortex.nv.gl.RenderDevice;
 import me.cortex.nv.managers.SectionManager;
 import me.cortex.nv.renderers.*;
@@ -47,16 +46,17 @@ public class RenderPipeline {
         terrainCompute = new TerrainCompute();
     }
 
+
+
     private void renderFrame() {//NOTE: can use any of the command list rendering commands to basicly draw X indirects using the same shader, thus allowing for terrain to be rendered very efficently
         sectionManager.commitChanges();//Commit all uploads done to the terrain and meta data
 
-        RenderCommandList renderList = device.createRenderList();
-        terrainRasterizer.raster(renderList);
-        mipper.mip(renderList);
-        clearer.clear(renderList);
-        regionRasterizer.raster(renderList);
-        sectionRasterizer.raster(renderList);
-        terrainCompute.compute(renderList);
+        terrainRasterizer.raster();
+        mipper.mip();
+        clearer.clear();
+        regionRasterizer.raster();
+        sectionRasterizer.raster();
+        terrainCompute.compute();
     }
 }
 

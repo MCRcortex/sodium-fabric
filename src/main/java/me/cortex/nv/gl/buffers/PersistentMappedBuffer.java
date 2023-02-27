@@ -6,4 +6,9 @@ public class PersistentMappedBuffer implements IClientMappedBuffer {
     public long clientAddress() {
         return 0;
     }
+
+    @Override
+    public void delete() {
+
+    }
 }
