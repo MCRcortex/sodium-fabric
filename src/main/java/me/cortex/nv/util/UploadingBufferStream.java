@@ -5,19 +5,21 @@ import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import me.cortex.nv.gl.RenderDevice;
 import me.cortex.nv.gl.buffers.Buffer;
-import me.cortex.nv.gl.buffers.PersistentMappedBuffer;
+import me.cortex.nv.gl.buffers.PersistentClientMappedBuffer;
 
 import java.lang.ref.WeakReference;
 import java.util.LinkedList;
 import java.util.List;
 
-import static org.lwjgl.opengl.GL15C.glDeleteBuffers;
+import static org.lwjgl.opengl.GL42C.GL_BUFFER_UPDATE_BARRIER_BIT;
+import static org.lwjgl.opengl.GL44.GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT;
 
+//TODO: need to add self resizing
 public class UploadingBufferStream {
     private final SegmentedManager segments = new SegmentedManager();
 
     private final RenderDevice device;
-    private PersistentMappedBuffer buffer;//TODO: make it self resizing if full
+    private PersistentClientMappedBuffer buffer;//TODO: make it self resizing if full
 
     private final List<Batch> batchedCopies = new ReferenceArrayList<>();
     private final LongList batchedFlushes = new LongArrayList();
@@ -62,10 +64,12 @@ public class UploadingBufferStream {
         for (long offset : batchedFlushes) {
             device.flush(buffer, offset, (int)segments.getSize(offset));
         }
+        device.barrier(GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
         for (var batch : batchedCopies) {
             device.copyBuffer(buffer, batch.dest, batch.sourceOffset, batch.destOffset, batch.size);
         }
         batchedCopies.clear();
+        device.barrier(GL_BUFFER_UPDATE_BARRIER_BIT);
     }
 
     public void delete() {
@@ -75,14 +79,15 @@ public class UploadingBufferStream {
 
 
     private void tick() {
-        //if (batchedCopies.size() != 0)
-        //    throw new IllegalStateException("Upload buffer has uncommitted batches before tick");
+        if (batchedCopies.size() != 0)
+            throw new IllegalStateException("Upload buffer has uncommitted batches before tick");
         //Need to free all of the next allocations
         cidx = (cidx+1)%allocations.length;
         for (long addr : allocations[cidx]) {
             segments.free(addr);
         }
         allocations[cidx].clear();
+        caddr = -1;
     }
 
     private static final List<WeakReference<UploadingBufferStream>> WEAK_UPLOAD_LIST = new LinkedList<>();

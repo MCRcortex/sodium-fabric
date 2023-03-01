@@ -2,6 +2,7 @@ package me.cortex.nv.managers;
 
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import me.cortex.nv.gl.RenderDevice;
 import me.cortex.nv.gl.buffers.Buffer;
 import me.cortex.nv.util.IdProvider;
 import me.cortex.nv.util.UploadingBufferStream;
@@ -17,9 +18,11 @@ public class RegionManager {
     private final Long2ObjectOpenHashMap<Region> REGIONS = new Long2ObjectOpenHashMap<>();
     private final IdProvider idProvider = new IdProvider();
     private final Buffer regionBuffer;
+    private final RenderDevice device;
 
-    public RegionManager(Buffer regionBuffer) {
-        this.regionBuffer = regionBuffer;
+    public RegionManager(RenderDevice device, int maxRegions) {
+        this.device = device;
+        this.regionBuffer = device.createDeviceOnlyBuffer((long) maxRegions * META_SIZE);
     }
 
     //IDEA: make it so that sections are packed into regions, that is the local index of a chunk is hard coded to its position, and just 256 sections are processed when a region is visible, this has some overhead but means that the exact amount being processed each time is known and the same
@@ -87,5 +90,7 @@ public class RegionManager {
         MemoryUtil.memPutLong(segment, region.getPackedData());
     }
 
-
+    public void delete() {
+        regionBuffer.delete();
+    }
 }

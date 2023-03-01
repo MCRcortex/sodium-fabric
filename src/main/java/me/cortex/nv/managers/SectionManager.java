@@ -1,6 +1,7 @@
 package me.cortex.nv.managers;
 
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import me.cortex.nv.gl.RenderDevice;
 import me.cortex.nv.util.BufferArena;
 import me.cortex.nv.util.UploadingBufferStream;
 import me.cortex.nv.gl.buffers.Buffer;
@@ -13,20 +14,22 @@ public class SectionManager {
     //Sections should be grouped and batched into sizes of the count of sections in a region
     private final RegionManager regionManager;
 
+    //TODO: maybe replace with a int[] using bit masking thing
     private final Long2IntOpenHashMap sectionOffset = new Long2IntOpenHashMap();
 
     private final UploadingBufferStream uploadStream;
 
     private final Buffer sectionBuffer;
+    private final BufferArena terrainAreana;
 
-    private final BufferArena terrainBuffer;
-
-    public SectionManager(UploadingBufferStream uploadStream, Buffer regionBuffer, Buffer sectionBuffer, BufferArena terrainBuffer) {
-        this.regionManager = new RegionManager(regionBuffer);
-        this.uploadStream = uploadStream;
+    private final RenderDevice device;
+    public SectionManager(RenderDevice device, int rd, int frames, int quadVertexSize) {
+        this.uploadStream = new UploadingBufferStream(device, frames, 16000000);
         this.sectionBuffer = sectionBuffer;
-        this.terrainBuffer = terrainBuffer;
+        this.terrainAreana = new BufferArena(device, quadVertexSize);
         this.sectionOffset.defaultReturnValue(-1);
+        this.regionManager = new RegionManager(device);
+        this.device = device;
     }
 
     private long getSectionKey(int x, int y, int z) {

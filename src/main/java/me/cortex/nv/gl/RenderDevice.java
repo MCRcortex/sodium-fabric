@@ -1,19 +1,34 @@
 package me.cortex.nv.gl;
 
-import me.cortex.nv.gl.buffers.Buffer;
-import me.cortex.nv.gl.buffers.IClientMappedBuffer;
-import me.cortex.nv.gl.buffers.PersistentMappedBuffer;
+import me.cortex.nv.gl.buffers.*;
+
+import static org.lwjgl.opengl.ARBDirectStateAccess.glCopyNamedBufferSubData;
+import static org.lwjgl.opengl.ARBDirectStateAccess.glFlushMappedNamedBufferRange;
+import static org.lwjgl.opengl.GL42C.glMemoryBarrier;
 
 public class RenderDevice {
-    public PersistentMappedBuffer createClientMappedBuffer(long size) {
-        return null;
+    public PersistentClientMappedBuffer createClientMappedBuffer(long size) {
+        return new PersistentClientMappedBuffer(size);
     }
 
     public void flush(IClientMappedBuffer buffer, long offset, int size) {
+        int id = ((GlObject)buffer).getId();
+        glFlushMappedNamedBufferRange(id, offset, size);
+    }
 
+    public void barrier(int flags) {
+        glMemoryBarrier(flags);
     }
 
     public void copyBuffer(Buffer src, Buffer dst, long srcOffset, long dstOffset, long size) {
+        glCopyNamedBufferSubData(((GlObject)src).getId(), ((GlObject)dst).getId(), srcOffset, dstOffset, size);
+    }
 
+    public IDeviceMappedBuffer createSparseBuffer(long totalSize) {
+        return new PersistentSparseAddressableBuffer(totalSize);
+    }
+
+    public Buffer createDeviceOnlyBuffer(long size) {
+        return new DeviceOnlyBuffer(size);
     }
 }

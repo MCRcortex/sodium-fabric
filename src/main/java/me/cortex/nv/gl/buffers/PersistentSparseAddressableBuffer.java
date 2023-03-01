@@ -1,6 +1,7 @@
 package me.cortex.nv.gl.buffers;
 
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import me.cortex.nv.gl.GlObject;
 
 import static org.lwjgl.opengl.ARBDirectStateAccess.glCreateBuffers;
 import static org.lwjgl.opengl.ARBDirectStateAccess.glNamedBufferStorage;
@@ -10,18 +11,18 @@ import static org.lwjgl.opengl.GL15C.GL_READ_WRITE;
 import static org.lwjgl.opengl.GL15C.glDeleteBuffers;
 import static org.lwjgl.opengl.NVShaderBufferLoad.*;
 
-public class PersistentSparseAddressableBuffer implements IDeviceMappedBuffer {
+public class PersistentSparseAddressableBuffer extends GlObject implements IDeviceMappedBuffer {
     private static long alignUp(long number, long alignment) {
         long delta = number % alignment;
         return delta == 0?number: number + (alignment - delta);
     }
-    public final int id;
+
     public final long addr;
     public final long size;
     private final long PAGE_SIZE = 1<<16;
     public PersistentSparseAddressableBuffer(long size) {
+        super(glCreateBuffers());
         this.size = alignUp(size, PAGE_SIZE);
-        this.id = glCreateBuffers();
         glNamedBufferStorage(id, size, GL_SPARSE_STORAGE_BIT_ARB);
         long[] holder = new long[1];
         glGetNamedBufferParameterui64vNV(id, GL_BUFFER_GPU_ADDRESS_NV, holder);
