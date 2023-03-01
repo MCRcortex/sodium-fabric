@@ -32,11 +32,7 @@ public class RenderPipeline {
     private final TerrainCompute terrainCompute;
 
     public RenderPipeline() {
-        resources = new Resources(device, 6, 32);
-        sectionManager = new SectionManager(resources.terrainMetaUploadStream,
-                resources.regionMetaBuffer,
-                resources.sectionMetaBuffer,
-                resources.terrainGeometryBuffer);
+        sectionManager = new SectionManager(device, 32, 6);
 
         terrainRasterizer = new PrimaryTerrainRasterizer();
         mipper = new MipGenerator();

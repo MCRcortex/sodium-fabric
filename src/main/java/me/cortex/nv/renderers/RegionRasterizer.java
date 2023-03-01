@@ -8,13 +8,14 @@ import net.minecraft.util.Identifier;
 import static me.cortex.nv.gl.shader.ShaderType.*;
 
 public class RegionRasterizer extends Phase {
+    /*
     private final Shader shader = Shader.make()
             .addSource(MESH, ShaderParser.parseSodiumShader(ShaderLoader.MINECRAFT_ASSETS,
                     new Identifier("cortex", "occlusion/region_raster/mesh.glsl")))
             .addSource(FRAGMENT, ShaderParser.parseSodiumShader(ShaderLoader.MINECRAFT_ASSETS,
                     new Identifier("cortex", "occlusion/region_raster/fragment.glsl")))
             .compile();
-
+       */
     public void raster() {
 
     }

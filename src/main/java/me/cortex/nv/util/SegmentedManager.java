@@ -31,6 +31,7 @@ public class SegmentedManager {
     }*/
 
     public long alloc(int size) {//TODO: add alignment support
+        if (size == 0) throw new IllegalArgumentException();
         //This is stupid, iterator is not inclusive
         var iter = FREE.iterator(((long) size << ADDR_BITS)-1);
         if (!iter.hasNext()) {//No free space for allocation
@@ -113,6 +114,10 @@ public class SegmentedManager {
     public boolean expand(long addr, int extra) {
         addr &= ADDR_MSK;//encase addr stores shit in its upper bits
         var iter = TAKEN.iterator(addr<<SIZE_BITS);
+        if (!iter.hasNext()) {
+            System.out.println("WAA");
+            return false;
+        }
         long slot = iter.nextLong();
         long updatedSlot = (slot & (ADDR_MSK << SIZE_BITS)) | ((slot & SIZE_MSK) + extra);
         resized = false;
