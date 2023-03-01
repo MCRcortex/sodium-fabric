@@ -161,7 +161,13 @@ public final class GraphExplorer {
 
         //int inboundDir = DirectionUtil.getOppositeId(outgoingDir);
         selfTraversalData |= lvl!=0?0xFF:(queryTreeNodeSet(0, x, y, z)?0xFF:getVisibilityData(x, y, z, inbound));//TODO:it might be faster to just call getVisibilityData//this.getVisibilityData(neighborSectionIdx, inboundDir);
+
+        //This is a very bad very dodgy fix to a very weird and very painful problem
+        // due to the way bfs is enumerated, some non root nodes can be marked with different culling directions
+        // this is a very hacky work around that doesnt fix the root issue of enumeration order
         selfTraversalData |= lvl == 0?0:srcDirMsk;
+
+
         selfTraversalData &= ~(1 << (8 + inbound)); // Un mark incoming direction
         selfTraversalData &= srcDirMsk | 0xFF;
         //if ((Short.toUnsignedInt(selfTraversalData)>>>8)!=((Short.toUnsignedInt(selfTraversalData)>>>8)&(srcDirMsk>>8))) {
