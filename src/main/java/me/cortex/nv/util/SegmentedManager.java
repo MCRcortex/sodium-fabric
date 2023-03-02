@@ -152,7 +152,9 @@ public class SegmentedManager {
 
     public long getSize(long addr) {
         addr &= ADDR_MSK;
-        var iter = TAKEN.iterator(addr);
+        var iter = TAKEN.iterator(addr << SIZE_BITS);
+        if (!iter.hasNext())
+            throw new IllegalArgumentException();
         return iter.nextLong()&SIZE_MSK;
     }
 

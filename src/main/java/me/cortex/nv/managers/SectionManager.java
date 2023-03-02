@@ -23,12 +23,14 @@ public class SectionManager {
     private final BufferArena terrainAreana;
 
     private final RenderDevice device;
-    public SectionManager(RenderDevice device, int rd, int frames, int quadVertexSize) {
+    public SectionManager(RenderDevice device, int rd, int height, int frames, int quadVertexSize) {
         this.uploadStream = new UploadingBufferStream(device, frames, 16000000);
-        this.sectionBuffer = sectionBuffer;
+        int widthSquared = (rd*2+1)*(rd*2+1);
+
+        this.sectionBuffer = device.createDeviceOnlyBuffer((long) widthSquared * height * SectionMetaStruct.SIZE);
         this.terrainAreana = new BufferArena(device, quadVertexSize);
         this.sectionOffset.defaultReturnValue(-1);
-        this.regionManager = new RegionManager(device);
+        this.regionManager = new RegionManager(device, (int) Math.ceil(((double) widthSquared/(8*8))*((double) height/4)+1));
         this.device = device;
     }
 
@@ -77,6 +79,12 @@ public class SectionManager {
 
     public void commitChanges() {
         uploadStream.commit();
+    }
+
+    public void delete() {
+        sectionBuffer.delete();
+        terrainAreana.delete();
+        regionManager.delete();
     }
 
 }

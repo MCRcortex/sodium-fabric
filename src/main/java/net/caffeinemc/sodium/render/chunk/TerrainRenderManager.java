@@ -277,6 +277,9 @@ public class TerrainRenderManager {
     }
 
     public void renderLayer(ChunkRenderMatrices matrices, ChunkRenderPass renderPass) {
+        if (renderPass == ChunkRenderPassManager.SOLID) {
+            pipeline.renderFrame();
+        }
         this.chunkRenderer.render(renderPass, matrices, this.frameIndex);
     }
 

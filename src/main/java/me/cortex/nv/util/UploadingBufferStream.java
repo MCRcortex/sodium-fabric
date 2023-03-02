@@ -64,6 +64,7 @@ public class UploadingBufferStream {
         for (long offset : batchedFlushes) {
             device.flush(buffer, offset, (int)segments.getSize(offset));
         }
+        batchedFlushes.clear();
         device.barrier(GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
         for (var batch : batchedCopies) {
             device.copyBuffer(buffer, batch.dest, batch.sourceOffset, batch.destOffset, batch.size);
@@ -79,8 +80,11 @@ public class UploadingBufferStream {
 
 
     private void tick() {
-        if (batchedCopies.size() != 0)
-            throw new IllegalStateException("Upload buffer has uncommitted batches before tick");
+        //if (batchedCopies.size() != 0) {
+        //    //throw new IllegalStateException("Upload buffer has uncommitted batches before tick");
+        //    System.err.println("Upload buffer has uncommitted batches before tick");
+        //    commit();
+        //}
         //Need to free all of the next allocations
         cidx = (cidx+1)%allocations.length;
         for (long addr : allocations[cidx]) {

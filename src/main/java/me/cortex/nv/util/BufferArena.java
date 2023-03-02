@@ -12,4 +12,8 @@ public class BufferArena {
         this.device = device;
         this.vertexFormatSize = vertexFormatSize;
     }
+
+    public void delete() {
+
+    }
 }

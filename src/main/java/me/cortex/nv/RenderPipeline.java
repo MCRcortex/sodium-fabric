@@ -3,6 +3,8 @@ package me.cortex.nv;
 import me.cortex.nv.gl.RenderDevice;
 import me.cortex.nv.managers.SectionManager;
 import me.cortex.nv.renderers.*;
+import net.caffeinemc.sodium.render.terrain.format.TerrainVertexFormats;
+import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 
 public class RenderPipeline {
     //The rough pipeline outline is
@@ -20,7 +22,6 @@ public class RenderPipeline {
 
 
     private static final RenderDevice device = new RenderDevice();
-    private final Resources resources;
 
     public final SectionManager sectionManager;
 
@@ -32,7 +33,7 @@ public class RenderPipeline {
     private final TerrainCompute terrainCompute;
 
     public RenderPipeline() {
-        sectionManager = new SectionManager(device, 32, 6);
+        sectionManager = new SectionManager(device, 32, 24,6, TerrainVertexFormats.COMPACT.getBufferVertexFormat().stride());
 
         terrainRasterizer = new PrimaryTerrainRasterizer();
         mipper = new MipGenerator();
@@ -44,7 +45,7 @@ public class RenderPipeline {
 
 
 
-    private void renderFrame() {//NOTE: can use any of the command list rendering commands to basicly draw X indirects using the same shader, thus allowing for terrain to be rendered very efficently
+    public void renderFrame() {//NOTE: can use any of the command list rendering commands to basicly draw X indirects using the same shader, thus allowing for terrain to be rendered very efficently
         sectionManager.commitChanges();//Commit all uploads done to the terrain and meta data
 
         terrainRasterizer.raster();

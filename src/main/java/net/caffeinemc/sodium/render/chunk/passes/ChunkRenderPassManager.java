@@ -12,7 +12,7 @@ import net.minecraft.client.render.RenderLayer;
  * already used by the base game.
  */
 public class ChunkRenderPassManager {
-    private static final ChunkRenderPass SOLID = new ChunkRenderPass(
+    public static final ChunkRenderPass SOLID = new ChunkRenderPass(
             RenderPipelineDescription.defaults(),
             true,
             0.0f
@@ -27,7 +27,7 @@ public class ChunkRenderPassManager {
             false,
             0.1f
     );
-    private static final ChunkRenderPass TRANSLUCENT = new ChunkRenderPass(
+    public static final ChunkRenderPass TRANSLUCENT = new ChunkRenderPass(
             RenderPipelineDescription.builder()
                                      .setBlendFunction(BlendFunc.separate(
                                        BlendFunc.SrcFactor.SRC_ALPHA,
