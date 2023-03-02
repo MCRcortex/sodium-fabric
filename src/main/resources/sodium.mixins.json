@@ -23,8 +23,8 @@
     "core.pipeline.vertex.MixinSpriteTexturedVertexConsumer",
     "core.pipeline.vertex.MixinVertexConsumers$MixinDual",
     "core.pipeline.vertex.MixinVertexConsumers$MixinUnion",
-    "features.block.MixinBlockModelRenderer",
     "features.biome.MixinBiome",
+    "features.block.MixinBlockModelRenderer",
     "features.buffer_builder.fast_advance.MixinBufferBuilder",
     "features.buffer_builder.fast_sort.MixinBufferBuilder",
     "features.buffer_builder.intrinsics.MixinBufferBuilder",
@@ -72,6 +72,7 @@
     "features.texture_updates.SpriteInfoAccessor",
     "features.texture_updates.SpriteInfoAnimationAccessor",
     "workarounds.MixinRenderSystem",
-    "workarounds.issue1486.MixinMinecraftClient"
+    "workarounds.issue1486.MixinMinecraftClient",
+    "core.FrustumIntersectionAccessor"
   ]
 }

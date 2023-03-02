@@ -3,6 +3,7 @@ package me.jellysquid.mods.sodium.mixin.core;
 import me.jellysquid.mods.sodium.client.util.frustum.FrustumAdapter;
 import net.minecraft.client.render.Frustum;
 import org.joml.FrustumIntersection;
+import org.joml.Vector4f;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -35,5 +36,25 @@ public class MixinFrustum implements FrustumAdapter, me.jellysquid.mods.sodium.c
             case FrustumIntersection.INSIDE -> Visibility.INSIDE;
             default -> Visibility.OUTSIDE;
         };
+    }
+
+    @Override
+    public Vector4f[] getPlanes() {
+        return ((FrustumIntersectionAccessor)frustumIntersection).getPlanes();
+    }
+
+    @Override
+    public float getX() {
+        return (float) x;
+    }
+
+    @Override
+    public float getY() {
+        return (float) y;
+    }
+
+    @Override
+    public float getZ() {
+        return (float) z;
     }
 }

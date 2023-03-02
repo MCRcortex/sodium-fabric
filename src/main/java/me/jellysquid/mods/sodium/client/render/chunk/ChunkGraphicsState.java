@@ -34,7 +34,11 @@ public class ChunkGraphicsState {
     }
 
     public ElementRange getModelPart(ModelQuadFacing facing) {
-        return this.parts[facing.ordinal()];
+        return getModelPart(facing.ordinal());
+    }
+
+    public ElementRange getModelPart(int facing) {
+        return this.parts[facing];
     }
 
     public GlBufferSegment getVertexSegment() {

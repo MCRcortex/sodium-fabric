@@ -107,36 +107,36 @@ public class RegionChunkRenderer extends ShaderChunkRenderer {
     private void addDrawCalls(ChunkCameraContext camera, RenderSection section, ChunkGraphicsState state, long indexOffset, int baseVertex) {
         var commandBufferBuilder = this.commandBufferBuilder;
 
-        addDrawCall(commandBufferBuilder, state.getModelPart(ModelQuadFacing.UNASSIGNED), indexOffset, baseVertex);
+        addDrawCall(commandBufferBuilder, state.getModelPart(6), indexOffset, baseVertex);
 
         if (this.isBlockFaceCullingEnabled) {
             ChunkRenderBounds bounds = section.getBounds();
 
             if (camera.posY > bounds.y1) {
-                addDrawCall(commandBufferBuilder, state.getModelPart(ModelQuadFacing.UP), indexOffset, baseVertex);
+                addDrawCall(commandBufferBuilder, state.getModelPart(0), indexOffset, baseVertex);
             }
 
             if (camera.posY < bounds.y2) {
-                addDrawCall(commandBufferBuilder, state.getModelPart(ModelQuadFacing.DOWN), indexOffset, baseVertex);
+                addDrawCall(commandBufferBuilder, state.getModelPart(1), indexOffset, baseVertex);
             }
 
             if (camera.posX > bounds.x1) {
-                addDrawCall(commandBufferBuilder, state.getModelPart(ModelQuadFacing.EAST), indexOffset, baseVertex);
+                addDrawCall(commandBufferBuilder, state.getModelPart(2), indexOffset, baseVertex);
             }
 
             if (camera.posX < bounds.x2) {
-                addDrawCall(commandBufferBuilder, state.getModelPart(ModelQuadFacing.WEST), indexOffset, baseVertex);
+                addDrawCall(commandBufferBuilder, state.getModelPart(3), indexOffset, baseVertex);
             }
 
             if (camera.posZ > bounds.z1) {
-                addDrawCall(commandBufferBuilder, state.getModelPart(ModelQuadFacing.SOUTH), indexOffset, baseVertex);
+                addDrawCall(commandBufferBuilder, state.getModelPart(4), indexOffset, baseVertex);
             }
 
             if (camera.posZ < bounds.z2) {
-                addDrawCall(commandBufferBuilder, state.getModelPart(ModelQuadFacing.NORTH), indexOffset, baseVertex);
+                addDrawCall(commandBufferBuilder, state.getModelPart(5), indexOffset, baseVertex);
             }
         } else {
-            for (ModelQuadFacing facing : ModelQuadFacing.DIRECTIONS) {
+            for (int facing = 0; facing < 7; facing++) {
                 addDrawCall(commandBufferBuilder, state.getModelPart(facing), indexOffset, baseVertex);
             }
         }

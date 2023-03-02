@@ -3,6 +3,7 @@ package me.jellysquid.mods.sodium.client.render.chunk.graph.v4;
 import org.joml.FrustumIntersection;
 import org.joml.Matrix4fc;
 import org.joml.Vector3f;
+import org.joml.Vector4f;
 
 public class CFrust {
     public static final int OUTSIDE = -1;
@@ -51,6 +52,37 @@ public class CFrust {
         this.pzY = matrix.m13() - matrix.m12();
         this.pzZ = matrix.m23() - matrix.m22();
         this.pzW = matrix.m33() - matrix.m32();
+    }
+
+    public CFrust(float x, float y, float z, Vector4f[] planes) {
+        this.offsetX = x;
+        this.offsetY = y;
+        this.offsetZ = z;
+
+        this.nxX = planes[0].x;
+        this.nxY = planes[0].y;
+        this.nxZ = planes[0].z;
+        this.nxW = planes[0].w;
+        this.pxX = planes[1].x;
+        this.pxY = planes[1].y;
+        this.pxZ = planes[1].z;
+        this.pxW = planes[1].w;
+        this.nyX = planes[2].x;
+        this.nyY = planes[2].y;
+        this.nyZ = planes[2].z;
+        this.nyW = planes[2].w;
+        this.pyX = planes[3].x;
+        this.pyY = planes[3].y;
+        this.pyZ = planes[3].z;
+        this.pyW = planes[3].w;
+        this.nzX = planes[4].x;
+        this.nzY = planes[4].y;
+        this.nzZ = planes[4].z;
+        this.nzW = planes[4].w;
+        this.pzX = planes[5].x;
+        this.pzY = planes[5].y;
+        this.pzZ = planes[5].z;
+        this.pzW = planes[5].w;
     }
 
     public int intersectBox(float minX, float minY, float minZ, float maxX, float maxY, float maxZ, int skipMask) {

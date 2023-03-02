@@ -74,8 +74,8 @@ public final class GraphExplorer {
     private boolean isInRenderBounds(int lvl, int x, int y, int z) {
         int msk = (1<<lvl)-1;
         if ((y<<lvl)+msk < 0 || maxHeight < (y<<lvl)) return false;
-        int dx = Math.min(Math.abs(cx - (x<<lvl)), Math.abs(cx - ((x<<lvl)+msk)));
-        int dz = Math.min(Math.abs(cz - (z<<lvl)), Math.abs(cz - ((z<<lvl)+msk)));
+        int dx = distAxis(lvl, cx, x);
+        int dz = distAxis(lvl, cz, z);
 
         return dx*dx+dz*dz<=rd*rd;
     }
