@@ -1,6 +1,7 @@
 package me.cortex.nv.managers;
 
 
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import me.cortex.nv.gl.RenderDevice;
 import me.cortex.nv.gl.buffers.Buffer;
@@ -15,14 +16,18 @@ import java.util.BitSet;
 public class RegionManager {
     public static final int META_SIZE = 8;
 
-    private final Long2ObjectOpenHashMap<Region> REGIONS = new Long2ObjectOpenHashMap<>();
+    private final Long2IntOpenHashMap regionMap;
     private final IdProvider idProvider = new IdProvider();
     private final Buffer regionBuffer;
     private final RenderDevice device;
 
+    private final Region[] regions;
+
     public RegionManager(RenderDevice device, int maxRegions) {
         this.device = device;
         this.regionBuffer = device.createDeviceOnlyBuffer((long) maxRegions * META_SIZE);
+        this.regions = new Region[maxRegions];
+        this.regionMap = new Long2IntOpenHashMap(maxRegions);
     }
 
     //IDEA: make it so that sections are packed into regions, that is the local index of a chunk is hard coded to its position, and just 256 sections are processed when a region is visible, this has some overhead but means that the exact amount being processed each time is known and the same
@@ -59,7 +64,15 @@ public class RegionManager {
     }
 
     public int createSectionIndex(UploadingBufferStream uploadStream, int sectionX, int sectionY, int sectionZ) {
-        Region region = REGIONS.computeIfAbsent(getRegionKey(sectionX, sectionY, sectionZ), key -> new Region(key, idProvider.provide()));
+        long key = getRegionKey(sectionX, sectionY, sectionZ);
+        int idx = regionMap.computeIfAbsent(key, k -> idProvider.provide());
+        Region region = regions[idx];
+        if (region == null) {
+            region = regions[idx] = new Region(key, idx);
+        }
+        if (region.key != key) {
+            throw new IllegalStateException();
+        }
         region.count++;
 
         int sectionId = region.freeIndices.nextSetBit(0);
@@ -70,19 +83,23 @@ public class RegionManager {
 
         updateRegion(uploadStream, region);
 
-        return region.id*256+sectionId;//region.id*8+sectionId
+        return (region.id<<8)|sectionId;//region.id*8+sectionId
     }
 
     public void removeSectionIndex(UploadingBufferStream uploadStream, int sectionId) {
-        Region region = REGIONS.get(sectionId>>3);// divide by 8
+        Region region = regions[sectionId>>>8];// divide by 256
+        if (region == null) {
+            throw new IllegalStateException();
+        }
         region.count--;
-        region.freeIndices.set(sectionId&7);
+        region.freeIndices.set(sectionId&255);
 
         if (region.count == 0) {
             idProvider.release(region.id);
             //Note: there is a special-case in region.getPackedData that means when count == 0, it auto nulls
             updateRegion(uploadStream, region);
-            REGIONS.remove(region.key);
+            regions[region.id] = null;
+            regionMap.remove(region.key);
         } else {
             updateRegion(uploadStream, region);
         }
@@ -90,6 +107,8 @@ public class RegionManager {
 
     private void updateRegion(UploadingBufferStream uploadingStream, Region region) {
         long segment = uploadingStream.getUpload(regionBuffer, (long) region.id * META_SIZE, META_SIZE);
+
+
         MemoryUtil.memPutLong(segment, region.getPackedData());
     }
 

@@ -13,7 +13,7 @@ public class IdProvider {
             return cid++;
         }
         int ret = free.firstInt();
-        free.remove(0);
+        free.remove(ret);
         return ret;
     }
 
