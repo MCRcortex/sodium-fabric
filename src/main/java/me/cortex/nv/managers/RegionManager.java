@@ -63,11 +63,14 @@ public class RegionManager {
         region.count++;
 
         int sectionId = region.freeIndices.nextSetBit(0);
+        if (sectionId<0||255<sectionId) {
+            throw new IllegalStateException();
+        }
         region.freeIndices.clear(sectionId);
 
         updateRegion(uploadStream, region);
 
-        return region.id*8+sectionId;//TODO: i think this is region.id*256+sectionId
+        return region.id*256+sectionId;//region.id*8+sectionId
     }
 
     public void removeSectionIndex(UploadingBufferStream uploadStream, int sectionId) {

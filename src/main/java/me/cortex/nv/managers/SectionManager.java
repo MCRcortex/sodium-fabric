@@ -24,7 +24,7 @@ public class SectionManager {
 
     private final RenderDevice device;
     public SectionManager(RenderDevice device, int rd, int height, int frames, int quadVertexSize) {
-        this.uploadStream = new UploadingBufferStream(device, frames, 16000000);
+        this.uploadStream = new UploadingBufferStream(device, frames, 160000000);
         int widthSquared = (rd*2+1)*(rd*2+1);
 
         this.sectionBuffer = device.createDeviceOnlyBuffer((long) widthSquared * height * SectionMetaStruct.SIZE);
@@ -38,6 +38,7 @@ public class SectionManager {
         return ChunkSectionPos.asLong(x,y,z);
     }
 
+    //FIXME: causes extreame stuttering
     public void uploadSetSection(TerrainBuildResult result) {
         if (result.geometry() == null || result.geometry().vertices() == null || result.data() == null) {
             deleteSection(result.render());
@@ -82,6 +83,7 @@ public class SectionManager {
     }
 
     public void delete() {
+        uploadStream.delete();
         sectionBuffer.delete();
         terrainAreana.delete();
         regionManager.delete();
