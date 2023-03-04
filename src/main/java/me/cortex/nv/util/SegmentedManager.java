@@ -3,19 +3,23 @@ package me.cortex.nv.util;
 import it.unimi.dsi.fastutil.longs.LongAVLTreeSet;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
+import it.unimi.dsi.fastutil.longs.LongRBTreeSet;
 
 import java.util.Random;
 
 //FIXME: NOTE: if there is a free block of size > 2^30 EVERYTHING BREAKS, need to either increase size
 // or automatically split and manage multiple blocks which is very painful
 //OR instead of addr, defer to a long[] and use indicies
+
+//TODO: replace the LongAVLTreeSet with a custom implementation that doesnt cause allocations when searching
+// and see if something like a RBTree is any better
 public class SegmentedManager {
     private final int ADDR_BITS = 34;//This gives max size per allocation of 2^30 and max address of 2^39
     private final int SIZE_BITS = 64 - ADDR_BITS;
     private final long SIZE_MSK = (1L<<SIZE_BITS)-1;
     private final long ADDR_MSK = (1L<<ADDR_BITS)-1;
-    private final LongAVLTreeSet FREE = new LongAVLTreeSet();//Size Address
-    private final LongAVLTreeSet TAKEN = new LongAVLTreeSet();//Address Size
+    private final LongRBTreeSet FREE = new LongRBTreeSet();//Size Address
+    private final LongRBTreeSet TAKEN = new LongRBTreeSet();//Address Size
 
     private long sizeLimit = Long.MAX_VALUE;
     private long totalSize;
