@@ -407,6 +407,7 @@ public class TerrainRenderManager {
         this.regionManager.delete();
         this.builder.stopWorkers();
         this.chunkRenderer.delete();
+        this.pipeline.delete();
 //        if (this.chunkGeometrySorter != null) {
 //            this.chunkGeometrySorter.delete();
 //        }

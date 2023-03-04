@@ -55,6 +55,11 @@ public class RenderPipeline {
         sectionRasterizer.raster();
         terrainCompute.compute();
     }
+
+    public void delete() {
+        sectionManager.delete();
+        //TODO: Delete rest of the render passes
+    }
 }
 
 //V1
