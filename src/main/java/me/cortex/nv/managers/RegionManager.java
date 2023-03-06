@@ -30,6 +30,13 @@ public class RegionManager {
         this.regionMap = new Long2IntOpenHashMap(maxRegions);
     }
 
+    private static long packRegion(int tcount, int sizeX, int sizeY, int sizeZ, int startX, int startY, int startZ) {
+        long size = (long)sizeY<<62 | (long)sizeX<<59 | (long)sizeZ<<56;
+        long count = (long)tcount<<48;
+        long offset = ((long)startX&0xfff)<<20 | ((long)startY&0xff)<<40 | ((long)startZ&0xfff)<<0;
+        return size|count|offset;
+    }
+
     //IDEA: make it so that sections are packed into regions, that is the local index of a chunk is hard coded to its position, and just 256 sections are processed when a region is visible, this has some overhead but means that the exact amount being processed each time is known and the same
     private static final class Region {
         private final long key;

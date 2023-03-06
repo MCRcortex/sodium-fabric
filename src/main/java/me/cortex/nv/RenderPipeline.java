@@ -6,6 +6,12 @@ import me.cortex.nv.renderers.*;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexFormats;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 
+import static org.lwjgl.opengl.GL11.glDisableClientState;
+import static org.lwjgl.opengl.GL11.glEnableClientState;
+import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_UNIFIED_NV;
+import static org.lwjgl.opengl.NVVertexBufferUnifiedMemory.GL_ELEMENT_ARRAY_UNIFIED_NV;
+import static org.lwjgl.opengl.NVVertexBufferUnifiedMemory.GL_VERTEX_ATTRIB_ARRAY_UNIFIED_NV;
+
 public class RenderPipeline {
     //The rough pipeline outline is
 
@@ -34,7 +40,7 @@ public class RenderPipeline {
 
     public RenderPipeline() {
         sectionManager = new SectionManager(device, 32, 24,6, TerrainVertexFormats.COMPACT.getBufferVertexFormat().stride());
-
+        //TODO:FIXME: CLEANUP of all the types
         terrainRasterizer = new PrimaryTerrainRasterizer();
         mipper = new MipGenerator();
         clearer = new ValueClearer();
@@ -48,12 +54,21 @@ public class RenderPipeline {
     public void renderFrame() {//NOTE: can use any of the command list rendering commands to basicly draw X indirects using the same shader, thus allowing for terrain to be rendered very efficently
         sectionManager.commitChanges();//Commit all uploads done to the terrain and meta data
 
+
+        glEnableClientState(GL_UNIFORM_BUFFER_UNIFIED_NV);
+        glEnableClientState(GL_VERTEX_ATTRIB_ARRAY_UNIFIED_NV);
+        glEnableClientState(GL_ELEMENT_ARRAY_UNIFIED_NV);
+
         terrainRasterizer.raster();
         mipper.mip();
         clearer.clear();
         regionRasterizer.raster();
         sectionRasterizer.raster();
         terrainCompute.compute();
+
+        glDisableClientState(GL_UNIFORM_BUFFER_UNIFIED_NV);
+        glDisableClientState(GL_VERTEX_ATTRIB_ARRAY_UNIFIED_NV);
+        glDisableClientState(GL_ELEMENT_ARRAY_UNIFIED_NV);
     }
 
     public void delete() {
