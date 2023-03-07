@@ -2,7 +2,6 @@ package me.cortex.nv.managers;
 
 
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import me.cortex.nv.gl.RenderDevice;
 import me.cortex.nv.gl.buffers.Buffer;
 import me.cortex.nv.util.IdProvider;
@@ -39,17 +38,23 @@ public class RegionManager {
 
     //IDEA: make it so that sections are packed into regions, that is the local index of a chunk is hard coded to its position, and just 256 sections are processed when a region is visible, this has some overhead but means that the exact amount being processed each time is known and the same
     private static final class Region {
+        private final int rx;
+        private final int ry;
+        private final int rz;
         private final long key;
         private final int id;//This is the location of the region in memory, the sections it belongs to are indexed by region.id*256+section.id
         //private final short[] mapping = new short[256];//can theoretically get rid of this
         private final BitSet freeIndices = new BitSet(256);
         private int count;
+        private final byte[] id2pos = new byte[256];
 
-        private Region(long key, int id) {
+        private Region(long key, int id, int rx, int ry, int rz) {
             this.key = key;
             this.id = id;
-            //Arrays.fill(mapping, (short) -1);
             freeIndices.set(0,256);
+            this.rx = rx;
+            this.ry = ry;
+            this.rz = rz;
         }
 
 
@@ -57,13 +62,33 @@ public class RegionManager {
             if (count == 0) {
                 return 0;//Basically return null
             }
-            //TODO: THIS
-            return -1;
-        }
-    }
+            int minX = Integer.MAX_VALUE;
+            int maxX = Integer.MIN_VALUE;
+            int minY = Integer.MAX_VALUE;
+            int maxY = Integer.MIN_VALUE;
+            int minZ = Integer.MAX_VALUE;
+            int maxZ = Integer.MIN_VALUE;
+            for (int i = 0; i < 256; i++) {
+                if (freeIndices.get(i)) continue;//Skip over non set indicies
+                int x = id2pos[i]&7;
+                int y = id2pos[i]>>>6;
+                int z = (id2pos[i]>>>3)&7;
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                minZ = Math.min(minZ, z);
+                maxX = Math.max(maxX, x);
+                maxY = Math.max(maxY, y);
+                maxZ = Math.max(maxZ, z);
+            }
 
-    private static int getLocalSectionId(int sectionX, int sectionY, int sectionZ) {
-        return ((sectionY&3)<<6)|((sectionZ&7)<<3)|(sectionX&7);
+            return packRegion(count,
+                    maxX-minX,//FIXME: thse might need +1
+                    maxY-minY,//FIXME: thse might need +1`
+                    maxZ-minZ,//FIXME: thse might need +1`
+                    (rx<<3)+minX,
+                    (ry<<3)+minY,
+                    (rz<<3)+minZ);
+        }
     }
 
     public static long getRegionKey(int sectionX, int sectionY, int sectionZ) {
@@ -75,7 +100,7 @@ public class RegionManager {
         int idx = regionMap.computeIfAbsent(key, k -> idProvider.provide());
         Region region = regions[idx];
         if (region == null) {
-            region = regions[idx] = new Region(key, idx);
+            region = regions[idx] = new Region(key, idx, sectionX>>3, sectionY>>2, sectionZ>>3);
         }
         if (region.key != key) {
             throw new IllegalStateException();
@@ -87,6 +112,8 @@ public class RegionManager {
             throw new IllegalStateException();
         }
         region.freeIndices.clear(sectionId);
+        //Mark the section is set
+        region.id2pos[sectionId] = (byte) ((sectionY & 2) << 6 | sectionX & 7 | (sectionZ & 7) << 3);
 
         updateRegion(uploadStream, region);
 
@@ -100,6 +127,8 @@ public class RegionManager {
         }
         region.count--;
         region.freeIndices.set(sectionId&255);
+        //Mark the section is not set
+        region.id2pos[sectionId] = 0;
 
         if (region.count == 0) {
             idProvider.release(region.id);
@@ -114,8 +143,6 @@ public class RegionManager {
 
     private void updateRegion(UploadingBufferStream uploadingStream, Region region) {
         long segment = uploadingStream.getUpload(regionBuffer, (long) region.id * META_SIZE, META_SIZE);
-
-
         MemoryUtil.memPutLong(segment, region.getPackedData());
     }
 
