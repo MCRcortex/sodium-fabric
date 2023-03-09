@@ -213,8 +213,6 @@ public abstract class AbstractMdChunkRenderer<B extends AbstractMdChunkRenderer.
             for (B batch : renderList) {
                 this.setupPerBatch(renderPass, matrices, frameIndex,
                                    renderPipeline, commandList, programInterface, pipelineState, batch);
-                glEnable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
-                glGetInteger(GL_MAX_TASK_TOTAL_MEMORY_SIZE_NV);
                 this.issueDraw(renderPass, matrices, frameIndex,
                                renderPipeline, commandList, programInterface, pipelineState, batch);
             }

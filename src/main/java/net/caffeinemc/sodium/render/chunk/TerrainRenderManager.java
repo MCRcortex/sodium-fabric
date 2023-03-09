@@ -276,10 +276,12 @@ public class TerrainRenderManager {
         }
     }
 
-    public void renderLayer(ChunkRenderMatrices matrices, ChunkRenderPass renderPass) {
-        if (renderPass == ChunkRenderPassManager.SOLID) {
-            pipeline.renderFrame();
+    public void renderLayer(Frustum frustum, ChunkRenderMatrices matrices, ChunkRenderPass renderPass) {
+        if (renderPass == ChunkRenderPassManager.TRANSLUCENT) {//TODO: MOVE TO solid once rest of rendering works
+            pipeline.renderFrame(frustum, matrices, camera);
         }
+        if (false)
+            return;
         this.chunkRenderer.render(renderPass, matrices, this.frameIndex);
     }
 

@@ -6,3 +6,24 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 void main() {
 
 }
+
+/*
+#version 460 core
+///TODO: base off https://miketuritzin.com/post/hierarchical-depth-buffers/
+
+layout(local_size_x = 2, local_size_y = 2, local_size_z = 1) in;
+
+shared uint32_t s_minDepth;
+
+//uniform restrict coherent readonly  sampler2D depthIn;
+//uniform restrict coherent writeonly sampler2D depthOut;
+//uniform vec2 u_texelDimensions;
+
+void main() {
+    if (gl_InvocationIndex == 0) {
+        s_minDepth = floatBitsToUint(1.0);
+    }
+    memoryBarrierShared();
+    barrier();
+    //textureGather(depthIn, gl_GlobalInvocationID.xy*u_texelDimensions);
+}*/

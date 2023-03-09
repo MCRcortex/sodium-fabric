@@ -211,7 +211,7 @@ public class SodiumWorldRenderer {
      */
     public void drawChunkLayer(RenderLayer renderLayer, MatrixStack matrixStack) {
         ChunkRenderPass renderPass = this.renderPassManager.getRenderPassForLayer(renderLayer);
-        this.terrainRenderManager.renderLayer(ChunkRenderMatrices.from(matrixStack), renderPass);
+        this.terrainRenderManager.renderLayer(frustum, ChunkRenderMatrices.from(matrixStack), renderPass);
     }
 
     public void reload() {

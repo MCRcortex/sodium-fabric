@@ -18,6 +18,13 @@ public class IdProvider {
     }
 
     public void release(int id) {
-        free.add(id);//TODO: make it shrink cid
+        free.add(id);
+        while ((!free.isEmpty()) && free.lastInt()+1 == cid) {
+            free.remove(--cid);
+        }
+    }
+
+    public int maxIndex() {
+        return cid;
     }
 }

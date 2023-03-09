@@ -11,6 +11,7 @@ import java.lang.ref.WeakReference;
 import java.util.LinkedList;
 import java.util.List;
 
+import static org.lwjgl.opengl.GL11.glFinish;
 import static org.lwjgl.opengl.GL42C.GL_BUFFER_UPDATE_BARRIER_BIT;
 import static org.lwjgl.opengl.GL44.GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT;
 
@@ -46,7 +47,7 @@ public class UploadingBufferStream {
         if (caddr == -1 || !segments.expand(caddr, size)) {
             caddr = segments.alloc(size);//TODO: replace with allocFromLargest
             allocations[cidx].add(caddr);//Enqueue the allocation to be freed
-            offset = 0;
+            offset = size;
             addr = caddr;
             batchedFlushes.add(caddr);
         } else {//Could expand the allocation so just update it

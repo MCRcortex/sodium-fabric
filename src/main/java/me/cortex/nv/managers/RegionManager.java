@@ -4,8 +4,10 @@ package me.cortex.nv.managers;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import me.cortex.nv.gl.RenderDevice;
 import me.cortex.nv.gl.buffers.Buffer;
+import me.cortex.nv.gl.buffers.IDeviceMappedBuffer;
 import me.cortex.nv.util.IdProvider;
 import me.cortex.nv.util.UploadingBufferStream;
+import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.lwjgl.system.MemoryUtil;
 
@@ -17,22 +19,23 @@ public class RegionManager {
 
     private final Long2IntOpenHashMap regionMap;
     private final IdProvider idProvider = new IdProvider();
-    private final Buffer regionBuffer;
+    private final IDeviceMappedBuffer regionBuffer;
     private final RenderDevice device;
 
     private final Region[] regions;
 
     public RegionManager(RenderDevice device, int maxRegions) {
         this.device = device;
-        this.regionBuffer = device.createDeviceOnlyBuffer((long) maxRegions * META_SIZE);
+        this.regionBuffer = device.createDeviceOnlyMappedBuffer((long) maxRegions * META_SIZE);
         this.regions = new Region[maxRegions];
         this.regionMap = new Long2IntOpenHashMap(maxRegions);
+        regionMap.defaultReturnValue(-1);
     }
 
     private static long packRegion(int tcount, int sizeX, int sizeY, int sizeZ, int startX, int startY, int startZ) {
         long size = (long)sizeY<<62 | (long)sizeX<<59 | (long)sizeZ<<56;
         long count = (long)tcount<<48;
-        long offset = ((long)startX&0xfff)<<20 | ((long)startY&0xff)<<40 | ((long)startZ&0xfff)<<0;
+        long offset = ((long)startX&0xfffff)<<0 | ((long)startY&0xff)<<40 | ((long)startZ&0xfffff)<<20;
         return size|count|offset;
     }
 
@@ -71,7 +74,7 @@ public class RegionManager {
             for (int i = 0; i < 256; i++) {
                 if (freeIndices.get(i)) continue;//Skip over non set indicies
                 int x = id2pos[i]&7;
-                int y = id2pos[i]>>>6;
+                int y = Byte.toUnsignedInt(id2pos[i])>>>6;
                 int z = (id2pos[i]>>>3)&7;
                 minX = Math.min(minX, x);
                 minY = Math.min(minY, y);
@@ -86,7 +89,7 @@ public class RegionManager {
                     maxY-minY,//FIXME: thse might need +1`
                     maxZ-minZ,//FIXME: thse might need +1`
                     (rx<<3)+minX,
-                    (ry<<3)+minY,
+                    (ry<<2)+minY,
                     (rz<<3)+minZ);
         }
     }
@@ -99,11 +102,12 @@ public class RegionManager {
         long key = getRegionKey(sectionX, sectionY, sectionZ);
         int idx = regionMap.computeIfAbsent(key, k -> idProvider.provide());
         Region region = regions[idx];
+        Region region2 = region;
         if (region == null) {
             region = regions[idx] = new Region(key, idx, sectionX>>3, sectionY>>2, sectionZ>>3);
         }
         if (region.key != key) {
-            throw new IllegalStateException();
+            throw new IllegalStateException("Had " + region.key + " expected: " + key + " " + region2);
         }
         region.count++;
 
@@ -113,7 +117,7 @@ public class RegionManager {
         }
         region.freeIndices.clear(sectionId);
         //Mark the section is set
-        region.id2pos[sectionId] = (byte) ((sectionY & 2) << 6 | sectionX & 7 | (sectionZ & 7) << 3);
+        region.id2pos[sectionId] = (byte) ((sectionY & 3) << 6 | sectionX & 7 | (sectionZ & 7) << 3);
 
         updateRegion(uploadStream, region);
 
@@ -125,17 +129,24 @@ public class RegionManager {
         if (region == null) {
             throw new IllegalStateException();
         }
+        if ((!regionMap.containsKey(region.key)) || regionMap.get(region.key) != region.id) {
+            throw new IllegalStateException();
+        }
         region.count--;
         region.freeIndices.set(sectionId&255);
         //Mark the section is not set
-        region.id2pos[sectionId] = 0;
+        region.id2pos[sectionId&255] = 0;
 
         if (region.count == 0) {
             idProvider.release(region.id);
             //Note: there is a special-case in region.getPackedData that means when count == 0, it auto nulls
             updateRegion(uploadStream, region);
             regions[region.id] = null;
-            regionMap.remove(region.key);
+            region.count = -111;
+
+            if (regionMap.remove(region.key) != region.id) {
+                throw new IllegalStateException();
+            }
         } else {
             updateRegion(uploadStream, region);
         }
@@ -148,5 +159,31 @@ public class RegionManager {
 
     public void delete() {
         regionBuffer.delete();
+    }
+
+    public long getRegionDataAddress() {
+        return regionBuffer.getDeviceAddress();
+    }
+
+    public int maxRegions() {
+        return regions.length;
+    }
+
+    public int regionCount() {
+        return regionMap.size();
+    }
+
+    public int maxRegionIndex() {
+        return idProvider.maxIndex();
+    }
+
+    public boolean isRegionVisible(Frustum frustum, int regionId) {
+        var region = regions[regionId];
+        if (region == null) {
+            return false;
+        } else {
+            //FIXME: should make it use the region data so that the frustum bounds check is more accurate
+            return frustum.containsBox(region.rx<<7,region.ry<<6, region.rz<<7, (region.rx+1)<<7, (region.ry+1)<<6, (region.rz+1)<<7);
+        }
     }
 }
