@@ -28,7 +28,7 @@ public class RenderDevice {
         return new PersistentSparseAddressableBuffer(totalSize);
     }
 
-    public Buffer createDeviceOnlyBuffer(long size) {
-        return new DeviceOnlyBuffer(size);
+    public IDeviceMappedBuffer createDeviceOnlyMappedBuffer(long size) {
+        return new DeviceOnlyMappedBuffer(size);
     }
 }

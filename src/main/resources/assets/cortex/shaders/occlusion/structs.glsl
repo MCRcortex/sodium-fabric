@@ -55,7 +55,7 @@ struct Section {//48 bytes
     //--header--
     //3 bytes for AABB (4 bits per axis, 3 offset, 3 size)
     //3 bytes for start chunk x,z axis and 1 byte for height
-    //4 bytes for base terrain offset (in vertex count/4 (quads)) // NOT NEEDED
+    //4 bytes for base terrain offset (in vertex count/4 (quads))
     //2 bytes other meta
     // -- total: 16 bytes
     ivec4 header;
@@ -63,6 +63,15 @@ struct Section {//48 bytes
     //--payload--
     uint[8] payload;
 };
+
+
+
+//V3
+//16 byte header
+// each geometry range is represented by a uint16_t which is the offset in quad count
+//payload size: 7*2 == 14
+// TOTAL size of a section is 32 bytes
+
 
 
 struct UnpackedSectionHeader {

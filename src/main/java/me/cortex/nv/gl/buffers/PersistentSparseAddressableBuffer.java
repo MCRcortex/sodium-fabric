@@ -12,7 +12,7 @@ import static org.lwjgl.opengl.GL15C.glDeleteBuffers;
 import static org.lwjgl.opengl.NVShaderBufferLoad.*;
 
 public class PersistentSparseAddressableBuffer extends GlObject implements IDeviceMappedBuffer {
-    private static long alignUp(long number, long alignment) {
+    public static long alignUp(long number, long alignment) {
         long delta = number % alignment;
         return delta == 0?number: number + (alignment - delta);
     }
