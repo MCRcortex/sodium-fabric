@@ -20,8 +20,10 @@ taskNV out Task {
     vec3 origin;
 
 };
+//Can use this also as a extra culling layer to cull
 
 void main() {
+    //TODO: figure out a more efficent way to render chunks other than
     if (sectionVisibility[gl_WorkGroupID.x] != frameId) return;//Early exit if the section isnt visible
     //gl_WorkGroupID.x is also the section node
     //ivec4 header = sectionData[gl_WorkGroupID.x];
