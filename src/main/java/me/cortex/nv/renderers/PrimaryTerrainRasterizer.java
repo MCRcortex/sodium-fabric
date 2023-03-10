@@ -2,6 +2,7 @@ package me.cortex.nv.renderers;
 
 import me.cortex.nv.gl.GlObject;
 import me.cortex.nv.gl.buffers.Buffer;
+import me.cortex.nv.gl.buffers.IDeviceMappedBuffer;
 import me.cortex.nv.gl.shader.Shader;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
 import net.caffeinemc.sodium.render.shader.ShaderParser;
@@ -31,10 +32,10 @@ public class PrimaryTerrainRasterizer extends Phase {
                     new Identifier("cortex", "terrain/frag.frag"))).compile();
 
 
-    public void raster(int regionCount, long uniformAddr, int uniformLen, long commandAddr) {
+    public void raster(int regionCount, long uniformAddr, int uniformLen, IDeviceMappedBuffer commandAddr) {
         shader.bind();
         glBufferAddressRangeNV(GL_UNIFORM_BUFFER_ADDRESS_NV, 0, uniformAddr, uniformLen);//Bind the normal uniform buffer
-        glBufferAddressRangeNV(GL_DRAW_INDIRECT_ADDRESS_NV, 0, commandAddr, regionCount* 8L);//Bind the command buffer
+        glBufferAddressRangeNV(GL_DRAW_INDIRECT_ADDRESS_NV, 0, commandAddr.getDeviceAddress(), regionCount* 8L);//Bind the command buffer
         glMultiDrawMeshTasksIndirectNV( 0, regionCount, 0);
     }
 }

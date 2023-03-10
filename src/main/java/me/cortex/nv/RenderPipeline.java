@@ -146,8 +146,8 @@ public class RenderPipeline {
         //Memory barrier from the last frame
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
-        if (prevRegionCount != 0 && true) {
-            terrainRasterizer.raster(prevRegionCount, sceneUniform.getDeviceAddress(), SCENE_SIZE + prevRegionCount * 2, terrainCommandBuffer.getDeviceAddress());
+        if (prevRegionCount != 0) {
+            terrainRasterizer.raster(prevRegionCount, sceneUniform.getDeviceAddress(), SCENE_SIZE + prevRegionCount * 2, terrainCommandBuffer);
         }
 
         mipper.mip();
