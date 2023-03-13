@@ -17,15 +17,21 @@
 layout(local_size_x=1) in;
 
 taskNV out Task {
-    vec3 origin;
-
+    vec4 originAndBaseIndex;
+    uint endIdx;
 };
 //Can use this also as a extra culling layer to cull
 
 void main() {
-    //TODO: figure out a more efficent way to render chunks other than
-    if (sectionVisibility[gl_WorkGroupID.x] != frameId) return;//Early exit if the section isnt visible
+    uint sectionId = ((gl_WorkGroupID.x)&~(0x7<<29));
+    uint side = (gl_WorkGroupID.x>>29)&7;//Dont need the &
+    if (sectionVisibility[sectionId]!=frameId || (((uint)sectionFaceVisibility[sectionId])&(1<<side))==0) {
+        //Early exit if the section isnt visible
+        gl_TaskCountNV = 0;
+        return;
+    }
     //gl_WorkGroupID.x is also the section node
     //ivec4 header = sectionData[gl_WorkGroupID.x];
+    //Emit enough mesh shaders such that max(gl_GlobalInvocationID.x)>=quadCount
     gl_TaskCountNV = 0;
 }

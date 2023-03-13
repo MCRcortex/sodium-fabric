@@ -73,9 +73,8 @@ public class RenderPipeline {
         int maxRegions = sectionManager.getRegionManager().maxRegions();
         sceneUniform = device.createDeviceOnlyMappedBuffer(SCENE_SIZE+ maxRegions*2);
         regionVisibility = device.createDeviceOnlyMappedBuffer(maxRegions);
-        sectionVisibility = device.createDeviceOnlyMappedBuffer(maxRegions * 256L);
-
-        terrainCommandBuffer = device.createDeviceOnlyMappedBuffer(maxRegions*8L);
+        sectionVisibility = device.createDeviceOnlyMappedBuffer(maxRegions * 256L * 2);
+        terrainCommandBuffer = device.createDeviceOnlyMappedBuffer(maxRegions*8L*7);
     }
 
 
@@ -123,6 +122,8 @@ public class RenderPipeline {
             MemoryUtil.memPutLong(addr, regionVisibility.getDeviceAddress());
             addr += 8;
             MemoryUtil.memPutLong(addr, sectionVisibility.getDeviceAddress());
+            addr += 8;
+            MemoryUtil.memPutLong(addr, sectionVisibility.getDeviceAddress()+sectionManager.getRegionManager().maxRegions()*256L);
             addr += 8;
             MemoryUtil.memPutLong(addr, terrainCommandBuffer.getDeviceAddress());
             addr += 8;

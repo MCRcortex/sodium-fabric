@@ -35,7 +35,7 @@ public class PrimaryTerrainRasterizer extends Phase {
     public void raster(int regionCount, long uniformAddr, int uniformLen, IDeviceMappedBuffer commandAddr) {
         shader.bind();
         glBufferAddressRangeNV(GL_UNIFORM_BUFFER_ADDRESS_NV, 0, uniformAddr, uniformLen);//Bind the normal uniform buffer
-        glBufferAddressRangeNV(GL_DRAW_INDIRECT_ADDRESS_NV, 0, commandAddr.getDeviceAddress(), regionCount* 8L);//Bind the command buffer
-        glMultiDrawMeshTasksIndirectNV( 0, regionCount, 0);
+        glBufferAddressRangeNV(GL_DRAW_INDIRECT_ADDRESS_NV, 0, commandAddr.getDeviceAddress(), regionCount* 8L*7);//Bind the command buffer
+        glMultiDrawMeshTasksIndirectNV( 0, regionCount*7, 0);
     }
 }

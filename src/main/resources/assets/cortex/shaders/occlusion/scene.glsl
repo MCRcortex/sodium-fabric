@@ -10,6 +10,15 @@ struct Section {
 //Header.w -> quad offset
 
 
+#define DOWN 0
+#define UP 1
+#define NORTH 2
+#define SOUTH 3
+#define WEST 4
+#define EAST 5
+#define UNASSIGNED 6
+
+
 
 layout(std140, binding=0) uniform SceneData {
     //Need to basicly go in order of alignment
@@ -24,6 +33,7 @@ layout(std140, binding=0) uniform SceneData {
     //NOTE: for the following, can make it so that region visibility actually uses section visibility array
     uint8_t *regionVisibility;
     uint8_t *sectionVisibility;
+    uint8_t *sectionFaceVisibility;
     //Terrain command buffer, the first 4 bytes are actually the count
     uvec2 *terrainCommandBuffer;
     //align(2)
