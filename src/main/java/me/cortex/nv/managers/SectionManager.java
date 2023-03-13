@@ -1,6 +1,7 @@
 package me.cortex.nv.managers;
 
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import me.cortex.nv.gl.RenderDevice;
 import me.cortex.nv.gl.buffers.IDeviceMappedBuffer;
 import me.cortex.nv.util.BufferArena;
@@ -20,6 +21,8 @@ public class SectionManager {
 
     //TODO: maybe replace with a int[] using bit masking thing
     private final Long2IntOpenHashMap sectionOffset = new Long2IntOpenHashMap();
+
+    private final Long2LongOpenHashMap terrainDataLocation = new Long2LongOpenHashMap();
 
     public final UploadingBufferStream uploadStream;
 
@@ -57,6 +60,7 @@ public class SectionManager {
 
 
         //ByteBuffer geometryUpload = uploadStream.getUpload(result.geometry().vertices().buffer().getLength());
+
 
 
 

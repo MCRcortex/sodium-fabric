@@ -24,9 +24,22 @@ taskNV out Task {
 };
 
 void main() {
+    //TODO: see whats faster, atomicAdd (for mdic) or dispatching alot of empty calls (mdi)
+    //TODO: experiment with emitting 8 workgroups with the 8th always being 0
+    // doing so would enable to batch memory write 2 commands
+    // thus taking 4 mem moves instead of 7
+
+    //Emit 7 workloads per chunk
+    uint base = gl_WorkGroupID.x*7;
     //Early exit if the region wasnt visible
     if (regionVisibility[gl_WorkGroupID.x] != frameId) {
-        terrainCommandBuffer[gl_WorkGroupID.x] = uvec2(0);
+        terrainCommandBuffer[base+0] = uvec2(0);
+        terrainCommandBuffer[base+1] = uvec2(0);
+        terrainCommandBuffer[base+2] = uvec2(0);
+        terrainCommandBuffer[base+3] = uvec2(0);
+        terrainCommandBuffer[base+4] = uvec2(0);
+        terrainCommandBuffer[base+5] = uvec2(0);
+        terrainCommandBuffer[base+6] = uvec2(0);
         return;
     }
 
@@ -41,7 +54,23 @@ void main() {
     _count = count;
 
     gl_TaskCountNV = count;
-    terrainCommandBuffer[gl_WorkGroupID.x] = uvec2(256, _visOutBase);
+
+    int32_t startY = (int32_t)((int8_t)(data>>40));             //In chunk coordinates
+    int32_t startZ = (((int32_t)(data>>8))>>12);    //In chunk coordinates
+    int32_t startX = (((int32_t)(data<<12))>>12);   //In chunk coordinates
+    int32_t endY = startY + 1 + (int32_t)((data>>62)&0x3);//(technically dont need the 0x3)
+    int32_t endX = startX + 1 + (int32_t)((data>>59)&0x7);
+    int32_t endZ = startZ + 1 + (int32_t)((data>>56)&0x7);
+
+    //Check each axis and emit a render call or cull out that call (ternary op so it might be free)
+    //TODO: SEE HOW EXPENSIVE THIS IS, that is if its free or does branching
+    terrainCommandBuffer[base+0] = startX<=chunkPosition.x?uvec2((uint32_t)count, _visOutBase|(0<<29)):uvec2(0);
+    terrainCommandBuffer[base+1] = endX>=chunkPosition.x?uvec2((uint32_t)count, _visOutBase|(1<<29)):uvec2(0);
+    terrainCommandBuffer[base+2] = startY<=chunkPosition.y?uvec2((uint32_t)count, _visOutBase|(2<<29)):uvec2(0);
+    terrainCommandBuffer[base+3] = endY>=chunkPosition.y?uvec2((uint32_t)count, _visOutBase|(3<<29)):uvec2(0);
+    terrainCommandBuffer[base+4] = startZ<=chunkPosition.z?uvec2((uint32_t)count, _visOutBase|(4<<29)):uvec2(0);
+    terrainCommandBuffer[base+5] = endZ>=chunkPosition.z?uvec2((uint32_t)count, _visOutBase|(5<<29)):uvec2(0);
+    terrainCommandBuffer[base+6] = uvec2((uint32_t)count, _visOutBase|(6<<29));
 
     //TODO: USE this shader to setup the compute indirect sizes of the terrain command compute shader
 }
