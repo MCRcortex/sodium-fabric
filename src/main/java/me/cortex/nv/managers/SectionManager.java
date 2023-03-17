@@ -7,6 +7,8 @@ import me.cortex.nv.gl.buffers.IDeviceMappedBuffer;
 import me.cortex.nv.util.BufferArena;
 import me.cortex.nv.util.UploadingBufferStream;
 import me.cortex.nv.gl.buffers.Buffer;
+import net.caffeinemc.sodium.render.SodiumWorldRenderer;
+import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
 import net.minecraft.util.math.ChunkSectionPos;
@@ -22,7 +24,7 @@ public class SectionManager {
     //TODO: maybe replace with a int[] using bit masking thing
     private final Long2IntOpenHashMap sectionOffset = new Long2IntOpenHashMap();
 
-    private final Long2LongOpenHashMap terrainDataLocation = new Long2LongOpenHashMap();
+    private final Long2IntOpenHashMap terrainDataLocation = new Long2IntOpenHashMap();
 
     public final UploadingBufferStream uploadStream;
 
@@ -52,15 +54,45 @@ public class SectionManager {
             return;
         }
         RenderSection section = result.render();
+        long key = getSectionKey(section.getSectionX(), section.getSectionY(), section.getSectionZ());
         int sectionIdx = sectionOffset.computeIfAbsent(//Get or fetch the section meta index
-                getSectionKey(section.getSectionX(), section.getSectionY(), section.getSectionZ()),
+                key,
                 a->regionManager.createSectionIndex(uploadStream, section.getSectionX(), section.getSectionY(), section.getSectionZ())
         );
 
 
+        if (terrainDataLocation.containsKey(key)) {
+            terrainAreana.free(terrainDataLocation.get(key));
+        }
 
-        //ByteBuffer geometryUpload = uploadStream.getUpload(result.geometry().vertices().buffer().getLength());
-
+        int geoSize = result.geometry().vertices().buffer().getLength();
+        int stride = result.geometry().vertices().format().stride();
+        int addr = terrainAreana.allocQuads((geoSize/stride)/4);
+        terrainDataLocation.put(key, addr);
+        long geoUpload = terrainAreana.upload(uploadStream, addr);
+        //Upload all the geometry grouped by face
+        short[] offsets = new short[8];
+        short offset = 0;
+        //Do all but translucent
+        for (int i = 0; i < 7; i++) {
+            for (var pass : SodiumWorldRenderer.instance().renderPassManager.getAllRenderPasses()) {
+                if (pass.isTranslucent())
+                    continue;
+                if (result.geometry().models()[pass.getId()] == null)
+                    continue;
+                if (result.geometry().models()[pass.getId()].getModelPartSegments()[i] == BufferSegment.INVALID)
+                    continue;
+                long geo = result.geometry().models()[pass.getId()].getModelPartSegments()[i];
+                MemoryUtil.memCopy(result.geometry().vertices().buffer().getAddress() + (long) BufferSegment.getOffset(geo) * stride,
+                        geoUpload + offset * 4L * stride,
+                        (long) BufferSegment.getLength(geo) * stride);
+                offset += BufferSegment.getLength(geo)/4;
+            }
+            offsets[i] = offset;
+        }
+        //Do translucent
+        short translucent = offsets[7];
+        offsets[7] = translucent;
 
 
 
@@ -76,16 +108,24 @@ public class SectionManager {
         int px = section.getSectionX()<<8 | sx<<4 | mx;
         int py = section.getSectionY()<<24 | sy<<4 | my;
         int pz = section.getSectionZ()<<8 | sz<<4 | mz;
-        int pw = 0;
+        int pw = addr;
         new Vector4i(px, py, pz, pw).getToAddress(segment);
         segment += 4*4;
+
+        //Write the geometry offsets, packed into ints
+        for (int i = 0; i < 4; i++) {
+            int geo = Short.toUnsignedInt(offsets[i*2])|Short.toUnsignedInt(offsets[i*2+1]);
+            MemoryUtil.memPutInt(segment, geo);
+            segment += 4;
+        }
     }
 
     public void deleteSection(RenderSection section) {
-        int sectionIdx = sectionOffset.remove(getSectionKey(section.getSectionX(), section.getSectionY(), section.getSectionZ()));
+        long key = getSectionKey(section.getSectionX(), section.getSectionY(), section.getSectionZ());
+        int sectionIdx = sectionOffset.remove(key);
         if (sectionIdx != -1) {
+            terrainAreana.free(terrainDataLocation.remove(key));
             regionManager.removeSectionIndex(uploadStream, sectionIdx);
-
             //Clear the segment
             long segment = uploadStream.getUpload(sectionBuffer, (long) sectionIdx * SECTION_SIZE, SECTION_SIZE);
             MemoryUtil.memSet(segment, 0, 32);
@@ -111,3 +151,7 @@ public class SectionManager {
         return sectionBuffer.getDeviceAddress();
     }
 }
+
+
+
+

@@ -73,6 +73,11 @@ dependencies {
        // modRuntimeOnly "maven.modrinth:starlight:1.1.1+1.19"
        // modRuntimeOnly "maven.modrinth:lithium:mc1.19.2-0.8.3"
        // modRuntimeOnly "maven.modrinth:ferrite-core:5.0.0-fabric"
+        //Ideally would use title bar but this is good enough for now
+        modRuntimeOnly "maven.modrinth:fpsdisplay:1.5.0+1.19"
+        modRuntimeOnly "maven.modrinth:cloth-config:9.0.94+fabric"
+        includeModImplementation fabricApi.module("fabric-key-binding-api-v1", project.fabric_version)
+        includeModImplementation fabricApi.module("fabric-lifecycle-events-v1", project.fabric_version)
     }
 }
 

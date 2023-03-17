@@ -24,7 +24,7 @@ public class RenderDevice {
         glCopyNamedBufferSubData(((GlObject)src).getId(), ((GlObject)dst).getId(), srcOffset, dstOffset, size);
     }
 
-    public IDeviceMappedBuffer createSparseBuffer(long totalSize) {
+    public PersistentSparseAddressableBuffer createSparseBuffer(long totalSize) {
         return new PersistentSparseAddressableBuffer(totalSize);
     }
 

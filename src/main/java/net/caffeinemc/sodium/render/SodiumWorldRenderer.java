@@ -52,7 +52,7 @@ public class SodiumWorldRenderer {
     private int frameIndex;
     
     private TerrainRenderManager terrainRenderManager;
-    private ChunkRenderPassManager renderPassManager;
+    public ChunkRenderPassManager renderPassManager;
     private ChunkTracker chunkTracker;
     
     /**
