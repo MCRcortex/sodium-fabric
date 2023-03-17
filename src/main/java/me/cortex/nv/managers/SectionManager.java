@@ -29,7 +29,7 @@ public class SectionManager {
     public final UploadingBufferStream uploadStream;
 
     private final IDeviceMappedBuffer sectionBuffer;
-    private final BufferArena terrainAreana;
+    public final BufferArena terrainAreana;
 
     private final RenderDevice device;
     public SectionManager(RenderDevice device, int rd, int height, int frames, int quadVertexSize) {

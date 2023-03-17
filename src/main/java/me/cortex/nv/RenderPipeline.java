@@ -56,7 +56,7 @@ public class RenderPipeline {
     private final SectionRasterizer sectionRasterizer;
 
     private final IDeviceMappedBuffer sceneUniform;
-    private static final int SCENE_SIZE = (int) alignUp(4*4*4+4*4+4*4+8*5+3, 2);
+    private static final int SCENE_SIZE = (int) alignUp(4*4*4+4*4+4*4+8*6+3, 2);
 
     private final IDeviceMappedBuffer regionVisibility;
     private final IDeviceMappedBuffer sectionVisibility;
@@ -127,9 +127,11 @@ public class RenderPipeline {
             addr += 8;
             MemoryUtil.memPutLong(addr, terrainCommandBuffer.getDeviceAddress());
             addr += 8;
+            MemoryUtil.memPutLong(addr, sectionManager.terrainAreana.buffer.getDeviceAddress());
+            addr += 8;
             MemoryUtil.memPutShort(addr, (short) visibleRegions);
             addr += 2;
-            MemoryUtil.memPutByte(addr, (byte) frameId++);
+            MemoryUtil.memPutByte(addr, (byte) (frameId++));
         }
         sectionManager.commitChanges();//Commit all uploads done to the terrain and meta data
         //if (true) return;
@@ -148,6 +150,7 @@ public class RenderPipeline {
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
         if (prevRegionCount != 0) {
+            glEnable(GL_DEPTH_TEST);
             terrainRasterizer.raster(prevRegionCount, sceneUniform.getDeviceAddress(), SCENE_SIZE + prevRegionCount * 2, terrainCommandBuffer);
         }
 

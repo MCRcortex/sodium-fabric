@@ -54,6 +54,7 @@ void main() {
     gl_MeshVerticesNV[gl_LocalInvocationID.x].gl_Position = MVP*vec4(corner, 1.0);
     int visibilityIndex = (int)(_visOutBase|gl_WorkGroupID.x);
 
+
     emitIndicies(visibilityIndex);
     if (gl_LocalInvocationID.x < 4) {
         emitParital(visibilityIndex);
@@ -70,5 +71,9 @@ void main() {
         msk |= (uint8_t)(chunk.z<=chunkPosition.z?(1<<SOUTH):0);
         msk |= (uint8_t)(chunk.z>=chunkPosition.z?(1<<NORTH):0);
         sectionFaceVisibility[visibilityIndex] = msk;
+
+        //Set frameid to old old frame to stop maybe visibility every 256 frames
+        //TODO: need to still check if chunk wasnt visible last frame but is visible this frame
+        sectionVisibility[visibilityIndex] = (uint8_t)(int8_t(frameId)-int8_t(10));
     }
 }

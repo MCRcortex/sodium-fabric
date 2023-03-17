@@ -1,4 +1,13 @@
 //TODO: see if splitting up header and renderRanges into 2 differnt buffers is faster/better
+struct Vertex {
+    uint a;
+    uint b;
+    uint c;
+    uint d;
+    uint e;
+};
+
+
 // this is cause in the section rasterizer you get less cache misses thus higher throughput
 struct Section {
     ivec4 header;
@@ -36,6 +45,9 @@ layout(std140, binding=0) uniform SceneData {
     uint8_t *sectionFaceVisibility;
     //Terrain command buffer, the first 4 bytes are actually the count
     uvec2 *terrainCommandBuffer;
+
+    Vertex *terrainData;
+
     //align(2)
     uint16_t regionCount;//Number of regions in regionIndicies
     //align(1)

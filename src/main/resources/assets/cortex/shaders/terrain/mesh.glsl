@@ -24,11 +24,26 @@ taskNV in Task {
 
 //TODO: extra per meshlet culling here (hell even per quad culling)
 void main() {
-    uint id = gl_GlobalInvocationID.x>>1;
-    if (id>=endIdx) {//If its over the invocation id, dont render
+    if (gl_GlobalInvocationID.x>>1>=endIdx) {//If its over the invocation id, dont render
         return;
     }
     //Each pair of meshlet invokations emits 2 vertices each and 1 primative each
-    id += floatBitsToUint(originAndBaseData.w);
+    uint id = floatBitsToUint(originAndBaseData.w) + gl_GlobalInvocationID.x;
+    id <<= 1;//mul by 2 since there are 2 threads per quad each thread needs to process 2 vertices
+
+    Vertex A = terrainData[id];
+    Vertex B = terrainData[id|1];
+
+    //TODO: OPTIMIZE
+    uint primId = gl_LocalInvocationID.x*3;
+    uint idxBase = (gl_LocalInvocationID.x>>1)<<2;
+    gl_MeshVerticesNV[(gl_LocalInvocationID.x<<1)].gl_Position   = vec4(A.a,A.b,A.c,A.d);
+    gl_MeshVerticesNV[(gl_LocalInvocationID.x<<1)|1].gl_Position = vec4(B.a,B.b,B.c,B.d);
+    //TODO: see if ternary or array is faster
+    bool isA = (gl_LocalInvocationID.x&1)==0;
+    gl_PrimitiveIndicesNV[primId]   = (isA?0:1)+idxBase;
+    gl_PrimitiveIndicesNV[primId+1] = (isA?1:2)+idxBase;
+    gl_PrimitiveIndicesNV[primId+2] = (isA?3:3)+idxBase;
+
     gl_PrimitiveCountNV = 32;
 }

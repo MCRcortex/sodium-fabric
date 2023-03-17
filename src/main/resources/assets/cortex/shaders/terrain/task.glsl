@@ -34,7 +34,8 @@ uint32_t extractOffset(uint idx) {
 void main() {
     uint sectionId = ((gl_WorkGroupID.x)&~(0x7<<29));
     uint side = (gl_WorkGroupID.x>>29)&7;//Dont need the &
-    if (sectionVisibility[sectionId]!=frameId || (((uint)sectionFaceVisibility[sectionId])&(1<<side))==0) {
+    //THIS IS WRONG SHOULD BE previous frame id
+    if ((uint8_t(sectionVisibility[sectionId]+uint8_t(1))!=frameId) || ((((uint)sectionFaceVisibility[sectionId])&(1<<side))==0)) {
         //Early exit if the section isnt visible
         //gl_TaskCountNV = 0;
         return;
