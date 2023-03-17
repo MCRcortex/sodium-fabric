@@ -10,7 +10,7 @@ public class BufferArena {
     SegmentedManager segments = new SegmentedManager();
     private final int vertexFormatSize;
     private final RenderDevice device;
-    public final IDeviceMappedBuffer buffer;
+    public final PersistentSparseAddressableBuffer buffer;
 
     public BufferArena(RenderDevice device, int vertexFormatSize) {
         this.device = device;
@@ -18,16 +18,19 @@ public class BufferArena {
         buffer = device.createSparseBuffer(5000000000L);//Create a 5gb buffer
     }
 
-    public int alloc(int quadCount) {
-        long addr = segments.alloc(quadCount*4*vertexFormatSize);
-        if (addr%(4L *vertexFormatSize) != 0) {
-            throw new IllegalStateException();
-        }
-        return (int) (addr/quadCount*4*vertexFormatSize);
+    public int allocQuads(int quadCount) {
+        int addr = (int) segments.alloc(quadCount);
+        buffer.ensureAllocated(addr*(4L *vertexFormatSize), quadCount*(4L *vertexFormatSize));
+        return addr;
     }
 
     public void free(int addr) {
+        int count = segments.free(addr);
+        buffer.deallocate(addr*(4L *vertexFormatSize), count*(4L *vertexFormatSize));
+    }
 
+    public long upload(UploadingBufferStream stream, int addr) {
+        return stream.getUpload(buffer, addr*(4L*vertexFormatSize), (int) segments.getSize(addr)*(4*vertexFormatSize));
     }
 
     public void delete() {

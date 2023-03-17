@@ -2,11 +2,14 @@ package me.cortex.nv.gl.buffers;
 
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import me.cortex.nv.gl.GlObject;
+import org.lwjgl.opengl.ARBSparseBuffer;
+import org.lwjgl.opengl.GL15;
+import org.lwjgl.opengl.GL21;
+import org.lwjgl.system.NativeType;
 
 import static org.lwjgl.opengl.ARBDirectStateAccess.glCreateBuffers;
 import static org.lwjgl.opengl.ARBDirectStateAccess.glNamedBufferStorage;
-import static org.lwjgl.opengl.ARBSparseBuffer.GL_SPARSE_STORAGE_BIT_ARB;
-import static org.lwjgl.opengl.ARBSparseBuffer.glNamedBufferPageCommitmentARB;
+import static org.lwjgl.opengl.ARBSparseBuffer.*;
 import static org.lwjgl.opengl.GL15C.GL_READ_WRITE;
 import static org.lwjgl.opengl.GL15C.glDeleteBuffers;
 import static org.lwjgl.opengl.NVShaderBufferLoad.*;
@@ -33,10 +36,14 @@ public class PersistentSparseAddressableBuffer extends GlObject implements IDevi
         }
     }
 
+    private static void doCommit(int buffer, long offset, long size, boolean commit) {
+        GL21.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer);
+        ARBSparseBuffer.glBufferPageCommitmentARB(GL15.GL_ARRAY_BUFFER, offset, size, commit);
+    }
 
     private final Int2IntOpenHashMap allocationCount = new Int2IntOpenHashMap();
     private void allocatePages(int page, int pageCount) {
-        glNamedBufferPageCommitmentARB(id, PAGE_SIZE * page, PAGE_SIZE * pageCount, true);
+        doCommit(id, PAGE_SIZE * page, PAGE_SIZE * pageCount, true);
         for (int i = 0; i < pageCount; i++) {
             allocationCount.put(i+page, allocationCount.getOrDefault(i+page, 0)+1);
         }
@@ -48,19 +55,22 @@ public class PersistentSparseAddressableBuffer extends GlObject implements IDevi
                 allocationCount.put(i+page, newCount);
             } else {
                 allocationCount.remove(i+page);
-                glNamedBufferPageCommitmentARB(id, PAGE_SIZE * page, PAGE_SIZE,false);
+                doCommit(id, PAGE_SIZE * page, PAGE_SIZE,false);
             }
         }
     }
 
 
-    //Auto alloc and dealloc
-    public long malloc(long size, long alignment) {
-        return 0;
+    public void ensureAllocated(long addr, long size) {
+        int pstart = (int) (addr/PAGE_SIZE);
+        int pend   = (int) ((addr+size)/PAGE_SIZE);
+        allocatePages(pstart, pend-pstart+1);
     }
 
-    public void free(long location) {
-
+    public void deallocate(long addr, long size) {
+        int pstart = (int) (addr/PAGE_SIZE);
+        int pend   = (int) ((addr+size)/PAGE_SIZE);
+        deallocatePages(pstart, pend-pstart+1);
     }
 
     @Override

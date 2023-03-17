@@ -13,13 +13,22 @@
 
 #import <cortex:occlusion/scene.glsl>
 
-layout(local_size_x = 8) in;
-layout(triangles, max_vertices=8, max_primitives=12) out;
+layout(local_size_x = 32) in;
+layout(triangles, max_vertices=64, max_primitives=32) out;
 
 taskNV in Task {
-    vec3 origin;
-
+    vec4 originAndBaseData;
+    uint endIdx;
 };
 
+
+//TODO: extra per meshlet culling here (hell even per quad culling)
 void main() {
+    uint id = gl_GlobalInvocationID.x>>1;
+    if (id>=endIdx) {//If its over the invocation id, dont render
+        return;
+    }
+    //Each pair of meshlet invokations emits 2 vertices each and 1 primative each
+    id += floatBitsToUint(originAndBaseData.w);
+    gl_PrimitiveCountNV = 32;
 }
