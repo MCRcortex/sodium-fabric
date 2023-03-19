@@ -65,6 +65,9 @@ public class SegmentedManager {
         addr &= ADDR_MSK;//encase addr stores shit in its upper bits
         var iter = TAKEN.iterator(addr<<SIZE_BITS);//Dont need to include -1 as size != 0
         long slot = iter.nextLong();
+        if (slot>>SIZE_BITS != addr) {
+            throw new IllegalStateException();
+        }
         long size = slot&SIZE_MSK;
         iter.remove();
 
@@ -159,7 +162,11 @@ public class SegmentedManager {
         var iter = TAKEN.iterator(addr << SIZE_BITS);
         if (!iter.hasNext())
             throw new IllegalArgumentException();
-        return iter.nextLong()&SIZE_MSK;
+        long slot = iter.nextLong();
+        if (slot>>SIZE_BITS != addr) {
+            throw new IllegalStateException();
+        }
+        return slot&SIZE_MSK;
     }
 
 

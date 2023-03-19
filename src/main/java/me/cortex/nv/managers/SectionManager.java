@@ -128,7 +128,7 @@ public class SectionManager {
             regionManager.removeSectionIndex(uploadStream, sectionIdx);
             //Clear the segment
             long segment = uploadStream.getUpload(sectionBuffer, (long) sectionIdx * SECTION_SIZE, SECTION_SIZE);
-            MemoryUtil.memSet(segment, 0, 32);
+            MemoryUtil.memSet(segment, 0, SECTION_SIZE);
         }
     }
 
