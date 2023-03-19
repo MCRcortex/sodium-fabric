@@ -64,13 +64,14 @@ void main() {
 
     //Check each axis and emit a render call or cull out that call (ternary op so it might be free)
     //TODO: SEE HOW EXPENSIVE THIS IS, that is if its free or does branching
-    terrainCommandBuffer[base+0] = startX<=chunkPosition.x?uvec2((uint32_t)count, _visOutBase|(0<<29)):uvec2(0);
-    terrainCommandBuffer[base+1] = endX>=chunkPosition.x?uvec2((uint32_t)count, _visOutBase|(1<<29)):uvec2(0);
-    terrainCommandBuffer[base+2] = startY<=chunkPosition.y?uvec2((uint32_t)count, _visOutBase|(2<<29)):uvec2(0);
-    terrainCommandBuffer[base+3] = endY>=chunkPosition.y?uvec2((uint32_t)count, _visOutBase|(3<<29)):uvec2(0);
-    terrainCommandBuffer[base+4] = startZ<=chunkPosition.z?uvec2((uint32_t)count, _visOutBase|(4<<29)):uvec2(0);
-    terrainCommandBuffer[base+5] = endZ>=chunkPosition.z?uvec2((uint32_t)count, _visOutBase|(5<<29)):uvec2(0);
-    terrainCommandBuffer[base+6] = uvec2((uint32_t)count, _visOutBase|(6<<29));
+//THIS IS BROKEN
+    terrainCommandBuffer[base+0] = startX<=chunkPosition.x?uvec2((uint32_t)count, _visOutBase|(EAST<<29)):uvec2(0);
+    terrainCommandBuffer[base+1] = endX>=chunkPosition.x?uvec2((uint32_t)count, _visOutBase|(WEST<<29)):uvec2(0);
+    terrainCommandBuffer[base+2] = startY<=chunkPosition.y?uvec2((uint32_t)count, _visOutBase|(UP<<29)):uvec2(0);
+    terrainCommandBuffer[base+3] = endY>=chunkPosition.y?uvec2((uint32_t)count, _visOutBase|(DOWN<<29)):uvec2(0);
+    terrainCommandBuffer[base+4] = startZ<=chunkPosition.z?uvec2((uint32_t)count, _visOutBase|(SOUTH<<29)):uvec2(0);
+    terrainCommandBuffer[base+5] = endZ>=chunkPosition.z?uvec2((uint32_t)count, _visOutBase|(NORTH<<29)):uvec2(0);
+    terrainCommandBuffer[base+6] = uvec2((uint32_t)count, _visOutBase|(UNASSIGNED<<29));
 
     //TODO: USE this shader to setup the compute indirect sizes of the terrain command compute shader
 }

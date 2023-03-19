@@ -91,19 +91,19 @@ public class SectionManager {
             offsets[i] = offset;
         }
         //Do translucent
-        short translucent = offsets[7];
+        short translucent = offsets[6];
         offsets[7] = translucent;
 
 
 
 
         long segment = uploadStream.getUpload(sectionBuffer, (long) sectionIdx * SECTION_SIZE, SECTION_SIZE);
-        int mx = (int)(result.data().bounds.x1+0.5) - (section.getSectionX()<<4);
-        int my = (int)(result.data().bounds.y1+0.5) - (section.getSectionY()<<4);
-        int mz = (int)(result.data().bounds.z1+0.5) - (section.getSectionZ()<<4);
-        int sx = (int)(result.data().bounds.x2-result.data().bounds.x1)-1;
-        int sy = (int)(result.data().bounds.y2-result.data().bounds.y1)-1;
-        int sz = (int)(result.data().bounds.z2-result.data().bounds.z1)-1;
+        int mx = Integer.numberOfTrailingZeros(result.data().bounds.rx);
+        int my = Integer.numberOfTrailingZeros(result.data().bounds.ry);
+        int mz = Integer.numberOfTrailingZeros(result.data().bounds.rz);
+        int sx = 32-Integer.numberOfLeadingZeros(result.data().bounds.rx)-mx-1;
+        int sy = 32-Integer.numberOfLeadingZeros(result.data().bounds.ry)-my-1;
+        int sz = 32-Integer.numberOfLeadingZeros(result.data().bounds.rz)-mz-1;
 
         int px = section.getSectionX()<<8 | sx<<4 | mx;
         int py = section.getSectionY()<<24 | sy<<4 | my;
@@ -114,7 +114,7 @@ public class SectionManager {
 
         //Write the geometry offsets, packed into ints
         for (int i = 0; i < 4; i++) {
-            int geo = Short.toUnsignedInt(offsets[i*2])|Short.toUnsignedInt(offsets[i*2+1]);
+            int geo = Short.toUnsignedInt(offsets[i*2])|(Short.toUnsignedInt(offsets[i*2+1])<<16);
             MemoryUtil.memPutInt(segment, geo);
             segment += 4;
         }

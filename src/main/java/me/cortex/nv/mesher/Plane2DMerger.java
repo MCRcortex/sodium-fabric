@@ -152,6 +152,10 @@ public class Plane2DMerger {
                     plane[X][Y] = null;
                 }
             }
+
+            if (count < 0) {
+                throw new IllegalStateException();
+            }
         }
         //System.out.println("In: "+inQuadCount+" Out: "+outQuadCount);
         return (float) outQuadCount/inQuadCount;
@@ -161,7 +165,7 @@ public class Plane2DMerger {
         Plane2DMerger m = new Plane2DMerger();
         long t=0;
         float tr = 0;
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 2; i++) {
             //Randomly spray quads at 50% chance
             Random r = new Random(i);
             r.nextLong();
@@ -169,13 +173,13 @@ public class Plane2DMerger {
             r.nextLong();
             for (int x = 0; x < 16; x++) {
                 for (int y = 0; y < 16; y++) {
-                    if (r.nextBoolean()) {
+                    if (r.nextFloat()>0.25) {
                         m.plane[x][y] = new Quad();
                     }
                 }
             }
             long a = System.nanoTime();
-            tr+=m.merge()/1000;
+            tr+=m.merge()/2;
             t += System.nanoTime() - a;
         }
         System.out.println(t+": "+tr);

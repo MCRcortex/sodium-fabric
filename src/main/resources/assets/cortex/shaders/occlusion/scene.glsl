@@ -1,11 +1,25 @@
 //TODO: see if splitting up header and renderRanges into 2 differnt buffers is faster/better
+
 struct Vertex {
-    uint a;
-    uint b;
-    uint c;
-    uint d;
-    uint e;
+    int16_t a;
+    int16_t b;
+    int16_t c;
+    int16_t d;
+    int16_t e;
+    int16_t f;
+    int16_t g;
+    int16_t h;
+    int16_t i;
+    int16_t j;
 };
+/*
+struct Vertex {
+    int a;
+    int b;
+    int c;
+    int d;
+    int e;
+};*/
 
 
 // this is cause in the section rasterizer you get less cache misses thus higher throughput
@@ -19,12 +33,12 @@ struct Section {
 //Header.w -> quad offset
 
 
-#define DOWN 0
-#define UP 1
-#define NORTH 2
-#define SOUTH 3
-#define WEST 4
-#define EAST 5
+#define UP 0
+#define DOWN 1
+#define EAST 2
+#define WEST 3
+#define SOUTH 4
+#define NORTH 5
 #define UNASSIGNED 6
 
 

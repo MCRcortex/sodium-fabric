@@ -20,14 +20,15 @@ layout(local_size_x=1) in;
 
 taskNV out Task {
     vec4 originAndBaseData;
-    uint endIdx;
+    uint quadCount;
 };
 uvec4 offsetData;
 uint32_t extractOffset(uint idx) {
     if (idx == 0) {
         return 0;
     }
-    return (uint16_t)(offsetData[idx>>1]>>((idx&1)*4));
+    idx--;
+    return (uint16_t)((offsetData[idx>>1]>>((idx&1)*16))&0xFFFF);
 }
 
 
@@ -38,18 +39,30 @@ void main() {
     if ((uint8_t(sectionVisibility[sectionId]+uint8_t(1))!=frameId) || ((((uint)sectionFaceVisibility[sectionId])&(1<<side))==0)) {
         //Early exit if the section isnt visible
         //gl_TaskCountNV = 0;
+
+
         return;
     }
+    //if (side != 0) {
+    //    return;
+    //}
+
     //gl_WorkGroupID.x is also the section node
     //ivec4 header = sectionData[gl_WorkGroupID.x];
-    //Emit enough mesh shaders such that max(gl_GlobalInvocationID.x)>=quadCount
     ivec4 header = sectionData[sectionId].header;
+
+    ivec3 chunk = ivec3(header.xyz)>>8;
+    chunk.y >>= 16;
+    originAndBaseData.xyz = vec3((chunk - chunkPosition.xyz)<<4);
+
     offsetData = (uvec4)sectionData[sectionId].renderRanges;
     uint baseDataOffset = (uint)header.w;
     uint a = extractOffset(side);
     uint b = extractOffset(side+1);
-    uint quadCount = (b-a);
+    quadCount = (b-a);
     originAndBaseData.w = uintBitsToFloat(a+baseDataOffset);
-    endIdx = (b+baseDataOffset);
-    gl_TaskCountNV = quadCount/MESH_WORKLOAD_PER_INVOCATION;
+
+
+    //Emit enough mesh shaders such that max(gl_GlobalInvocationID.x)>=quadCount
+    gl_TaskCountNV = (quadCount+MESH_WORKLOAD_PER_INVOCATION-1)/MESH_WORKLOAD_PER_INVOCATION;
 }
