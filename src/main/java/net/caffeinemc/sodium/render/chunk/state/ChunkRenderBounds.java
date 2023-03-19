@@ -5,13 +5,15 @@ import net.minecraft.util.math.ChunkSectionPos;
 public class ChunkRenderBounds {
     public static final ChunkRenderBounds ALWAYS_FALSE =new ChunkRenderBounds(
             Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY,
-            Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY
+            Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY,
+            0,0,0
     );
 
     public final double x1, y1, z1;
     public final double x2, y2, z2;
+    public final int rx, ry, rz;
 
-    public ChunkRenderBounds(double x1, double y1, double z1, double x2, double y2, double z2) {
+    public ChunkRenderBounds(double x1, double y1, double z1, double x2, double y2, double z2, int rx, int ry, int rz) {
         this.x1 = x1;
         this.y1 = y1;
         this.z1 = z1;
@@ -19,6 +21,10 @@ public class ChunkRenderBounds {
         this.x2 = x2;
         this.y2 = y2;
         this.z2 = z2;
+
+        this.rx = rx;
+        this.ry = ry;
+        this.rz = rz;
     }
 
     public ChunkRenderBounds(ChunkSectionPos origin) {
@@ -29,6 +35,10 @@ public class ChunkRenderBounds {
         this.x2 = origin.getMaxX() + 1;
         this.y2 = origin.getMaxY() + 1;
         this.z2 = origin.getMaxZ() + 1;
+
+        this.rx = 0;
+        this.ry = 0;
+        this.rz = 0;
     }
 
     public static class Builder {
@@ -66,7 +76,8 @@ public class ChunkRenderBounds {
 
                     Math.min(x2, origin.getMaxX()) + 0.5d,
                     Math.min(y2, origin.getMaxY()) + 0.5d,
-                    Math.min(z2, origin.getMaxZ()) + 0.5d
+                    Math.min(z2, origin.getMaxZ()) + 0.5d,
+                    x, y, z
             );
         }
 

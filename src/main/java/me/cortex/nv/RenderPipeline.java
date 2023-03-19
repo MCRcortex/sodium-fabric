@@ -151,7 +151,9 @@ public class RenderPipeline {
         glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
         if (prevRegionCount != 0) {
             glEnable(GL_DEPTH_TEST);
+            //glDisable(GL_CULL_FACE);
             terrainRasterizer.raster(prevRegionCount, sceneUniform.getDeviceAddress(), SCENE_SIZE + prevRegionCount * 2, terrainCommandBuffer);
+            //glEnable(GL_CULL_FACE);
         }
 
         mipper.mip();

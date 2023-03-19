@@ -47,7 +47,8 @@ void main() {
     uvec3 maxs = mins+((header.xyz>>4)&0xF)+1;
     ivec3 chunk = ivec3(header.xyz)>>8;
     chunk.y >>= 16;
-    vec3 corner = vec3((chunk - chunkPosition.xyz)<<4);
+    ivec3 relativeChunkPos = (chunk - chunkPosition.xyz);
+    vec3 corner = vec3(relativeChunkPos<<4);
 
     //TODO: try mix instead or something other than just ternaries, i think they get compiled to a cmov type instruction but not sure
     corner += ivec3(((gl_LocalInvocationID.x&1)==0)?mins.x:maxs.x, ((gl_LocalInvocationID.x&4)==0)?mins.y:maxs.y, ((gl_LocalInvocationID.x&2)==0)?mins.z:maxs.z);
@@ -63,13 +64,12 @@ void main() {
         uint8_t msk = (uint8_t)(1<<UNASSIGNED);
         //TODO: Instead of emitting a mask, could generate the render bounds directly in here since it
         // should already be in cache and fast to do TODO: explore this
-        //TODO: GENERATE FACE CULLING
-        msk |= (uint8_t)(chunk.x<=chunkPosition.x?(1<<EAST):0);
-        msk |= (uint8_t)(chunk.x>=chunkPosition.x?(1<<WEST):0);
-        msk |= (uint8_t)(chunk.y<=chunkPosition.y?(1<<UP):0);
-        msk |= (uint8_t)(chunk.y>=chunkPosition.y?(1<<DOWN):0);
-        msk |= (uint8_t)(chunk.z<=chunkPosition.z?(1<<SOUTH):0);
-        msk |= (uint8_t)(chunk.z>=chunkPosition.z?(1<<NORTH):0);
+        msk |= (uint8_t)((relativeChunkPos.x<=0)?(1<<EAST):0);
+        msk |= (uint8_t)((relativeChunkPos.x>=0)?(1<<WEST):0);
+        msk |= (uint8_t)((relativeChunkPos.y<=0)?(1<<UP):0);
+        msk |= (uint8_t)((relativeChunkPos.y>=0)?(1<<DOWN):0);
+        msk |= (uint8_t)((relativeChunkPos.z<=0)?(1<<SOUTH):0);
+        msk |= (uint8_t)((relativeChunkPos.z>=0)?(1<<NORTH):0);
         sectionFaceVisibility[visibilityIndex] = msk;
 
         //Set frameid to old old frame to stop maybe visibility every 256 frames

@@ -45,7 +45,7 @@ public class PersistentSparseAddressableBuffer extends GlObject implements IDevi
     private void allocatePages(int page, int pageCount) {
         doCommit(id, PAGE_SIZE * page, PAGE_SIZE * pageCount, true);
         for (int i = 0; i < pageCount; i++) {
-            allocationCount.put(i+page, allocationCount.getOrDefault(i+page, 0)+1);
+            allocationCount.addTo(i+page,1);
         }
     }
     private void deallocatePages(int page, int pageCount) {
