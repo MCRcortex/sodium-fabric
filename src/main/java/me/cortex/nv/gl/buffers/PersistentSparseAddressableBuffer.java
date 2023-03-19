@@ -55,7 +55,7 @@ public class PersistentSparseAddressableBuffer extends GlObject implements IDevi
                 allocationCount.put(i+page, newCount);
             } else {
                 allocationCount.remove(i+page);
-                doCommit(id, PAGE_SIZE * page, PAGE_SIZE,false);
+                doCommit(id, PAGE_SIZE * (page+i), PAGE_SIZE,false);
             }
         }
     }
@@ -63,13 +63,13 @@ public class PersistentSparseAddressableBuffer extends GlObject implements IDevi
 
     public void ensureAllocated(long addr, long size) {
         int pstart = (int) (addr/PAGE_SIZE);
-        int pend   = (int) ((addr+size)/PAGE_SIZE);
+        int pend   = (int) ((addr+size+PAGE_SIZE-1)/PAGE_SIZE);
         allocatePages(pstart, pend-pstart+1);
     }
 
     public void deallocate(long addr, long size) {
         int pstart = (int) (addr/PAGE_SIZE);
-        int pend   = (int) ((addr+size)/PAGE_SIZE);
+        int pend   = (int) ((addr+size+PAGE_SIZE-1)/PAGE_SIZE);
         deallocatePages(pstart, pend-pstart+1);
     }
 

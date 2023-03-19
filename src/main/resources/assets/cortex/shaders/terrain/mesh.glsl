@@ -22,6 +22,10 @@ taskNV in Task {
     uint quadCount;
 };
 
+layout(location=1) out Interpolants {
+    vec2 uv;
+} OUT[];
+
 
 vec3 decodeVertex(Vertex v) {
     return (vec3(v.a,v.b,v.c)/32767)*16.0f+8.0f;
@@ -51,21 +55,17 @@ void main() {
     gl_MeshVerticesNV[(gl_LocalInvocationID.x<<1)|1].gl_Position = MVP*vec4(decodeVertex(B)+originAndBaseData.xyz,1.0);
     //TODO: see if ternary or array is faster
     bool isA = (gl_LocalInvocationID.x&1)==0;
-    gl_PrimitiveIndicesNV[primId]   = (isA?3:2)+idxBase;
-    gl_PrimitiveIndicesNV[primId+1] = (isA?0:3)+idxBase;
-    gl_PrimitiveIndicesNV[primId+2] = (isA?1:1)+idxBase;
+    gl_PrimitiveIndicesNV[primId]   = (isA?0:2)+idxBase;
+    gl_PrimitiveIndicesNV[primId+1] = (isA?1:3)+idxBase;
+    gl_PrimitiveIndicesNV[primId+2] = (isA?2:0)+idxBase;
+
+    OUT[(gl_LocalInvocationID.x<<1)|0].uv = (isA?vec2(A.g,A.h):vec2(A.g,A.h))/65535;
+    OUT[(gl_LocalInvocationID.x<<1)|1].uv = (isA?vec2(B.g,B.h):vec2(B.g,B.h))/65535;
 
     gl_MeshPrimitivesNV[gl_LocalInvocationID.x].gl_PrimitiveID = int(gl_GlobalInvocationID.x>>1);
 
     if (gl_LocalInvocationID.x == 0) {
-        //gl_PrimitiveCountNV = 2;
-
         //Remaining quads in workgroup
-        int remainingQuads = int(quadCount)-int(gl_WorkGroupID.x<<4);
-        if (remainingQuads<16) {
-            gl_PrimitiveCountNV = uint(remainingQuads)<<1;//2 primatives per quad
-        } else {
-            gl_PrimitiveCountNV = 32;
-        }
+        gl_PrimitiveCountNV = min(uint(int(quadCount)-int(gl_WorkGroupID.x<<4))<<1, 32);//2 primatives per quad
     }
 }

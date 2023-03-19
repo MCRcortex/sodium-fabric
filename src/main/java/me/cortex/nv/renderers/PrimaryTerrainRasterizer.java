@@ -4,9 +4,13 @@ import me.cortex.nv.gl.GlObject;
 import me.cortex.nv.gl.buffers.Buffer;
 import me.cortex.nv.gl.buffers.IDeviceMappedBuffer;
 import me.cortex.nv.gl.shader.Shader;
+import net.caffeinemc.gfx.opengl.texture.GlSampler;
+import net.caffeinemc.gfx.opengl.texture.GlTexture;
 import net.caffeinemc.sodium.render.shader.ShaderLoader;
 import net.caffeinemc.sodium.render.shader.ShaderParser;
+import net.caffeinemc.sodium.util.TextureUtil;
 import net.minecraft.util.Identifier;
+import org.lwjgl.opengl.GL45C;
 
 import static me.cortex.nv.RenderPipeline.GL_DRAW_INDIRECT_ADDRESS_NV;
 import static me.cortex.nv.gl.shader.ShaderType.*;
@@ -34,6 +38,9 @@ public class PrimaryTerrainRasterizer extends Phase {
 
     public void raster(int regionCount, long uniformAddr, int uniformLen, IDeviceMappedBuffer commandAddr) {
         shader.bind();
+        GL45C.glBindTextureUnit(0, GlTexture.getHandle(TextureUtil.getBlockAtlasTexture()));
+        //GL45C.glBindSampler(0, GlSampler.getHandle(sampler));
+
         glBufferAddressRangeNV(GL_UNIFORM_BUFFER_ADDRESS_NV, 0, uniformAddr, uniformLen);//Bind the normal uniform buffer
         glBufferAddressRangeNV(GL_DRAW_INDIRECT_ADDRESS_NV, 0, commandAddr.getDeviceAddress(), regionCount* 8L*7);//Bind the command buffer
         glMultiDrawMeshTasksIndirectNV( 0, regionCount*7, 0);

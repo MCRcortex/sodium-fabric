@@ -280,7 +280,7 @@ public class TerrainRenderManager {
         if (renderPass == ChunkRenderPassManager.TRANSLUCENT) {//TODO: MOVE TO solid once rest of rendering works
             pipeline.renderFrame(frustum, matrices, camera);
         }
-        if (false)
+        if (true)
             return;
         this.chunkRenderer.render(renderPass, matrices, this.frameIndex);
     }
