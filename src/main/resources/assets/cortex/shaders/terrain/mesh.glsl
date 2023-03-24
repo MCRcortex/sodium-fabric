@@ -28,7 +28,7 @@ layout(location=1) out Interpolants {
 
 
 vec3 decodeVertex(Vertex v) {
-    return (vec3(v.a,v.b,v.c)/32767)*16.0f+8.0f;
+    return vec3(v.a,v.b,v.c)*(32.0f/65535)-8.0f;
 }
 
 /*

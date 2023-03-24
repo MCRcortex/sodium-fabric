@@ -25,29 +25,12 @@ public class ChunkRenderBounds {
         private float maxX = Float.NEGATIVE_INFINITY, maxY = Float.NEGATIVE_INFINITY, maxZ = Float.NEGATIVE_INFINITY;
 
         public void add(float x, float y, float z, ModelQuadFacing facing) {
-            if (facing == ModelQuadFacing.UP) {
-                this.minY = Math.min(this.minY, y);
-            }
-
-            if (facing == ModelQuadFacing.DOWN) {
-                this.maxY = Math.max(this.maxY, y);
-            }
-
-            if (facing == ModelQuadFacing.EAST) {
-                this.minX = Math.min(this.minX, x);
-            }
-
-            if (facing == ModelQuadFacing.WEST) {
-                this.maxX = Math.max(this.maxX, x);
-            }
-
-            if (facing == ModelQuadFacing.SOUTH) {
-                this.minZ = Math.min(this.minZ, z);
-            }
-
-            if (facing == ModelQuadFacing.NORTH) {
-                this.maxZ = Math.max(this.maxZ, z);
-            }
+            this.minY = Math.min(this.minY, y);
+            this.maxY = Math.max(this.maxY, y);
+            this.minX = Math.min(this.minX, x);
+            this.maxX = Math.max(this.maxX, x);
+            this.minZ = Math.min(this.minZ, z);
+            this.maxZ = Math.max(this.maxZ, z);
         }
 
         public ChunkRenderBounds build(ChunkSectionPos origin) {

@@ -1,20 +1,30 @@
 package me.cortex.nv.mesher;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import net.caffeinemc.sodium.util.collections.BitArray;
 
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Consumer;
 
 //Merges along a 2D axis (that is the quad is convering the entire block surface, thus only need points)
 public class Plane2DMerger {
-    private record Quad() {
+    public void setQuad(int axisA, int axisB) {
+        if (plane[axisA][axisB] != null) throw new IllegalStateException();
+        plane[axisA][axisB] = new Quad();
+    }
+
+    public record Quad() {
 
     }
 
-    private record RangeResult(int minx, int maxx, int miny, int maxy) {
-
+    public record RangeResult(int minx, int maxx, int miny, int maxy) {
+        public boolean isSingleQuad() {
+            return minx == maxx && miny == maxy;
+        }
+        public int count() {
+            return (maxx-minx+1)*(maxy-miny+1);
+        }
     }
 
     private final Quad[][] plane = new Quad[16][16];
@@ -24,11 +34,12 @@ public class Plane2DMerger {
     }
 
     private RangeResult computeMaxBounds(int bx, int by) {
+        /*
         //Find the base radius
         int radius = 1;
         outerRadius:
         for (; (bx-radius>=0&&bx+radius<16&&by-radius>=0&&by+radius<16); radius++) {
-            for (int x = Math.max(bx-radius, 0); x<=Math.min(bx+radius, 15); x++) {
+            for (int x = Math.max(bx-radius-1, 0); x<=Math.min(bx+radius+1, 15); x++) {
                 if (!quadSet(x,by-radius)) {
                     break outerRadius;
                 }
@@ -46,16 +57,19 @@ public class Plane2DMerger {
             }
         }
         radius--;
+        */
         //We have our base bounds, try and expand each axis
 
         boolean px = true;
         boolean py = true;
         boolean nx = true;
         boolean ny = true;
-        int minx = bx-radius;
-        int maxx = bx+radius;
-        int miny = by-radius;
-        int maxy = by+radius;
+        int minx = bx;//-radius;
+        int maxx = bx;//+radius;
+        int miny = by;//-radius;
+        int maxy = by;//+radius;
+
+
         while (px||py||nx||ny) {
             if (maxx == 15) px = false;
             if (minx == 0)  nx = false;
@@ -110,7 +124,8 @@ public class Plane2DMerger {
         return new RangeResult(minx, maxx, miny, maxy);
     }
 
-    private float merge() {
+    public record MergedQuad(Quad[] quads, RangeResult bounds) {}
+    float merge(Consumer<Quad> singleQuadConsumer, Consumer<MergedQuad> mergedQuadConsumer) {
         int count = 0;
         for (int x = 0; x < 16; x++) {
             for (int y = 0; y < 16; y++) {
@@ -125,47 +140,73 @@ public class Plane2DMerger {
             int y = 0;
             //Select a uniform position to expand from
 
-            outer:
-            while (true) {
+            if (false) {
+                outer:
+                while (true) {
+                    for (x = 0; x < 16; x++) {
+                        for (y = 0; y < 16; y++) {
+                            if (quadSet(x, y) && r.nextFloat() < 1f / count) {
+                                break outer;
+                            }
+                        }
+                    }
+                }
+            } else {
+                outer:
                 for (x = 0; x < 16; x++) {
                     for (y = 0; y < 16; y++) {
-                        if (quadSet(x, y) && r.nextFloat() < 1f / count) {
+                        if (quadSet(x, y)) {
                             break outer;
                         }
                     }
                 }
             }
-            /*
-            outer:
-            for (x = 0; x < 16; x++) {
-                for (y = 0; y < 16; y++) {
-                    if (quadSet(x, y)) {
-                        break outer;
-                    }
-                }
-            }*/
             outQuadCount++;
             RangeResult rr = computeMaxBounds(x,y);
-            for (int X = rr.minx; X <= rr.maxx; X++) {
-                for (int Y = rr.miny; Y <= rr.maxy; Y++) {
-                    count--;
-                    plane[X][Y] = null;
+            if (rr.isSingleQuad()) {
+                singleQuadConsumer.accept(plane[rr.minx][rr.miny]);
+                plane[rr.minx][rr.miny] = null;
+                count--;
+            } else {
+                MergedQuad result = new MergedQuad(new Quad[rr.count()], rr);
+                int i = 0;
+                for (int X = rr.minx; X <= rr.maxx; X++) {
+                    for (int Y = rr.miny; Y <= rr.maxy; Y++) {
+                        count--;
+                        result.quads[i++] = plane[X][Y];
+                        plane[X][Y] = null;
+                    }
                 }
             }
-
             if (count < 0) {
                 throw new IllegalStateException();
             }
         }
         //System.out.println("In: "+inQuadCount+" Out: "+outQuadCount);
-        return (float) outQuadCount/inQuadCount;
+        return (float) (outQuadCount);
     }
+
+    private void dumpQuads() {
+        for (int y = 0; y < 16; y++) {
+            for (int x = 0; x < 16; x++) {
+                if (quadSet(x,y)) {
+                    System.out.print("# ");
+                } else {
+                    System.out.print("  ");
+                }
+            }
+            System.out.println();
+        }
+        System.out.println("__________________________________________________________________________");
+    }
+
 
     public static void main(String[] args) {
         Plane2DMerger m = new Plane2DMerger();
         long t=0;
         float tr = 0;
-        for (int i = 0; i < 2; i++) {
+        int tests = 10000;
+        for (int i = 0; i < tests; i++) {
             //Randomly spray quads at 50% chance
             Random r = new Random(i);
             r.nextLong();
@@ -173,15 +214,15 @@ public class Plane2DMerger {
             r.nextLong();
             for (int x = 0; x < 16; x++) {
                 for (int y = 0; y < 16; y++) {
-                    if (r.nextFloat()>0.25) {
+                    if (r.nextFloat()>0.5) {
                         m.plane[x][y] = new Quad();
                     }
                 }
             }
             long a = System.nanoTime();
-            tr+=m.merge()/2;
-            t += System.nanoTime() - a;
+            tr+=m.merge(c->{}, b->{});
+            t += (System.nanoTime() - a);
         }
-        System.out.println(t+": "+tr);
+        System.out.println("Avg time per test: "+((t/1000)/tests)+" microseconds, shrink ratio: "+(tr/tests));//Lower is better
     }
 }

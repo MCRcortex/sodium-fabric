@@ -7,7 +7,7 @@ import me.cortex.nv.gl.buffers.Buffer;
 import me.cortex.nv.gl.buffers.IDeviceMappedBuffer;
 import me.cortex.nv.util.IdProvider;
 import me.cortex.nv.util.UploadingBufferStream;
-import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
+import me.jellysquid.mods.sodium.client.util.frustum.Frustum;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.lwjgl.system.MemoryUtil;
 
@@ -183,7 +183,7 @@ public class RegionManager {
             return false;
         } else {
             //FIXME: should make it use the region data so that the frustum bounds check is more accurate
-            return frustum.containsBox(region.rx<<7,region.ry<<6, region.rz<<7, (region.rx+1)<<7, (region.ry+1)<<6, (region.rz+1)<<7);
+            return frustum.isBoxVisible(region.rx<<7,region.ry<<6, region.rz<<7, (region.rx+1)<<7, (region.ry+1)<<6, (region.rz+1)<<7);
         }
     }
 }

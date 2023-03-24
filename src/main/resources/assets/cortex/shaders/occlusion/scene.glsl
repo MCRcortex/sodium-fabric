@@ -1,9 +1,9 @@
 //TODO: see if splitting up header and renderRanges into 2 differnt buffers is faster/better
 
 struct Vertex {
-    int16_t a;
-    int16_t b;
-    int16_t c;
+    uint16_t a;
+    uint16_t b;
+    uint16_t c;
     int16_t d;
     int16_t e;
     int16_t f;

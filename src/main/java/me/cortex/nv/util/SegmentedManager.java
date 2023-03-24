@@ -43,7 +43,7 @@ public class SegmentedManager {
             resized = true;
             long addr = totalSize;
             if (totalSize+size>sizeLimit)
-                return -1;//throw new IllegalStateException("More memory than limit allows was attempted to be allocated");
+                throw new IllegalStateException("More memory than limit allows was attempted to be allocated");
             totalSize += size;
             TAKEN.add((addr<<SIZE_BITS)|((long) size));
             return addr;
@@ -126,6 +126,9 @@ public class SegmentedManager {
             return false;
         }
         long slot = iter.nextLong();
+        if (slot>>SIZE_BITS != addr) {
+            throw new IllegalStateException();
+        }
         long updatedSlot = (slot & (ADDR_MSK << SIZE_BITS)) | ((slot & SIZE_MSK) + extra);
         resized = false;
         if (iter.hasNext()) {

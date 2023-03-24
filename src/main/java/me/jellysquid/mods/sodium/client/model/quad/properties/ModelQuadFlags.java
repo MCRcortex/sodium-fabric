@@ -89,6 +89,15 @@ public class ModelQuadFlags {
             flags |= IS_ALIGNED;
         }
 
-        return flags;
+        //Compute the mergability of the quad, that is if its a full sized quad or what axis it can be merged on
+        //bit 0 is x bit 1 is y bit 2 is z
+        int mergability = 0;
+        //Very cursed way of checking for full block quads, should probably bake it into quad view
+        int msk = 1;
+        mergability |= (face.getAxis() != Direction.Axis.X)?((minX<0.0001f && maxX>0.9999F)?(msk<<=1)>>1:(msk<<=1)*0):0;
+        mergability |= (face.getAxis() != Direction.Axis.Y)?((minY<0.0001f && maxY>0.9999F)?(msk<<=1)>>1:(msk<<=1)*0):0;
+        mergability |= (face.getAxis() != Direction.Axis.Z)?((minZ<0.0001f && maxZ>0.9999F)?(msk<<=1)>>1:(msk<<=1)*0):0;
+
+        return flags | (mergability<<3);
     }
 }

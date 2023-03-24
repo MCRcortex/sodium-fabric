@@ -11,6 +11,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ShaderParser {
+    public static String parseShader(Identifier identifier) {
+        return parseShader(ShaderLoader.getShaderSource(identifier), ShaderConstants.builder().build());
+    }
+
     public static String parseShader(String src, ShaderConstants constants) {
         List<String> lines = parseShader(src);
         lines.addAll(1, constants.getDefineStrings());

@@ -42,6 +42,8 @@ public class PersistentSparseAddressableBuffer extends GlObject implements IDevi
     }
 
     private final Int2IntOpenHashMap allocationCount = new Int2IntOpenHashMap();
+
+    //TODO: FIXME: need to batch these together as much as possible
     private void allocatePages(int page, int pageCount) {
         doCommit(id, PAGE_SIZE * page, PAGE_SIZE * pageCount, true);
         for (int i = 0; i < pageCount; i++) {

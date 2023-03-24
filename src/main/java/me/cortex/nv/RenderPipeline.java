@@ -7,11 +7,13 @@ import me.cortex.nv.gl.buffers.DeviceOnlyMappedBuffer;
 import me.cortex.nv.gl.buffers.IDeviceMappedBuffer;
 import me.cortex.nv.managers.SectionManager;
 import me.cortex.nv.renderers.*;
-import net.caffeinemc.sodium.SodiumClientMod;
-import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
-import net.caffeinemc.sodium.render.chunk.draw.ChunkCameraContext;
-import net.caffeinemc.sodium.render.chunk.draw.ChunkRenderMatrices;
-import net.caffeinemc.sodium.render.terrain.format.TerrainVertexFormats;
+import me.cortex.nv.util.SegmentedManager;
+import me.cortex.nv.util.UploadingBufferStream;
+import me.jellysquid.mods.sodium.client.SodiumClientMod;
+import me.jellysquid.mods.sodium.client.render.chunk.ChunkCameraContext;
+import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderMatrices;
+import me.jellysquid.mods.sodium.client.render.chunk.vertex.format.impl.CompactChunkVertex;
+import me.jellysquid.mods.sodium.client.util.frustum.Frustum;
 import net.minecraft.client.render.Camera;
 import net.minecraft.util.math.Vec3d;
 import org.joml.*;
@@ -25,9 +27,9 @@ import static org.lwjgl.opengl.GL11C.glEnable;
 import static org.lwjgl.opengl.GL42.*;
 import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BARRIER_BIT;
 import static org.lwjgl.opengl.NVRepresentativeFragmentTest.GL_REPRESENTATIVE_FRAGMENT_TEST_NV;
+import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_ADDRESS_NV;
 import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_UNIFIED_NV;
-import static org.lwjgl.opengl.NVVertexBufferUnifiedMemory.GL_ELEMENT_ARRAY_UNIFIED_NV;
-import static org.lwjgl.opengl.NVVertexBufferUnifiedMemory.GL_VERTEX_ATTRIB_ARRAY_UNIFIED_NV;
+import static org.lwjgl.opengl.NVVertexBufferUnifiedMemory.*;
 
 public class RenderPipeline {
     public static final int GL_DRAW_INDIRECT_UNIFIED_NV = 0x8F40;
@@ -64,7 +66,7 @@ public class RenderPipeline {
 
 
     public RenderPipeline() {
-        sectionManager = new SectionManager(device, 32, 24, SodiumClientMod.options().advanced.cpuRenderAheadLimit+1, TerrainVertexFormats.COMPACT.getBufferVertexFormat().stride());
+        sectionManager = new SectionManager(device, 32, 24, SodiumClientMod.options().advanced.cpuRenderAheadLimit+1, CompactChunkVertex.STRIDE);
         //TODO:FIXME: CLEANUP of all the types
         terrainRasterizer = new PrimaryTerrainRasterizer();
         mipper = new MipGenerator();
@@ -101,9 +103,8 @@ public class RenderPipeline {
         }
         {
             //TODO: maybe segment the uniform buffer into 2 parts, always updating and static where static holds pointers
-            Vec3d pos = cam.getPos();
-            Vector3i chunkPos = new Vector3i(cam.getSectionX(), cam.getSectionY(), cam.getSectionZ());
-            Vector3f delta = new Vector3f((float) (pos.x-(chunkPos.x<<4)), (float) (pos.y-(chunkPos.y<<4)), (float) (pos.z-(chunkPos.z<<4)));
+            Vector3i chunkPos = new Vector3i(cam.blockX>>4, cam.blockY>>4, cam.blockZ>>4);
+            Vector3f delta = new Vector3f((cam.blockX-(chunkPos.x<<4))+cam.deltaX, (cam.blockY-(chunkPos.y<<4))+cam.deltaY, (cam.blockZ-(chunkPos.z<<4))+cam.deltaZ);
 
             long addr = sectionManager.uploadStream.getUpload(sceneUniform, 0, SCENE_SIZE);
             new Matrix4f(crm.projection())
@@ -143,7 +144,8 @@ public class RenderPipeline {
         glEnableClientState(GL_VERTEX_ATTRIB_ARRAY_UNIFIED_NV);
         glEnableClientState(GL_ELEMENT_ARRAY_UNIFIED_NV);
         glEnableClientState(GL_DRAW_INDIRECT_UNIFIED_NV);
-
+        //Bind the uniform, it doesnt get wiped between shader changes
+        glBufferAddressRangeNV(GL_UNIFORM_BUFFER_ADDRESS_NV, 0, sceneUniform.getDeviceAddress(), SCENE_SIZE + visibleRegions*2L);
 
 
         //Memory barrier from the last frame
@@ -152,7 +154,7 @@ public class RenderPipeline {
         if (prevRegionCount != 0) {
             glEnable(GL_DEPTH_TEST);
             //glDisable(GL_CULL_FACE);
-            terrainRasterizer.raster(prevRegionCount, sceneUniform.getDeviceAddress(), SCENE_SIZE + prevRegionCount * 2, terrainCommandBuffer);
+            terrainRasterizer.raster(prevRegionCount, terrainCommandBuffer);
             //glEnable(GL_CULL_FACE);
         }
 
@@ -163,9 +165,9 @@ public class RenderPipeline {
         glDepthMask(false);
         glColorMask(false, false, false, false);
         glEnable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
-        regionRasterizer.raster(visibleRegions, sceneUniform.getDeviceAddress(), SCENE_SIZE + visibleRegions*2);
+        regionRasterizer.raster(visibleRegions);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-        sectionRasterizer.raster(visibleRegions, sceneUniform.getDeviceAddress(), SCENE_SIZE + visibleRegions*2);
+        sectionRasterizer.raster(visibleRegions);
         glDisable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
         glDepthMask(true);
         glColorMask(true, true, true, true);
@@ -180,6 +182,10 @@ public class RenderPipeline {
             throw new IllegalStateException("GLERROR: "+err);
         }
         prevRegionCount = visibleRegions;
+
+
+        //TODO: FIXME: THIS FEELS ILLEGAL
+        UploadingBufferStream.TickAllUploadingStreams();
     }
 
     public void delete() {

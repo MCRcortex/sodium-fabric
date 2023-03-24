@@ -7,12 +7,14 @@ import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import me.cortex.nv.RenderPipeline;
 import me.jellysquid.mods.sodium.client.SodiumClientMod;
 import me.jellysquid.mods.sodium.client.gl.device.CommandList;
 import me.jellysquid.mods.sodium.client.gl.device.RenderDevice;
 import me.jellysquid.mods.sodium.client.render.chunk.lists.ChunkRenderList;
 import me.jellysquid.mods.sodium.client.render.chunk.lists.ChunkRenderListBuilder;
 import me.jellysquid.mods.sodium.client.render.chunk.region.RenderRegion;
+import me.jellysquid.mods.sodium.client.render.chunk.terrain.DefaultTerrainRenderPasses;
 import me.jellysquid.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import me.jellysquid.mods.sodium.client.render.chunk.vertex.format.ChunkMeshFormats;
 import me.jellysquid.mods.sodium.client.render.SodiumWorldRenderer;
@@ -104,8 +106,12 @@ public class RenderSectionManager {
 
     private ChunkRenderList chunkRenderList;
 
+    public final RenderPipeline pipeline;
+
     public RenderSectionManager(SodiumWorldRenderer worldRenderer, ClientWorld world, int renderDistance, CommandList commandList) {
         this.chunkRenderer = new RegionChunkRenderer(RenderDevice.INSTANCE, ChunkMeshFormats.COMPACT);
+
+        pipeline = new RenderPipeline();
 
         this.worldRenderer = worldRenderer;
         this.world = world;
@@ -280,6 +286,8 @@ public class RenderSectionManager {
             throw new IllegalStateException("Chunk is not loaded: " + ChunkSectionPos.from(x, y, z));
         }
 
+        pipeline.sectionManager.deleteSection(chunk);
+
         chunk.delete();
 
         this.disconnectNeighborNodes(chunk);
@@ -289,6 +297,13 @@ public class RenderSectionManager {
 
     public void renderLayer(ChunkRenderMatrices matrices, TerrainRenderPass pass, double x, double y, double z) {
         Validate.notNull(this.chunkRenderList, "Render list is null");
+
+        if (pass == DefaultTerrainRenderPasses.SOLID) {
+            pipeline.renderFrame(frustum, matrices, new ChunkCameraContext(x, y, z));
+        }
+        if (true) {
+            return;
+        }
 
         RenderDevice device = RenderDevice.INSTANCE;
         CommandList commandList = device.createCommandList();
@@ -454,6 +469,8 @@ public class RenderSectionManager {
             this.regions.delete(commandList);
             this.chunkRenderer.delete(commandList);
         }
+
+        this.pipeline.delete();
 
         this.builder.stopWorkers();
     }

@@ -7,10 +7,10 @@ import me.cortex.nv.gl.buffers.IDeviceMappedBuffer;
 import me.cortex.nv.util.BufferArena;
 import me.cortex.nv.util.UploadingBufferStream;
 import me.cortex.nv.gl.buffers.Buffer;
-import net.caffeinemc.sodium.render.SodiumWorldRenderer;
-import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
-import net.caffeinemc.sodium.render.chunk.RenderSection;
-import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
+import me.jellysquid.mods.sodium.client.model.quad.properties.ModelQuadFacing;
+import me.jellysquid.mods.sodium.client.render.chunk.RenderSection;
+import me.jellysquid.mods.sodium.client.render.chunk.compile.ChunkBuildResult;
+import me.jellysquid.mods.sodium.client.render.chunk.terrain.DefaultTerrainRenderPasses;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.joml.Vector4i;
 import org.lwjgl.system.MemoryUtil;
@@ -32,10 +32,13 @@ public class SectionManager {
     public final BufferArena terrainAreana;
 
     private final RenderDevice device;
+
+    private final int formatSize;
     public SectionManager(RenderDevice device, int rd, int height, int frames, int quadVertexSize) {
         this.uploadStream = new UploadingBufferStream(device, frames, 160000000);
         int widthSquared = (rd*2+1)*(rd*2+1);
 
+        this.formatSize = quadVertexSize;
         this.sectionBuffer = device.createDeviceOnlyMappedBuffer((long) widthSquared * height * SECTION_SIZE);
         this.terrainAreana = new BufferArena(device, quadVertexSize);
         this.sectionOffset.defaultReturnValue(-1);
@@ -48,45 +51,53 @@ public class SectionManager {
     }
 
     //FIXME: causes extreame stuttering
-    public void uploadSetSection(TerrainBuildResult result) {
-        if (result.geometry() == null || result.geometry().vertices() == null || result.data() == null) {
-            deleteSection(result.render());
+    public void uploadSetSection(ChunkBuildResult result) {
+        if (result.meshes.isEmpty() || result.data == null) {
+            deleteSection(result.render);
             return;
         }
-        RenderSection section = result.render();
-        long key = getSectionKey(section.getSectionX(), section.getSectionY(), section.getSectionZ());
+        RenderSection section = result.render;
+        long key = getSectionKey(section.getChunkX(), section.getChunkY(), section.getChunkZ());
         int sectionIdx = sectionOffset.computeIfAbsent(//Get or fetch the section meta index
                 key,
-                a->regionManager.createSectionIndex(uploadStream, section.getSectionX(), section.getSectionY(), section.getSectionZ())
+                a->regionManager.createSectionIndex(uploadStream, section.getChunkX(), section.getChunkY(), section.getChunkZ())
         );
+
 
 
         if (terrainDataLocation.containsKey(key)) {
             terrainAreana.free(terrainDataLocation.get(key));
         }
 
-        int geoSize = result.geometry().vertices().buffer().getLength();
-        int stride = result.geometry().vertices().format().stride();
-        int addr = terrainAreana.allocQuads((geoSize/stride)/4);
+        int geoSize = result.meshes.values().stream().mapToInt(a->a.getVertexData().getLength()).sum();
+        int addr = terrainAreana.allocQuads((geoSize/formatSize)/4);
         terrainDataLocation.put(key, addr);
         long geoUpload = terrainAreana.upload(uploadStream, addr);
         //Upload all the geometry grouped by face
         short[] offsets = new short[8];
         short offset = 0;
+        var solid  = result.meshes.get(DefaultTerrainRenderPasses.SOLID);
+        var cutout = result.meshes.get(DefaultTerrainRenderPasses.CUTOUT);
         //Do all but translucent
         for (int i = 0; i < 7; i++) {
-            for (var pass : SodiumWorldRenderer.instance().renderPassManager.getAllRenderPasses()) {
-                if (pass.isTranslucent())
-                    continue;
-                if (result.geometry().models()[pass.getId()] == null)
-                    continue;
-                if (result.geometry().models()[pass.getId()].getModelPartSegments()[i] == BufferSegment.INVALID)
-                    continue;
-                long geo = result.geometry().models()[pass.getId()].getModelPartSegments()[i];
-                MemoryUtil.memCopy(result.geometry().vertices().buffer().getAddress() + (long) BufferSegment.getOffset(geo) * stride,
-                        geoUpload + offset * 4L * stride,
-                        (long) BufferSegment.getLength(geo) * stride);
-                offset += BufferSegment.getLength(geo)/4;
+            if (solid != null) {
+                //TODO Optimize from .values()
+                var segment = solid.getParts().get(ModelQuadFacing.values()[i]);
+                if (segment != null) {
+                    MemoryUtil.memCopy(MemoryUtil.memAddress(solid.getVertexData().getDirectBuffer()) + (long) segment.vertexStart() * formatSize,
+                            geoUpload + offset * 4L * formatSize,
+                            (long) segment.vertexCount() * formatSize);
+                    offset += segment.vertexCount() / 4;
+                }
+            }
+            if (cutout != null) {
+                var segment = cutout.getParts().get(ModelQuadFacing.values()[i]);
+                if (segment != null) {
+                    MemoryUtil.memCopy(MemoryUtil.memAddress(cutout.getVertexData().getDirectBuffer()) + (long) segment.vertexStart() * formatSize,
+                            geoUpload + offset * 4L * formatSize,
+                            (long) segment.vertexCount() * formatSize);
+                    offset += segment.vertexCount() / 4;
+                }
             }
             offsets[i] = offset;
         }
@@ -98,16 +109,23 @@ public class SectionManager {
 
 
         long segment = uploadStream.getUpload(sectionBuffer, (long) sectionIdx * SECTION_SIZE, SECTION_SIZE);
-        int mx = Integer.numberOfTrailingZeros(result.data().bounds.rx);
-        int my = Integer.numberOfTrailingZeros(result.data().bounds.ry);
-        int mz = Integer.numberOfTrailingZeros(result.data().bounds.rz);
-        int sx = 32-Integer.numberOfLeadingZeros(result.data().bounds.rx)-mx-1;
-        int sy = 32-Integer.numberOfLeadingZeros(result.data().bounds.ry)-my-1;
-        int sz = 32-Integer.numberOfLeadingZeros(result.data().bounds.rz)-mz-1;
+        int mx = (int) (result.data.getBounds().minX - result.render.getOriginX());//Integer.numberOfTrailingZeros(result.data().bounds.rx);
+        int my = (int) (result.data.getBounds().minY - result.render.getOriginY());//Integer.numberOfTrailingZeros(result.data().bounds.ry);
+        int mz = (int) (result.data.getBounds().minZ - result.render.getOriginZ());//Integer.numberOfTrailingZeros(result.data().bounds.rz);
+        int sx = (int)(result.data.getBounds().maxX-result.data.getBounds().minX-1);//32-Integer.numberOfLeadingZeros(result.data().bounds.rx)-mx-1;
+        int sy = (int)(result.data.getBounds().maxY-result.data.getBounds().minY-1);//32-Integer.numberOfLeadingZeros(result.data().bounds.ry)-my-1;
+        int sz = (int)(result.data.getBounds().maxZ-result.data.getBounds().minZ-1);//32-Integer.numberOfLeadingZeros(result.data().bounds.rz)-mz-1;
 
-        int px = section.getSectionX()<<8 | sx<<4 | mx;
-        int py = section.getSectionY()<<24 | sy<<4 | my;
-        int pz = section.getSectionZ()<<8 | sz<<4 | mz;
+        mx = Math.min(15, mx);
+        my = Math.min(15, my);
+        mz = Math.min(15, mz);
+        sx = Math.max(0, sx);
+        sy = Math.max(0, sy);
+        sz = Math.max(0, sz);
+
+        int px = section.getChunkX()<<8 | sx<<4 | mx;
+        int py = section.getChunkY()<<24 | sy<<4 | my;
+        int pz = section.getChunkZ()<<8 | sz<<4 | mz;
         int pw = addr;
         new Vector4i(px, py, pz, pw).getToAddress(segment);
         segment += 4*4;
@@ -121,7 +139,7 @@ public class SectionManager {
     }
 
     public void deleteSection(RenderSection section) {
-        long key = getSectionKey(section.getSectionX(), section.getSectionY(), section.getSectionZ());
+        long key = getSectionKey(section.getChunkX(), section.getChunkY(), section.getChunkZ());
         int sectionIdx = sectionOffset.remove(key);
         if (sectionIdx != -1) {
             terrainAreana.free(terrainDataLocation.remove(key));
