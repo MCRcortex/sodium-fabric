@@ -114,7 +114,9 @@ public class BlockRenderer {
             }
 
             mesher.quad(ctx, offset, material, quad, colors, lightData.br, lightData.lm);
-            this.writeGeometry(ctx, builder, offset, material, quad, colors, lightData.br, lightData.lm, bounds);
+            if (quad.getFlags()>>3 != 0) {
+                this.writeGeometry(ctx, builder, offset, material, quad, colors, lightData.br, lightData.lm, bounds);
+            }
 
             Sprite sprite = quad.getSprite();
 

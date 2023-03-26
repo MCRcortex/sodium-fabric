@@ -390,6 +390,8 @@ public class FluidRenderer {
 
     private void writeQuad(ChunkModelBuilder builder, ChunkRenderBounds.Builder bounds, Material material, BlockPos offset, ModelQuadView quad,
                            ModelQuadFacing facing, boolean flip) {
+        if (true)
+            return;
         var vertices = this.vertices;
 
         for (int i = 0; i < 4; i++) {

@@ -2,20 +2,27 @@ package me.cortex.nv.mesher;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
+import java.lang.reflect.Array;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.Consumer;
 
 //Merges along a 2D axis (that is the quad is convering the entire block surface, thus only need points)
-public class Plane2DMerger {
-    public void setQuad(int axisA, int axisB) {
-        if (plane[axisA][axisB] != null) throw new IllegalStateException();
-        plane[axisA][axisB] = new Quad();
+public class Plane2DMerger <T> {
+    private final T[][] plane;
+    private final T[] result;
+
+    public Plane2DMerger(Class<T> clz) {
+        plane = (T[][]) Array.newInstance(clz, 16,16);
+        result = (T[]) Array.newInstance(clz, 16*16);
     }
 
-    public record Quad() {
-
+    public boolean setQuad(int axisA, int axisB, T obj) {
+        if (plane[axisA][axisB] != null)
+            return false;
+        plane[axisA][axisB] = obj;
+        return true;
     }
 
     public record RangeResult(int minx, int maxx, int miny, int maxy) {
@@ -26,8 +33,6 @@ public class Plane2DMerger {
             return (maxx-minx+1)*(maxy-miny+1);
         }
     }
-
-    private final Quad[][] plane = new Quad[16][16];
 
     private boolean quadSet(int x, int y) {
         return plane[x][y] != null;
@@ -124,8 +129,8 @@ public class Plane2DMerger {
         return new RangeResult(minx, maxx, miny, maxy);
     }
 
-    public record MergedQuad(Quad[] quads, RangeResult bounds) {}
-    float merge(Consumer<Quad> singleQuadConsumer, Consumer<MergedQuad> mergedQuadConsumer) {
+    public record MergedQuad <T>(T[] quads, RangeResult bounds) {}
+    public float merge(Consumer<T> singleQuadConsumer, Consumer<MergedQuad<T>> mergedQuadConsumer) {
         int count = 0;
         for (int x = 0; x < 16; x++) {
             for (int y = 0; y < 16; y++) {
@@ -168,7 +173,7 @@ public class Plane2DMerger {
                 plane[rr.minx][rr.miny] = null;
                 count--;
             } else {
-                MergedQuad result = new MergedQuad(new Quad[rr.count()], rr);
+                MergedQuad<T> result = new MergedQuad<>(this.result, rr);
                 int i = 0;
                 for (int X = rr.minx; X <= rr.maxx; X++) {
                     for (int Y = rr.miny; Y <= rr.maxy; Y++) {
@@ -202,7 +207,7 @@ public class Plane2DMerger {
 
 
     public static void main(String[] args) {
-        Plane2DMerger m = new Plane2DMerger();
+        Plane2DMerger m = new Plane2DMerger(Object.class);
         long t=0;
         float tr = 0;
         int tests = 10000;
@@ -215,7 +220,7 @@ public class Plane2DMerger {
             for (int x = 0; x < 16; x++) {
                 for (int y = 0; y < 16; y++) {
                     if (r.nextFloat()>0.5) {
-                        m.plane[x][y] = new Quad();
+                        m.plane[x][y] = new Object();
                     }
                 }
             }

@@ -8,6 +8,10 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 
 public class ChunkMesher {
+    private final ChunkGeometryOutputBuffer buffer;
+    public ChunkMesher(ChunkGeometryOutputBuffer gob) {
+        buffer = gob;
+    }
     //2 parts, meta quad 16 bytes, inner quad 8 bytes
     // Meta Quad:
     //      Quad position 3x2 shorts
@@ -18,43 +22,71 @@ public class ChunkMesher {
     //
 
     private static final class DirectionalMerger {
+        private record FullFacedQuad(Material material, BakedQuadView quadView, int[] colors, float[] br, int[] lm) {
+            public FullFacedQuad(Material material, BakedQuadView quadView, int[] colors, float[] br, int[] lm) {
+                this.material = material;
+                this.quadView = quadView;
+                if (colors != null) {
+                    this.colors = new int[4];
+                } else {
+                    this.colors = null;
+                }
+                this.br = new float[4];
+                this.lm = new int[4];
+                for (int i = 0; i < 4; i++) {
+                    if (colors != null) {
+                        this.colors[i] = colors[i];
+                    }
+                    this.br[i] = br[i];
+                    this.lm[i] = lm[i];
+                }
+            }
+        }
+
         final ModelQuadFacing direction;
         final int axis;
-        final Plane2DMerger[] alignedPlaneMerger = new Plane2DMerger[16];
+        final Plane2DMerger<FullFacedQuad>[] alignedPlaneMerger = new Plane2DMerger[16];
         public DirectionalMerger(ModelQuadFacing direction) {
             this.direction = direction;
             axis = direction.ordinal()>>1;
         }
 
-        int inputQuadCount;
         void addQuad(float x, float y, float z, Material material, BakedQuadView quad, int[] colors, float[] br, int[] lm) {
             if (quad.getFlags()>>3 == 3) {//
                 float axisValue = axis==0?y:(axis==1?z:x);
                 if (Math.abs(axisValue-(int)axisValue)<0.0001f) {
                     int axisv = (int)axisValue;
-                    Plane2DMerger merger = alignedPlaneMerger[axisv];
-                    if (merger == null) merger = alignedPlaneMerger[axisv] = new Plane2DMerger();
+                    Plane2DMerger<FullFacedQuad> merger = alignedPlaneMerger[axisv];
+                    if (merger == null) merger = alignedPlaneMerger[axisv] = new Plane2DMerger(FullFacedQuad.class);
                     int axisA = (int)(axis==0?x:(axis==1?x:y));
                     int axisB = (int)(axis==0?z:(axis==1?y:z));
 
-                    merger.setQuad(axisA, axisB);
-                    inputQuadCount++;
+                    merger.setQuad(axisA, axisB, new FullFacedQuad(material, quad, colors, br, lm));
                 } else {
                     //TODO: this, its not block aligned
+
                 }
             } else {
                 //TODO: THIS, it is not a full quad merging opertunity
-                int q = 0;
+
+                float axisValue = axis==0?y:(axis==1?z:x);
+                if (Math.abs(axisValue-(int)axisValue)<0.0001f) {
+
+                } else {
+
+                }
             }
         }
 
-        float mesh() {
-            float ratio = 0;
+        void mesh() {
             for (var plane : alignedPlaneMerger) {
                 if (plane == null) continue;
-                ratio += plane.merge(a->{}, b->{});
+                plane.merge(a->{
+
+                }, b->{
+
+                });
             }
-            return ratio;
         }
     }
 
@@ -73,28 +105,10 @@ public class ChunkMesher {
         }
     }
 
-
-    volatile static float ctiq;
-    volatile static float ctic;
-    volatile static float cratio;
-    volatile static float cc;
     public void mesh() {
-        float ratio = 0;
-        float inCount = 0;
         for (var face : faces) {
             if (face == null) continue;
-            var r = face.mesh();
-            ratio += r;
-            inCount += face.inputQuadCount;
+            face.mesh();
         }
-        stats(totalInputQuads, inCount, ratio);
-    }
-    private static synchronized void stats(float a, float b, float c) {
-        cc++;
-        ctiq += a;
-        ctic += b;
-        cratio += c;
-        //System.out.println("Tin: "+ totalInputQuads+" Mergable: "+ inCount + " merged out: " + ratio + " ratio: "+ (ratio/totalInputQuads));
-        System.out.println("CTin: "+ctiq + " CTout: " + (ctiq-ctic+cratio) + " ratio: "+ ((ctiq-ctic+cratio)/ctiq) +" or:" + (cratio/ctic));
     }
 }
