@@ -112,6 +112,7 @@ public class RenderSectionManager {
         this.chunkRenderer = new RegionChunkRenderer(RenderDevice.INSTANCE, ChunkMeshFormats.COMPACT);
 
         pipeline = new RenderPipeline();
+        pipeline.onResize(MinecraftClient.getInstance().getFramebuffer().textureWidth,MinecraftClient.getInstance().getFramebuffer().textureHeight);
 
         this.worldRenderer = worldRenderer;
         this.world = world;
@@ -671,5 +672,11 @@ public class RenderSectionManager {
         list.add(String.format("Device memory: %d/%d MiB", MathUtil.toMib(deviceUsed), MathUtil.toMib(deviceAllocated)));
         list.add(String.format("Staging buffer: %s", this.regions.getStagingBuffer().toString()));
         return list;
+    }
+
+    public void onWindowResize(int width, int height) {
+        if (pipeline != null) {
+            pipeline.onResize(width, height);
+        }
     }
 }

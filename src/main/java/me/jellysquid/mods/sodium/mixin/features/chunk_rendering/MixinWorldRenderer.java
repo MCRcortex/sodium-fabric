@@ -1,6 +1,8 @@
 package me.jellysquid.mods.sodium.mixin.features.chunk_rendering;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import me.cortex.nv.RenderPipeline;
 import me.jellysquid.mods.sodium.client.gl.device.RenderDevice;
 import me.jellysquid.mods.sodium.client.render.SodiumWorldRenderer;
 import me.jellysquid.mods.sodium.client.util.FlawlessFrames;
@@ -205,5 +207,17 @@ public abstract class MixinWorldRenderer implements WorldRendererExtended {
     @Overwrite
     public String getChunksDebugString() {
         return this.renderer.getChunksDebugString();
+    }
+
+    @Inject(method = "onResized", at = @At("HEAD"))
+    private void onResize(int width, int height, CallbackInfo ci) {
+        this.renderer.onResize(width, height);
+    }
+
+    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/systems/RenderSystem;clear(IZ)V"))
+    private void redirectClear(int mask, boolean getError) {
+        if (RenderPipeline.cancleClear)
+            return;
+        RenderSystem.clear(mask, getError);
     }
 }

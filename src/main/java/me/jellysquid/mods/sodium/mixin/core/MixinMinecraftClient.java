@@ -1,6 +1,8 @@
 package me.jellysquid.mods.sodium.mixin.core;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
+import me.cortex.nv.RenderPipeline;
 import me.jellysquid.mods.sodium.client.SodiumClientMod;
 import me.jellysquid.mods.sodium.client.gui.screen.ConfigCorruptedScreen;
 import net.minecraft.client.MinecraftClient;
@@ -9,6 +11,7 @@ import org.lwjgl.opengl.GL32C;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(MinecraftClient.class)
@@ -41,5 +44,13 @@ public class MixinMinecraftClient {
         }
 
         this.fences.enqueue(fence);
+    }
+
+
+    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/systems/RenderSystem;clear(IZ)V"))
+    private void redirectClear(int mask, boolean getError) {
+        if (RenderPipeline.cancleClear)
+            return;
+        RenderSystem.clear(mask, getError);
     }
 }

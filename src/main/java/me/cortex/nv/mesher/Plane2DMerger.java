@@ -129,6 +129,14 @@ public class Plane2DMerger <T> {
         return new RangeResult(minx, maxx, miny, maxy);
     }
 
+    static volatile int IN;
+    static volatile int OUT;
+    private static synchronized void statistics(int in, int out) {
+        IN += in;
+        OUT += out;
+        System.out.println("Ratio: "+ ((float)OUT/IN));
+    }
+
     public record MergedQuad <T>(T[] quads, RangeResult bounds) {}
     public float merge(Consumer<T> singleQuadConsumer, Consumer<MergedQuad<T>> mergedQuadConsumer) {
         int count = 0;
@@ -182,13 +190,15 @@ public class Plane2DMerger <T> {
                         plane[X][Y] = null;
                     }
                 }
+                mergedQuadConsumer.accept(result);
             }
             if (count < 0) {
                 throw new IllegalStateException();
             }
         }
         //System.out.println("In: "+inQuadCount+" Out: "+outQuadCount);
-        return (float) (outQuadCount);
+        //statistics(inQuadCount, outQuadCount);
+        return  ((float)outQuadCount);
     }
 
     private void dumpQuads() {

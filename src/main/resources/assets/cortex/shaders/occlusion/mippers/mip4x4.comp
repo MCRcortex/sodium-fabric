@@ -1,11 +1,36 @@
 #version 460 core
-///TODO: base off https://miketuritzin.com/post/hierarchical-depth-buffers/
-
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(r32f, binding = 0) uniform image2D outDepth;
+void main() {
+    imageStore(outDepth, ivec2(gl_WorkGroupID.xy), vec4(1.0));
+}
+/*
+#version 460 core
+#extension GL_NV_gpu_shader5 : enable
+
+layout(local_size_x = 2, local_size_y =2, local_size_z = 1) in;
+shared uint s_minDepth;
+
+layout(binding = 0) uniform sampler2D inDepth;
+layout(binding = 1) uniform restrict writeonly image2D outDepth;
+layout(location = 2) uniform vec2 u_texelDimensions;
 
 void main() {
+    if (gl_LocalInvocationID == 0 ) {
+        s_minDepth = floatBitsToUint(1.0);
+    }
+    memoryBarrierShared();
+    barrier();
+    vec4 sameple = textureGather(inDepth, gl_GlobalInvocationID.xy*u_texelDimensions);
+    float localMin = min(min(sameple.x, sameple.y), min(sameple.z, sameple.w));
+    atomicMin(s_minDepth, floatBitsToUint(localMin));
 
-}
+    memoryBarrierShared();
+    barrier();
+    if (gl_LocalInvocationID == 0) {
+        imageStore(outDepth, ivec2(gl_WorkGroupID.xy), vec4(1.0));//uintBitsToFloat(s_minDepth)
+    }
+}*/
 
 /*
 #version 460 core

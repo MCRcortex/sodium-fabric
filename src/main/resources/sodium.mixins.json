@@ -12,6 +12,7 @@
   "client": [
     "core.MixinDirection",
     "core.MixinFrustum",
+    "core.MixinGameRenderer",
     "core.MixinMinecraftClient",
     "core.MixinWindow",
     "core.model.MixinBlockColors",
@@ -23,8 +24,8 @@
     "core.pipeline.vertex.MixinSpriteTexturedVertexConsumer",
     "core.pipeline.vertex.MixinVertexConsumers$MixinDual",
     "core.pipeline.vertex.MixinVertexConsumers$MixinUnion",
-    "features.block.MixinBlockModelRenderer",
     "features.biome.MixinBiome",
+    "features.block.MixinBlockModelRenderer",
     "features.buffer_builder.fast_advance.MixinBufferBuilder",
     "features.buffer_builder.fast_sort.MixinBufferBuilder",
     "features.buffer_builder.intrinsics.MixinBufferBuilder",

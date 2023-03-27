@@ -8,6 +8,16 @@ import me.jellysquid.mods.sodium.client.render.chunk.terrain.material.Material;
 import net.caffeinemc.mods.sodium.api.util.ColorABGR;
 
 public class ChunkGeometryOutputBuffer {
+    //The format of this is spicy,
+    // there are 2 types,
+    //  metaquad
+    //  innerquad
+    // the meta quad always has the reference to a set of inner quads
+
+    //these quad types are always axis aligned
+    // meta quad is 16 bytes
+    // 6 for origin, 4 for abs size, 2 for meta, 4 for offset
+
     public void init() {
 
     }

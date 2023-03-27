@@ -6,7 +6,9 @@
 #extension GL_NV_bindless_texture : require
 #extension GL_NV_shader_buffer_load : require
 
-#extension GL_NV_fragment_shader_barycentric : require
+//#extension GL_NV_conservative_raster_underestimation : enable
+
+//#extension GL_NV_fragment_shader_barycentric : require
 
 #import <cortex:occlusion/scene.glsl>
 

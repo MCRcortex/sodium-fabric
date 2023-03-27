@@ -129,7 +129,7 @@ public class ChunkRenderRebuildTask extends ChunkRenderBuildTask {
             }
         }
 
-        mesher.mesh();
+        //mesher.mesh(buffers);//Passing buffer just for testing
 
         Map<TerrainRenderPass, ChunkMeshData> meshes = new Reference2ReferenceOpenHashMap<>();
 

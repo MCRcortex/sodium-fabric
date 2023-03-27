@@ -404,4 +404,10 @@ public class SodiumWorldRenderer {
     public ChunkTracker getChunkTracker() {
         return this.chunkTracker;
     }
+
+    public void onResize(int width, int height) {
+        if (renderSectionManager != null) {
+            renderSectionManager.onWindowResize(width, height);
+        }
+    }
 }

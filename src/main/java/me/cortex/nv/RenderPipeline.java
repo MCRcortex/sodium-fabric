@@ -1,31 +1,33 @@
 package me.cortex.nv;
 
-import me.cortex.nv.gl.GlObject;
 import me.cortex.nv.gl.RenderDevice;
-import me.cortex.nv.gl.buffers.Buffer;
-import me.cortex.nv.gl.buffers.DeviceOnlyMappedBuffer;
 import me.cortex.nv.gl.buffers.IDeviceMappedBuffer;
+import me.cortex.nv.gl.images.DepthOnlyFrameBuffer;
 import me.cortex.nv.managers.SectionManager;
 import me.cortex.nv.renderers.*;
-import me.cortex.nv.util.SegmentedManager;
 import me.cortex.nv.util.UploadingBufferStream;
 import me.jellysquid.mods.sodium.client.SodiumClientMod;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkCameraContext;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderMatrices;
 import me.jellysquid.mods.sodium.client.render.chunk.vertex.format.impl.CompactChunkVertex;
 import me.jellysquid.mods.sodium.client.util.frustum.Frustum;
-import net.minecraft.client.render.Camera;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.MinecraftClient;
 import org.joml.*;
+import org.lwjgl.opengl.GL42C;
 import org.lwjgl.system.MemoryUtil;
+
+import java.lang.Math;
 
 import static me.cortex.nv.gl.buffers.PersistentSparseAddressableBuffer.alignUp;
 import static org.lwjgl.opengl.ARBDirectStateAccess.glClearNamedBufferSubData;
+import static org.lwjgl.opengl.ARBSampleShading.glMinSampleShadingARB;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL11C.GL_DEPTH_TEST;
 import static org.lwjgl.opengl.GL11C.glEnable;
 import static org.lwjgl.opengl.GL42.*;
 import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BARRIER_BIT;
+import static org.lwjgl.opengl.NVConservativeRaster.GL_CONSERVATIVE_RASTERIZATION_NV;
+import static org.lwjgl.opengl.NVConservativeRaster.glSubpixelPrecisionBiasNV;
 import static org.lwjgl.opengl.NVRepresentativeFragmentTest.GL_REPRESENTATIVE_FRAGMENT_TEST_NV;
 import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_ADDRESS_NV;
 import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_UNIFIED_NV;
@@ -49,6 +51,7 @@ public class RenderPipeline {
 
 
     private static final RenderDevice device = new RenderDevice();
+    public static boolean cancleClear = false;
 
     public final SectionManager sectionManager;
 
@@ -64,6 +67,7 @@ public class RenderPipeline {
     private final IDeviceMappedBuffer sectionVisibility;
     private final IDeviceMappedBuffer terrainCommandBuffer;
 
+    private DepthOnlyFrameBuffer mippedDepthBuffer;
 
     public RenderPipeline() {
         sectionManager = new SectionManager(device, 32, 24, SodiumClientMod.options().advanced.cpuRenderAheadLimit+1, CompactChunkVertex.STRIDE);
@@ -80,8 +84,24 @@ public class RenderPipeline {
     }
 
 
+    public void onResize(int newWidth, int newHeight) {
+        if (mippedDepthBuffer != null) {
+            mippedDepthBuffer.delete();
+        }
+        mippedDepthBuffer = new DepthOnlyFrameBuffer((int)Math.ceil((float)newWidth/4), (int)Math.ceil((float)newHeight/4));
+        //mippedDepthBuffer = new DepthOnlyFrameBuffer(newWidth, newHeight);
+    }
+
     private int prevRegionCount;
     private int frameId;
+
+
+    long cterrainTime;
+    long cregionTime;
+    long csectionTime;
+    long cotherFrame;
+
+    long otherFrameRecord = System.nanoTime();
     public void renderFrame(Frustum frustum, ChunkRenderMatrices crm, ChunkCameraContext cam) {//NOTE: can use any of the command list rendering commands to basicly draw X indirects using the same shader, thus allowing for terrain to be rendered very efficently
         if (sectionManager.getRegionManager().regionCount() == 0) return;//Dont render anything if there is nothing to render
 
@@ -147,18 +167,35 @@ public class RenderPipeline {
         //Bind the uniform, it doesnt get wiped between shader changes
         glBufferAddressRangeNV(GL_UNIFORM_BUFFER_ADDRESS_NV, 0, sceneUniform.getDeviceAddress(), SCENE_SIZE + visibleRegions*2L);
 
-
+        glFinish();
+        long otherFrame = System.nanoTime() - otherFrameRecord;
+        long t = System.nanoTime();
         //Memory barrier from the last frame
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-        glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT|GL_COMMAND_BARRIER_BIT);
         if (prevRegionCount != 0) {
             glEnable(GL_DEPTH_TEST);
+            //glEnable(GL_CONSERVATIVE_RASTERIZATION_NV);
+            //glEnable(GL_SAMPLE_SHADING);
+            //glMinSampleShadingARB(0.0f);
             //glDisable(GL_CULL_FACE);
             terrainRasterizer.raster(prevRegionCount, terrainCommandBuffer);
             //glEnable(GL_CULL_FACE);
         }
+        glFinish();
+        long terrainTime = System.nanoTime() - t;
+        t = System.nanoTime();
 
-        mipper.mip();
+
+        /*
+        var pfbo = MinecraftClient.getInstance().getFramebuffer();
+        if (false) {
+            glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+            mippedDepthBuffer.bind(true);
+            mipper.mip(pfbo.getDepthAttachment(), mippedDepthBuffer);
+            glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+        }*/
+
+
 
         //NOTE: For GL_REPRESENTATIVE_FRAGMENT_TEST_NV to work, depth testing must be disabled, or depthMask = false
         glEnable(GL_DEPTH_TEST);
@@ -166,6 +203,9 @@ public class RenderPipeline {
         glColorMask(false, false, false, false);
         glEnable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
         regionRasterizer.raster(visibleRegions);
+        glFinish();
+        long regionTime = System.nanoTime() - t;
+        t = System.nanoTime();
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         sectionRasterizer.raster(visibleRegions);
         glDisable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
@@ -184,6 +224,25 @@ public class RenderPipeline {
         prevRegionCount = visibleRegions;
 
 
+        glFinish();
+        long sectionTime = System.nanoTime() - t;
+        otherFrameRecord = System.nanoTime();
+        cterrainTime += terrainTime;
+        cregionTime += regionTime;
+        csectionTime += sectionTime;
+        cotherFrame += otherFrame;
+        if (frameId%1000 == 0) {
+            System.out.println("Other frame: " + ((cotherFrame/frameId)/1000)+ " Terrain: " + ((cterrainTime/frameId)/1000) + " Region: " + ((cregionTime/frameId)/1000) + " Section: " + ((csectionTime/frameId)/1000));
+        }
+        if (frameId%10000==0) {
+            frameId = 0;
+            cterrainTime = 0;
+            cregionTime = 0;
+            csectionTime = 0;
+            cotherFrame = 0;
+        }
+
+        //pfbo.beginWrite(true);
         //TODO: FIXME: THIS FEELS ILLEGAL
         UploadingBufferStream.TickAllUploadingStreams();
     }
@@ -194,6 +253,7 @@ public class RenderPipeline {
         regionVisibility.delete();
         sectionVisibility.delete();
         terrainCommandBuffer.delete();
+        mippedDepthBuffer.delete();
         //TODO: Delete rest of the render passes
     }
 }
