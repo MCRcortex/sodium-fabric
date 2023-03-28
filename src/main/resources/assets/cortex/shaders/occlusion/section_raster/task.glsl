@@ -53,7 +53,8 @@ void main() {
     _offset = offset<<8;
     _count = count;
 
-    gl_TaskCountNV = count>>1;
+    //gl_TaskCountNV = count>>1;
+    gl_TaskCountNV = count;
 
     int32_t startY = (int32_t)((int8_t)(data>>40));             //In chunk coordinates
     int32_t startZ = (((int32_t)(data>>8))>>12);    //In chunk coordinates

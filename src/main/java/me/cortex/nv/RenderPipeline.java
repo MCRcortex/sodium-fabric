@@ -51,12 +51,19 @@ public class RenderPipeline {
 
 
     private static final RenderDevice device = new RenderDevice();
+
     public static boolean cancleClear = false;
+
+    public static boolean debugTimings = false;
+    long cterrainTime;
+    long cregionTime;
+    long csectionTime;
+    long cotherFrame;
+
 
     public final SectionManager sectionManager;
 
     private final PrimaryTerrainRasterizer terrainRasterizer;
-    private final MipGenerator mipper;
     private final RegionRasterizer regionRasterizer;
     private final SectionRasterizer sectionRasterizer;
 
@@ -67,13 +74,9 @@ public class RenderPipeline {
     private final IDeviceMappedBuffer sectionVisibility;
     private final IDeviceMappedBuffer terrainCommandBuffer;
 
-    private DepthOnlyFrameBuffer mippedDepthBuffer;
-
     public RenderPipeline() {
         sectionManager = new SectionManager(device, 32, 24, SodiumClientMod.options().advanced.cpuRenderAheadLimit+1, CompactChunkVertex.STRIDE);
-        //TODO:FIXME: CLEANUP of all the types
         terrainRasterizer = new PrimaryTerrainRasterizer();
-        mipper = new MipGenerator();
         regionRasterizer = new RegionRasterizer();
         sectionRasterizer = new SectionRasterizer();
         int maxRegions = sectionManager.getRegionManager().maxRegions();
@@ -85,27 +88,18 @@ public class RenderPipeline {
 
 
     public void onResize(int newWidth, int newHeight) {
-        if (mippedDepthBuffer != null) {
-            mippedDepthBuffer.delete();
-        }
-        mippedDepthBuffer = new DepthOnlyFrameBuffer((int)Math.ceil((float)newWidth/4), (int)Math.ceil((float)newHeight/4));
-        //mippedDepthBuffer = new DepthOnlyFrameBuffer(newWidth, newHeight);
+
     }
 
     private int prevRegionCount;
     private int frameId;
 
 
-    long cterrainTime;
-    long cregionTime;
-    long csectionTime;
-    long cotherFrame;
-
     long otherFrameRecord = System.nanoTime();
     public void renderFrame(Frustum frustum, ChunkRenderMatrices crm, ChunkCameraContext cam) {//NOTE: can use any of the command list rendering commands to basicly draw X indirects using the same shader, thus allowing for terrain to be rendered very efficently
         if (sectionManager.getRegionManager().regionCount() == 0) return;//Dont render anything if there is nothing to render
 
-        //UPDATE UNIFORM BUFFER HERE
+
         int visibleRegions = 0;
         //Enqueue all the visible regions
         {
@@ -155,11 +149,13 @@ public class RenderPipeline {
             MemoryUtil.memPutByte(addr, (byte) (frameId++));
         }
         sectionManager.commitChanges();//Commit all uploads done to the terrain and meta data
+
         //if (true) return;
         int err;
         if ((err = glGetError()) != 0) {
             throw new IllegalStateException("GLERROR: "+err);
         }
+
         glEnableClientState(GL_UNIFORM_BUFFER_UNIFIED_NV);
         glEnableClientState(GL_VERTEX_ATTRIB_ARRAY_UNIFIED_NV);
         glEnableClientState(GL_ELEMENT_ARRAY_UNIFIED_NV);
@@ -167,9 +163,13 @@ public class RenderPipeline {
         //Bind the uniform, it doesnt get wiped between shader changes
         glBufferAddressRangeNV(GL_UNIFORM_BUFFER_ADDRESS_NV, 0, sceneUniform.getDeviceAddress(), SCENE_SIZE + visibleRegions*2L);
 
-        glFinish();
-        long otherFrame = System.nanoTime() - otherFrameRecord;
+
+        if (debugTimings) {
+            glFinish();
+            cotherFrame += System.nanoTime() - otherFrameRecord;
+        }
         long t = System.nanoTime();
+
         //Memory barrier from the last frame
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT|GL_COMMAND_BARRIER_BIT);
         if (prevRegionCount != 0) {
@@ -181,20 +181,12 @@ public class RenderPipeline {
             terrainRasterizer.raster(prevRegionCount, terrainCommandBuffer);
             //glEnable(GL_CULL_FACE);
         }
-        glFinish();
-        long terrainTime = System.nanoTime() - t;
-        t = System.nanoTime();
 
-
-        /*
-        var pfbo = MinecraftClient.getInstance().getFramebuffer();
-        if (false) {
-            glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
-            mippedDepthBuffer.bind(true);
-            mipper.mip(pfbo.getDepthAttachment(), mippedDepthBuffer);
-            glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
-        }*/
-
+        if (debugTimings) {
+            glFinish();
+            cterrainTime += System.nanoTime() - t;
+            t = System.nanoTime();
+        }
 
 
         //NOTE: For GL_REPRESENTATIVE_FRAGMENT_TEST_NV to work, depth testing must be disabled, or depthMask = false
@@ -203,9 +195,13 @@ public class RenderPipeline {
         glColorMask(false, false, false, false);
         glEnable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
         regionRasterizer.raster(visibleRegions);
-        glFinish();
-        long regionTime = System.nanoTime() - t;
-        t = System.nanoTime();
+
+        if (debugTimings) {
+            glFinish();
+            cregionTime += System.nanoTime() - t;
+            t = System.nanoTime();
+        }
+
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         sectionRasterizer.raster(visibleRegions);
         glDisable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
@@ -221,25 +217,24 @@ public class RenderPipeline {
         if ((err = glGetError()) != 0) {
             throw new IllegalStateException("GLERROR: "+err);
         }
+
         prevRegionCount = visibleRegions;
 
+        if (debugTimings) {
+            glFinish();
+            csectionTime += System.nanoTime() - t;
+            otherFrameRecord = System.nanoTime();
 
-        glFinish();
-        long sectionTime = System.nanoTime() - t;
-        otherFrameRecord = System.nanoTime();
-        cterrainTime += terrainTime;
-        cregionTime += regionTime;
-        csectionTime += sectionTime;
-        cotherFrame += otherFrame;
-        if (frameId%1000 == 0) {
-            System.out.println("Other frame: " + ((cotherFrame/frameId)/1000)+ " Terrain: " + ((cterrainTime/frameId)/1000) + " Region: " + ((cregionTime/frameId)/1000) + " Section: " + ((csectionTime/frameId)/1000));
-        }
-        if (frameId%10000==0) {
-            frameId = 0;
-            cterrainTime = 0;
-            cregionTime = 0;
-            csectionTime = 0;
-            cotherFrame = 0;
+            if (frameId % 1000 == 0) {
+                System.out.println("Other frame: " + ((cotherFrame / frameId) / 1000) + " Terrain: " + ((cterrainTime / frameId) / 1000) + " Region: " + ((cregionTime / frameId) / 1000) + " Section: " + ((csectionTime / frameId) / 1000));
+            }
+            if (frameId % 10000 == 0) {
+                frameId = 0;
+                cterrainTime = 0;
+                cregionTime = 0;
+                csectionTime = 0;
+                cotherFrame = 0;
+            }
         }
 
         //pfbo.beginWrite(true);
@@ -253,7 +248,6 @@ public class RenderPipeline {
         regionVisibility.delete();
         sectionVisibility.delete();
         terrainCommandBuffer.delete();
-        mippedDepthBuffer.delete();
         //TODO: Delete rest of the render passes
     }
 }
