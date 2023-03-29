@@ -54,7 +54,9 @@ public class RenderRegionManager {
             RenderRegion region = entry.getKey();
             List<ChunkBuildResult> uploadQueue = entry.getValue();
 
-            this.upload(commandList, region, uploadQueue);
+            uploadQueue.forEach(SodiumWorldRenderer.instance().getRenderSectionManager().pipeline.sectionManager::uploadSetSection);
+
+            //this.upload(commandList, region, uploadQueue);
 
             for (ChunkBuildResult result : uploadQueue) {
                 result.render.onBuildFinished(result);
@@ -68,7 +70,6 @@ public class RenderRegionManager {
         List<PendingSectionUpload> sectionUploads = new ArrayList<>();
 
         for (ChunkBuildResult result : results) {
-            SodiumWorldRenderer.instance().getRenderSectionManager().pipeline.sectionManager.uploadSetSection(result);
             for (TerrainRenderPass pass : DefaultTerrainRenderPasses.ALL) {
                 var storage = region.getStorage(pass);
 

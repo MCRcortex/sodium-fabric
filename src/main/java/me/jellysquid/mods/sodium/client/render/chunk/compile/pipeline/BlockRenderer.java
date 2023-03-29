@@ -57,7 +57,7 @@ public class BlockRenderer {
         this.useAmbientOcclusion = MinecraftClient.isAmbientOcclusionEnabled();
     }
 
-    public void renderModel(BlockRenderContext ctx, ChunkBuildBuffers buffers, ChunkRenderBounds.Builder bounds, ChunkMesher mesher) {
+    public void renderModel(BlockRenderContext ctx, ChunkBuildBuffers buffers, ChunkRenderBounds.Builder bounds) {
         var material = DefaultMaterials.forBlockState(ctx.state());
         var meshBuilder = buffers.get(material);
 
@@ -68,14 +68,14 @@ public class BlockRenderer {
             List<BakedQuad> quads = this.getGeometry(ctx, face);
 
             if (!quads.isEmpty() && this.isFaceVisible(ctx, face)) {
-                this.renderQuadList(ctx, material, lighter, renderOffset, meshBuilder, quads, face, bounds, mesher);
+                this.renderQuadList(ctx, material, lighter, renderOffset, meshBuilder, quads, face, bounds);
             }
         }
 
         List<BakedQuad> all = this.getGeometry(ctx, null);
 
         if (!all.isEmpty()) {
-            this.renderQuadList(ctx, material, lighter, renderOffset, meshBuilder, all, null, bounds, mesher);
+            this.renderQuadList(ctx, material, lighter, renderOffset, meshBuilder, all, null, bounds);
         }
     }
 
@@ -91,8 +91,7 @@ public class BlockRenderer {
     }
 
     private void renderQuadList(BlockRenderContext ctx, Material material, LightPipeline lighter, Vec3d offset,
-                                ChunkModelBuilder builder, List<BakedQuad> quads, Direction cullFace, ChunkRenderBounds.Builder bounds,
-                                ChunkMesher mesher) {
+                                ChunkModelBuilder builder, List<BakedQuad> quads, Direction cullFace, ChunkRenderBounds.Builder bounds) {
         ColorSampler<BlockState> colorizer = null;
 
         QuadLightData lightData = this.cachedQuadLightData;
@@ -113,10 +112,7 @@ public class BlockRenderer {
                 colors = this.biomeColorBlender.getColors(ctx.world(), ctx.pos(), quad, colorizer, ctx.state());
             }
 
-            mesher.quad(ctx, offset, material, quad, colors, lightData.br, lightData.lm);
-            if (quad.getFlags()>>3 != 0) {
-                this.writeGeometry(ctx, builder, offset, material, quad, colors, lightData.br, lightData.lm, bounds);
-            }
+            this.writeGeometry(ctx, builder, offset, material, quad, colors, lightData.br, lightData.lm, bounds);
 
             Sprite sprite = quad.getSprite();
 

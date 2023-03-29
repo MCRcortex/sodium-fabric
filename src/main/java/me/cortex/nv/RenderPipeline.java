@@ -75,7 +75,8 @@ public class RenderPipeline {
     private final IDeviceMappedBuffer terrainCommandBuffer;
 
     public RenderPipeline() {
-        sectionManager = new SectionManager(device, 32, 24, SodiumClientMod.options().advanced.cpuRenderAheadLimit+1, CompactChunkVertex.STRIDE);
+        //32
+        sectionManager = new SectionManager(device, 64, 24, SodiumClientMod.options().advanced.cpuRenderAheadLimit+1, CompactChunkVertex.STRIDE);
         terrainRasterizer = new PrimaryTerrainRasterizer();
         regionRasterizer = new RegionRasterizer();
         sectionRasterizer = new SectionRasterizer();
@@ -93,6 +94,21 @@ public class RenderPipeline {
 
     private int prevRegionCount;
     private int frameId;
+
+/*int minx = Integer.MAX_VALUE;
+int maxx = Integer.MIN_VALUE;
+int minz = Integer.MAX_VALUE;
+int maxz = Integer.MIN_VALUE;
+var rm = sectionManager.getRegionManager();
+for (int i = 0; i < rm.maxRegionIndex(); i++) {
+    if (rm.regions[i] != null && rm.isRegionVisible(frustum, i)) {
+        minx = Math.min(rm.regions[i].rx, minx);
+        maxx = Math.max(rm.regions[i].rx, maxx);
+        minz = Math.min(rm.regions[i].rz, minz);
+        maxz = Math.max(rm.regions[i].rz, maxz);
+    }
+}
+System.out.println(minx+","+maxx+","+minz+","+maxz);*/
 
 
     long otherFrameRecord = System.nanoTime();
@@ -114,6 +130,7 @@ public class RenderPipeline {
                     addr += 2;
                 }
             }
+
         }
         {
             //TODO: maybe segment the uniform buffer into 2 parts, always updating and static where static holds pointers
@@ -150,7 +167,10 @@ public class RenderPipeline {
         }
         sectionManager.commitChanges();//Commit all uploads done to the terrain and meta data
 
-        //if (true) return;
+        //TODO: FIXME: THIS FEELS ILLEGAL
+        UploadingBufferStream.TickAllUploadingStreams();
+
+        if (false) return;
         int err;
         if ((err = glGetError()) != 0) {
             throw new IllegalStateException("GLERROR: "+err);
@@ -238,8 +258,6 @@ public class RenderPipeline {
         }
 
         //pfbo.beginWrite(true);
-        //TODO: FIXME: THIS FEELS ILLEGAL
-        UploadingBufferStream.TickAllUploadingStreams();
     }
 
     public void delete() {

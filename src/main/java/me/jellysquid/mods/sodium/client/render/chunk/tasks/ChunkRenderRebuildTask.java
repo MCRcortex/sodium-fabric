@@ -1,8 +1,6 @@
 package me.jellysquid.mods.sodium.client.render.chunk.tasks;
 
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
-import me.cortex.nv.mesher.ChunkGeometryOutputBuffer;
-import me.cortex.nv.mesher.ChunkMesher;
 import me.jellysquid.mods.sodium.client.gl.compile.ChunkBuildContext;
 import me.jellysquid.mods.sodium.client.render.chunk.terrain.DefaultTerrainRenderPasses;
 import me.jellysquid.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
@@ -56,10 +54,6 @@ public class ChunkRenderRebuildTask extends ChunkRenderBuildTask {
         ChunkBuildBuffers buffers = buildContext.buffers;
         buffers.init(renderData, this.render.getChunkId());
 
-        ChunkGeometryOutputBuffer gob = buildContext.geoBuffer;
-        gob.init();
-        ChunkMesher mesher = new ChunkMesher(gob);
-
         BlockRenderCache cache = buildContext.cache;
         cache.init(this.renderContext);
 
@@ -101,7 +95,7 @@ public class ChunkRenderRebuildTask extends ChunkRenderBuildTask {
 
                         context.update(blockPos, modelOffset, blockState, model, seed);
                         cache.getBlockRenderer()
-                                .renderModel(context, buffers, bounds, mesher);
+                                .renderModel(context, buffers, bounds);
                     }
 
                     FluidState fluidState = blockState.getFluidState();
@@ -128,8 +122,6 @@ public class ChunkRenderRebuildTask extends ChunkRenderBuildTask {
                 }
             }
         }
-
-        //mesher.mesh(buffers);//Passing buffer just for testing
 
         Map<TerrainRenderPass, ChunkMeshData> meshes = new Reference2ReferenceOpenHashMap<>();
 

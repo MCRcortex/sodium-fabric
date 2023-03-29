@@ -19,12 +19,12 @@ layout(location = 1) in Interpolants {
 
 layout(binding = 0) uniform sampler2D tex_diffuse;
 
-layout (depth_greater) out float gl_FragDepth;
+//layout (depth_greater) out float gl_FragDepth;
 
 void main() {
     uint uid = gl_PrimitiveID*132471+123571;
     colour = vec4(uv,0,1);//vec4(float((uid>>0)&7)/7, float((uid>>3)&7)/7, float((uid>>6)&7)/7, 1.0);
     //colour = vec4(1.0,1.0,0,1);
     colour = texture(tex_diffuse, uv, -4.0);
-    gl_FragDepth = colour.a < 0.05f?1.0:gl_FragCoord.z;
+    if (colour.a < 0.05f) discard;
 }
