@@ -31,13 +31,7 @@ vec3 decodeVertex(Vertex v) {
     return vec3(v.a,v.b,v.c)*(32.0f/65535)-8.0f;
 }
 
-/*
-vec3 decodeVertex(Vertex v) {
-    return (vec3(v.a>>16,(v.a<<16)>>16,v.b>>16)/32767)*16.0f+8.0f;
-}
-*/
-
-//TODO: extra per meshlet culling here (hell even per quad culling)
+//TODO: extra per quad culling
 void main() {
     if ((gl_GlobalInvocationID.x>>1)>=quadCount) { //If its over the quad count, dont render
         return;

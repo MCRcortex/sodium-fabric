@@ -1,5 +1,6 @@
 package me.jellysquid.mods.sodium.client.render.chunk.compile.pipeline;
 
+import me.cortex.nv.format.CompactQuadFormat;
 import me.cortex.nv.mesher.ChunkMesher;
 import me.jellysquid.mods.sodium.client.model.light.LightMode;
 import me.jellysquid.mods.sodium.client.model.light.LightPipeline;
@@ -113,6 +114,8 @@ public class BlockRenderer {
             }
 
             this.writeGeometry(ctx, builder, offset, material, quad, colors, lightData.br, lightData.lm, bounds);
+
+            CompactQuadFormat.writeGeometry(ctx, offset, material, quad, colors, lightData.br, lightData.lm);
 
             Sprite sprite = quad.getSprite();
 

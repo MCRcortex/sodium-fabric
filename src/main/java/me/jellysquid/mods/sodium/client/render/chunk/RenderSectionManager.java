@@ -287,7 +287,7 @@ public class RenderSectionManager {
             throw new IllegalStateException("Chunk is not loaded: " + ChunkSectionPos.from(x, y, z));
         }
 
-        //pipeline.sectionManager.deleteSection(chunk);
+        pipeline.sectionManager.deleteSection(chunk);
 
         chunk.delete();
 

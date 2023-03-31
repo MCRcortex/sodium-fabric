@@ -28,8 +28,8 @@ public class PersistentSparseAddressableBuffer extends GlObject implements IDevi
         this.size = alignUp(size, PAGE_SIZE);
         glNamedBufferStorage(id, size, GL_SPARSE_STORAGE_BIT_ARB);
         long[] holder = new long[1];
-        glGetNamedBufferParameterui64vNV(id, GL_BUFFER_GPU_ADDRESS_NV, holder);
         glMakeNamedBufferResidentNV(id, GL_READ_WRITE);
+        glGetNamedBufferParameterui64vNV(id, GL_BUFFER_GPU_ADDRESS_NV, holder);
         addr = holder[0];
         if (addr == 0) {
             throw new IllegalStateException();

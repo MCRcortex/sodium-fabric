@@ -18,6 +18,7 @@
 //This is 1 since each task shader workgroup -> multiple meshlets. its not each globalInvocation (afaik)
 layout(local_size_x=1) in;
 
+//In here add an array that is then "logged" on in the mesh shader to find the draw data
 taskNV out Task {
     vec4 originAndBaseData;
     uint quadCount;

@@ -15,7 +15,7 @@ public class BufferArena {
     public BufferArena(RenderDevice device, int vertexFormatSize) {
         this.device = device;
         this.vertexFormatSize = vertexFormatSize;
-        buffer = device.createSparseBuffer(5000000000L);//Create a 5gb buffer
+        buffer = device.createSparseBuffer(8000000000L);//Create a 8gb buffer
     }
 
     public int allocQuads(int quadCount) {
