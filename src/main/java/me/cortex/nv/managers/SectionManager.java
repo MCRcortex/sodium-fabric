@@ -52,7 +52,7 @@ public class SectionManager {
 
     //FIXME: causes extreame stuttering
     public void uploadSetSection(ChunkBuildResult result) {
-        if (result.meshes.isEmpty() || result.data == null) {
+        if (result.meshes.isEmpty() || result.data == null || result.geometry.buffer().getLength() == 0) {
             deleteSection(result.render);
             return;
         }
@@ -69,6 +69,7 @@ public class SectionManager {
             terrainAreana.free(terrainDataLocation.get(key));
         }
 
+        /*Compact buffer format
         int geoSize = result.meshes.values().stream().mapToInt(a->a.getVertexData().getLength()).sum();
         int addr = terrainAreana.allocQuads((geoSize/formatSize)/4);
         terrainDataLocation.put(key, addr);
@@ -97,6 +98,35 @@ public class SectionManager {
                             geoUpload + offset * 4L * formatSize,
                             (long) segment.vertexCount() * formatSize);
                     offset += segment.vertexCount() / 4;
+                }
+            }
+            offsets[i] = offset;
+        }
+        //Do translucent
+        short translucent = offsets[6];
+        offsets[7] = translucent;
+         */
+
+        int geoSize = result.geometry.buffer().getLength();
+        int addr = terrainAreana.allocQuads(geoSize/32);
+        terrainDataLocation.put(key, addr);
+        long geoUpload = terrainAreana.upload(uploadStream, addr);
+        //Upload all the geometry grouped by face
+        short[] offsets = new short[8];
+        short offset = 0;
+
+        long bufferAddr = MemoryUtil.memAddress(result.geometry.buffer().getDirectBuffer());
+        //Do all but translucent
+
+        //THIS IS NOT NEEDED, the geometry is already in correct order and shit
+        for (int i = 0; i < 7; i++) {
+            if (result.geometry.geometry()[i] != null) {
+                var segment = result.geometry.geometry()[i];
+                if (segment != null) {
+                    MemoryUtil.memCopy( bufferAddr + (long) segment.quadStart() * 32,
+                            geoUpload + offset * 32,
+                            (long) segment.quadCount() * 32);
+                    offset += segment.quadCount();
                 }
             }
             offsets[i] = offset;

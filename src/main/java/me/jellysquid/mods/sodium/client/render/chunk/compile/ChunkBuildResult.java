@@ -1,5 +1,6 @@
 package me.jellysquid.mods.sodium.client.render.chunk.compile;
 
+import me.cortex.nv.format.BakedChunkGeometry;
 import me.jellysquid.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import me.jellysquid.mods.sodium.client.render.chunk.RenderSection;
 import me.jellysquid.mods.sodium.client.render.chunk.data.ChunkMeshData;
@@ -17,12 +18,14 @@ public class ChunkBuildResult {
     public final ChunkRenderData data;
     public final Map<TerrainRenderPass, ChunkMeshData> meshes;
     public final int buildTime;
+    public final BakedChunkGeometry geometry;
 
-    public ChunkBuildResult(RenderSection render, ChunkRenderData data, Map<TerrainRenderPass, ChunkMeshData> meshes, int buildTime) {
+    public ChunkBuildResult(RenderSection render, ChunkRenderData data, Map<TerrainRenderPass, ChunkMeshData> meshes, int buildTime, BakedChunkGeometry geometry) {
         this.render = render;
         this.data = data;
         this.meshes = meshes;
         this.buildTime = buildTime;
+        this.geometry = geometry;
     }
 
     public ChunkMeshData getMesh(TerrainRenderPass pass) {
@@ -34,5 +37,7 @@ public class ChunkBuildResult {
             data.getVertexData()
                     .free();
         }
+        if (geometry != null)
+            geometry.release();
     }
 }

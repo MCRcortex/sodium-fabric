@@ -13,7 +13,7 @@
 
 #import <cortex:occlusion/scene.glsl>
 
-layout(local_size_x = 32) in;
+layout(local_size_x = 16) in;
 layout(triangles, max_vertices=64, max_primitives=32) out;
 
 //originAndBaseData.w is in quad count space, so is endIdx
@@ -27,36 +27,42 @@ layout(location=1) out Interpolants {
 } OUT[];
 
 
-vec3 decodeVertex(Vertex v) {
-    return vec3(v.a,v.b,v.c)*(32.0f/65535)-8.0f;
-}
+//TODO: TRY 4 INVOCATIONS PER QUAD, duplicate work yes but much less work per thread
 
 //TODO: extra per quad culling
 void main() {
-    if ((gl_GlobalInvocationID.x>>1)>=quadCount) { //If its over the quad count, dont render
+    if ((gl_GlobalInvocationID.x)>=quadCount) { //If its over the quad count, dont render
         return;
     }
-    //Each pair of meshlet invokations emits 2 vertices each and 1 primative each
-    uint id = (floatBitsToUint(originAndBaseData.w)<<2) + (gl_GlobalInvocationID.x<<1);//mul by 2 since there are 2 threads per quad each thread needs to process 2 vertices
+    //Each mesh invocation emits an entire quad
+    //uvec4 quad = terrainData[(floatBitsToUint(originAndBaseData.w)+(gl_GlobalInvocationID.x))<<1];
+    u64vec4 quad = terrainData[(floatBitsToUint(originAndBaseData.w)+(gl_GlobalInvocationID.x))];
 
-    Vertex A = terrainData[id];
-    Vertex B = terrainData[id|1];
+    vec3 origin = vec3((int16_t)(quad.x>>48), (int16_t)((quad.x>>32)&0xFFFF), (int16_t)((quad.x>>16)&0xFFFF))*(32.0/65536.0)-8;
+    vec3 vA = vec3((int8_t)((quad.x>>8)&0xFF),(int8_t)(quad.x&0xFF),(int8_t)((quad.y>>56)&0xFF))*(2.0f/255)-1;
+    vec3 vB = vec3((int8_t)((quad.y>>48)&0xFF),(int8_t)((quad.y>>40)&0xFF),(int8_t)((quad.y>>32)&0xFF))*(2.0f/255)-1;
 
-    //TODO: OPTIMIZE
-    uint primId = gl_LocalInvocationID.x*3;
-    uint idxBase = (gl_LocalInvocationID.x>>1)<<2;
-    gl_MeshVerticesNV[(gl_LocalInvocationID.x<<1)].gl_Position   = MVP*vec4(decodeVertex(A)+originAndBaseData.xyz,1.0);
-    gl_MeshVerticesNV[(gl_LocalInvocationID.x<<1)|1].gl_Position = MVP*vec4(decodeVertex(B)+originAndBaseData.xyz,1.0);
-    //TODO: see if ternary or array is faster
-    bool isA = (gl_LocalInvocationID.x&1)==0;
-    gl_PrimitiveIndicesNV[primId]   = (isA?0:2)+idxBase;
-    gl_PrimitiveIndicesNV[primId+1] = (isA?1:3)+idxBase;
-    gl_PrimitiveIndicesNV[primId+2] = (isA?2:0)+idxBase;
+    vec3 offset = originAndBaseData.xyz;
+    uint vertexId = gl_LocalInvocationID.x<<2;
+    gl_MeshVerticesNV[vertexId|0].gl_Position = MVP*vec4(origin+offset,1);
+    gl_MeshVerticesNV[vertexId|1].gl_Position = MVP*vec4(origin+offset+vA,1);
+    gl_MeshVerticesNV[vertexId|2].gl_Position = MVP*vec4(origin+offset+vA+vB,1);
+    gl_MeshVerticesNV[vertexId|3].gl_Position = MVP*vec4(origin+offset+vB,1);
 
-    OUT[(gl_LocalInvocationID.x<<1)|0].uv = (isA?vec2(A.g,A.h):vec2(A.g,A.h))/65535;
-    OUT[(gl_LocalInvocationID.x<<1)|1].uv = (isA?vec2(B.g,B.h):vec2(B.g,B.h))/65535;
 
-    gl_MeshPrimitivesNV[gl_LocalInvocationID.x].gl_PrimitiveID = int(gl_GlobalInvocationID.x>>1);
+    uint primId = gl_LocalInvocationID.x * 6;
+
+    gl_PrimitiveIndicesNV[primId]   = vertexId|0;
+    gl_PrimitiveIndicesNV[primId+1] = vertexId|1;
+    gl_PrimitiveIndicesNV[primId+2] = vertexId|2;
+
+    gl_PrimitiveIndicesNV[primId+3] = vertexId|0;
+    gl_PrimitiveIndicesNV[primId+4] = vertexId|2;
+    gl_PrimitiveIndicesNV[primId+5] = vertexId|3;
+
+
+    gl_MeshPrimitivesNV[(gl_LocalInvocationID.x<<1)].gl_PrimitiveID =   int(gl_GlobalInvocationID.x);
+    gl_MeshPrimitivesNV[(gl_LocalInvocationID.x<<1)+1].gl_PrimitiveID = int(gl_GlobalInvocationID.x);
 
     if (gl_LocalInvocationID.x == 0) {
         //Remaining quads in workgroup

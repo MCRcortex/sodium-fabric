@@ -1,7 +1,7 @@
 package me.jellysquid.mods.sodium.client.render.chunk.compile.pipeline;
 
+import me.cortex.nv.format.ChunkQuadGeometryBuffer;
 import me.cortex.nv.format.CompactQuadFormat;
-import me.cortex.nv.mesher.ChunkMesher;
 import me.jellysquid.mods.sodium.client.model.light.LightMode;
 import me.jellysquid.mods.sodium.client.model.light.LightPipeline;
 import me.jellysquid.mods.sodium.client.model.light.LightPipelineProvider;
@@ -58,7 +58,7 @@ public class BlockRenderer {
         this.useAmbientOcclusion = MinecraftClient.isAmbientOcclusionEnabled();
     }
 
-    public void renderModel(BlockRenderContext ctx, ChunkBuildBuffers buffers, ChunkRenderBounds.Builder bounds) {
+    public void renderModel(BlockRenderContext ctx, ChunkBuildBuffers buffers, ChunkRenderBounds.Builder bounds, ChunkQuadGeometryBuffer geometry) {
         var material = DefaultMaterials.forBlockState(ctx.state());
         var meshBuilder = buffers.get(material);
 
@@ -69,14 +69,14 @@ public class BlockRenderer {
             List<BakedQuad> quads = this.getGeometry(ctx, face);
 
             if (!quads.isEmpty() && this.isFaceVisible(ctx, face)) {
-                this.renderQuadList(ctx, material, lighter, renderOffset, meshBuilder, quads, face, bounds);
+                this.renderQuadList(ctx, material, lighter, renderOffset, meshBuilder, quads, face, bounds, geometry);
             }
         }
 
         List<BakedQuad> all = this.getGeometry(ctx, null);
 
         if (!all.isEmpty()) {
-            this.renderQuadList(ctx, material, lighter, renderOffset, meshBuilder, all, null, bounds);
+            this.renderQuadList(ctx, material, lighter, renderOffset, meshBuilder, all, null, bounds, geometry);
         }
     }
 
@@ -92,7 +92,7 @@ public class BlockRenderer {
     }
 
     private void renderQuadList(BlockRenderContext ctx, Material material, LightPipeline lighter, Vec3d offset,
-                                ChunkModelBuilder builder, List<BakedQuad> quads, Direction cullFace, ChunkRenderBounds.Builder bounds) {
+                                ChunkModelBuilder builder, List<BakedQuad> quads, Direction cullFace, ChunkRenderBounds.Builder bounds, ChunkQuadGeometryBuffer geometry) {
         ColorSampler<BlockState> colorizer = null;
 
         QuadLightData lightData = this.cachedQuadLightData;
@@ -115,7 +115,7 @@ public class BlockRenderer {
 
             this.writeGeometry(ctx, builder, offset, material, quad, colors, lightData.br, lightData.lm, bounds);
 
-            CompactQuadFormat.writeGeometry(ctx, offset, material, quad, colors, lightData.br, lightData.lm);
+            CompactQuadFormat.writeGeometry(ctx, offset, material, quad, colors, lightData.br, lightData.lm, geometry);
 
             Sprite sprite = quad.getSprite();
 

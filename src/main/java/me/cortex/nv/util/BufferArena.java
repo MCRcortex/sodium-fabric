@@ -8,29 +8,27 @@ import me.cortex.nv.util.SegmentedManager;
 
 public class BufferArena {
     SegmentedManager segments = new SegmentedManager();
-    private final int vertexFormatSize;
     private final RenderDevice device;
     public final PersistentSparseAddressableBuffer buffer;
 
     public BufferArena(RenderDevice device, int vertexFormatSize) {
         this.device = device;
-        this.vertexFormatSize = vertexFormatSize;
         buffer = device.createSparseBuffer(8000000000L);//Create a 8gb buffer
     }
 
     public int allocQuads(int quadCount) {
         int addr = (int) segments.alloc(quadCount);
-        buffer.ensureAllocated(addr*(4L *vertexFormatSize), quadCount*(4L *vertexFormatSize));
+        buffer.ensureAllocated(addr*32L, quadCount*32L);
         return addr;
     }
 
     public void free(int addr) {
         int count = segments.free(addr);
-        buffer.deallocate(addr*(4L *vertexFormatSize), count*(4L *vertexFormatSize));
+        buffer.deallocate(addr*32L, count*32L);
     }
 
     public long upload(UploadingBufferStream stream, int addr) {
-        return stream.getUpload(buffer, addr*(4L*vertexFormatSize), (int) segments.getSize(addr)*(4*vertexFormatSize));
+        return stream.getUpload(buffer, addr*32L, (int) segments.getSize(addr)*32);
     }
 
     public void delete() {

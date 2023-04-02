@@ -197,7 +197,7 @@ System.out.println(minx+","+maxx+","+minz+","+maxz);*/
             //glEnable(GL_CONSERVATIVE_RASTERIZATION_NV);
             //glEnable(GL_SAMPLE_SHADING);
             //glMinSampleShadingARB(0.0f);
-            //glDisable(GL_CULL_FACE);
+            glDisable(GL_CULL_FACE);
             terrainRasterizer.raster(prevRegionCount, terrainCommandBuffer);
             //glEnable(GL_CULL_FACE);
         }

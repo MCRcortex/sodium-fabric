@@ -39,9 +39,7 @@ void main() {
     //THIS IS WRONG SHOULD BE previous frame id
     if ((((uint(sectionVisibility[sectionId])+1)&0xFF)!=uint(frameId)) || ((((uint)sectionFaceVisibility[sectionId])&(1<<side))==0)) {
         //Early exit if the section isnt visible
-        //gl_TaskCountNV = 0;
-
-
+        gl_TaskCountNV = 0;
         return;
     }
     //if (side != 0) {

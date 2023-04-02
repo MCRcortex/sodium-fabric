@@ -2,9 +2,7 @@ package me.cortex.nv.format;
 
 import me.jellysquid.mods.sodium.client.model.quad.BakedQuadView;
 import me.jellysquid.mods.sodium.client.model.quad.properties.ModelQuadOrientation;
-import me.jellysquid.mods.sodium.client.render.chunk.compile.buffers.ChunkModelBuilder;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.pipeline.BlockRenderContext;
-import me.jellysquid.mods.sodium.client.render.chunk.data.ChunkRenderBounds;
 import me.jellysquid.mods.sodium.client.render.chunk.terrain.material.Material;
 import net.minecraft.util.math.Vec3d;
 
@@ -37,7 +35,8 @@ public class CompactQuadFormat {
                                      BakedQuadView quad,
                                      int[] colors,
                                      float[] brightness,
-                                     int[] lightmap) {
+                                     int[] lightmap,
+                                     ChunkQuadGeometryBuffer geometry) {
 
         ModelQuadOrientation orientation = ModelQuadOrientation.orientByBrightness(brightness);
 
@@ -67,13 +66,35 @@ public class CompactQuadFormat {
         ory += by;
         orz += bz;
 
-        System.out.println("a");
+        //Pack position
+        long A = Short.toUnsignedLong(packBase(orx));//2
+        A <<= 16;
+        A |= Short.toUnsignedLong(packBase(ory));//2
+        A <<= 16;
+        A |= Short.toUnsignedLong(packBase(orz));//2
+        A <<= 8;
+        A |= Byte.toUnsignedLong(packOffset(vax));//1
+        A <<= 8;
+        A |= Byte.toUnsignedLong(packOffset(vay));//1
+        long B = Byte.toUnsignedLong(packOffset(vaz));//1
+        B <<=  8;
+        B |= Byte.toUnsignedLong(packOffset(vbx));//1
+        B <<=  8;
+        B |= Byte.toUnsignedLong(packOffset(vby));//1
+        B <<=  8;
+        B |= Byte.toUnsignedLong(packOffset(vbz));//1
+        B <<=  32;
+
+        //Pack texture.... later
+
+        geometry.get(quad.getNormalFace().ordinal()).push(A, B, 0, 0);
     }
 
     private static short packBase(float base) {
-        return (short) (((base-8.0)/8)*(1<<31));
+        return (short) ((base+8.0)*(65536.0f/32.0f));
     }
+
     private static byte packOffset(float offset) {
-        return (byte) (offset*(1<<7));
+        return (byte) Math.round((offset+1)*(255.0/2.0));
     }
 }

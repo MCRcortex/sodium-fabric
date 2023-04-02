@@ -22,6 +22,7 @@ struct Vertex {
 };*/
 
 
+
 // this is cause in the section rasterizer you get less cache misses thus higher throughput
 struct Section {
     ivec4 header;
@@ -60,7 +61,9 @@ layout(std140, binding=0) uniform SceneData {
     //Terrain command buffer, the first 4 bytes are actually the count
     uvec2 *terrainCommandBuffer;
 
-    Vertex *terrainData;
+    //Vertex *terrainData;
+    u64vec4 *terrainData;
+    //uvec4 *terrainData;
 
     //align(2)
     uint16_t regionCount;//Number of regions in regionIndicies
