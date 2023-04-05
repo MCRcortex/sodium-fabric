@@ -67,34 +67,65 @@ public class CompactQuadFormat {
         orz += bz;
 
         //Pack position
-        long A = Short.toUnsignedLong(packBase(orx));//2
+        long A = Short.toUnsignedLong(packBasePos(orx));//2
         A <<= 16;
-        A |= Short.toUnsignedLong(packBase(ory));//2
+        A |= Short.toUnsignedLong(packBasePos(ory));//2
         A <<= 16;
-        A |= Short.toUnsignedLong(packBase(orz));//2
+        A |= Short.toUnsignedLong(packBasePos(orz));//2
         A <<= 8;
-        A |= Byte.toUnsignedLong(packOffset(vax));//1
+        A |= Byte.toUnsignedLong(packOffsetPos(vax));//1
         A <<= 8;
-        A |= Byte.toUnsignedLong(packOffset(vay));//1
-        long B = Byte.toUnsignedLong(packOffset(vaz));//1
+        A |= Byte.toUnsignedLong(packOffsetPos(vay));//1
+        long B = Byte.toUnsignedLong(packOffsetPos(vaz));//1
         B <<=  8;
-        B |= Byte.toUnsignedLong(packOffset(vbx));//1
+        B |= Byte.toUnsignedLong(packOffsetPos(vbx));//1
         B <<=  8;
-        B |= Byte.toUnsignedLong(packOffset(vby));//1
+        B |= Byte.toUnsignedLong(packOffsetPos(vby));//1
         B <<=  8;
-        B |= Byte.toUnsignedLong(packOffset(vbz));//1
-        B <<=  32;
+        B |= Byte.toUnsignedLong(packOffsetPos(vbz));//1
 
-        //Pack texture.... later
+        //Do texture packing
+        float minU = Math.min(Math.min(quad.getTexU(0), quad.getTexU(1)), Math.min(quad.getTexU(2), quad.getTexU(3)));
+        float maxU = Math.max(Math.max(quad.getTexU(0), quad.getTexU(1)), Math.max(quad.getTexU(2), quad.getTexU(3)));
 
-        geometry.get(quad.getNormalFace().ordinal()).push(A, B, 0, 0);
+        float minV = Math.min(Math.min(quad.getTexV(0), quad.getTexV(1)), Math.min(quad.getTexV(2), quad.getTexV(3)));
+        float maxV = Math.max(Math.max(quad.getTexV(0), quad.getTexV(1)), Math.max(quad.getTexV(2), quad.getTexV(3)));
+
+        float du = maxU - minU;
+        float dv = maxV - minV;
+
+
+        B <<=  16;
+        B |= Short.toUnsignedLong(packBaseTex(minU));
+        B <<=  16;
+        B |= Short.toUnsignedLong(packBaseTex(minV));
+
+        //Pack uv delta texture
+        long C = Byte.toUnsignedLong(packDeltaTex(du));
+        C <<= 8;
+        C |= Byte.toUnsignedLong(packDeltaTex(dv));
+
+        //Pack colour
+        C <<= 32;
+        C |= Integer.toUnsignedLong(colors==null?-1:colors[0]);
+        C <<= 16;
+
+        geometry.get(quad.getNormalFace().ordinal()).push(A, B, C, 0);
     }
 
-    private static short packBase(float base) {
+    private static short packBaseTex(float base) {
+        return (short) (base*65536.0f);
+    }
+
+    private static byte packDeltaTex(float delta) {
+        return (byte) (delta*256.0f);
+    }
+
+    private static short packBasePos(float base) {
         return (short) ((base+8.0)*(65536.0f/32.0f));
     }
 
-    private static byte packOffset(float offset) {
+    private static byte packOffsetPos(float offset) {
         return (byte) Math.round((offset+1)*(255.0/2.0));
     }
 }

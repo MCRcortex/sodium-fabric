@@ -40,8 +40,8 @@ public class PrimaryTerrainRasterizer extends Phase {
         shader.bind();
 
         int id = MinecraftClient.getInstance().getTextureManager().getTexture(new Identifier("minecraft", "textures/atlas/blocks.png")).getGlId();
-        glActiveTexture(GL32C.GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, id);
+        //glActiveTexture(GL32C.GL_TEXTURE0);
+        //glBindTexture(GL_TEXTURE_2D, id);
         GL45C.glBindTextureUnit(0, id);
         GL45C.glBindSampler(0, sampler);
 

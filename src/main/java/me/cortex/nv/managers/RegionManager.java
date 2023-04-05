@@ -186,4 +186,11 @@ public class RegionManager {
             return frustum.isBoxVisible(region.rx<<7,region.ry<<6, region.rz<<7, (region.rx+1)<<7, (region.ry+1)<<6, (region.rz+1)<<7);
         }
     }
+
+    public int distance(int regionId, int camChunkX, int camChunkY, int camChunkZ) {
+        var region = regions[regionId];
+        return  Math.abs((region.rx<<3)+4-camChunkX)+
+                Math.abs((region.ry<<2)+2-camChunkY)+
+                Math.abs((region.rz<<3)+4-camChunkZ);
+    }
 }

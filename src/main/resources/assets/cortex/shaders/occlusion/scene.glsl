@@ -51,18 +51,18 @@ layout(std140, binding=0) uniform SceneData {
     ivec4 chunkPosition;
     //vec4  subChunkPosition;//The subChunkTranslation is already done inside the MVP
     //align(8)
-    uint16_t *regionIndicies;//Pointer to block of memory at the end of the SceneData struct, also mapped to be a uniform
-    uint64_t *regionData;
-    Section *sectionData;
+    readonly restrict uniform uint16_t *regionIndicies;//Pointer to block of memory at the end of the SceneData struct, also mapped to be a uniform
+    readonly restrict uint64_t *regionData;
+    readonly restrict Section *sectionData;
     //NOTE: for the following, can make it so that region visibility actually uses section visibility array
-    uint8_t *regionVisibility;
-    uint8_t *sectionVisibility;
-    uint8_t *sectionFaceVisibility;
+    restrict uint8_t *regionVisibility;
+    restrict uint8_t *sectionVisibility;
+    restrict uint8_t *sectionFaceVisibility;
     //Terrain command buffer, the first 4 bytes are actually the count
-    uvec2 *terrainCommandBuffer;
+    writeonly restrict uvec2 *terrainCommandBuffer;
 
     //Vertex *terrainData;
-    u64vec4 *terrainData;
+    readonly restrict u64vec4 *terrainData;
     //uvec4 *terrainData;
 
     //align(2)

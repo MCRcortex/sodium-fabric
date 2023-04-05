@@ -1,5 +1,9 @@
 package me.cortex.nv;
 
+import it.unimi.dsi.fastutil.ints.IntAVLTreeSet;
+import it.unimi.dsi.fastutil.ints.IntSortedSet;
+import it.unimi.dsi.fastutil.shorts.ShortAVLTreeSet;
+import it.unimi.dsi.fastutil.shorts.ShortSortedSet;
 import me.cortex.nv.gl.RenderDevice;
 import me.cortex.nv.gl.buffers.IDeviceMappedBuffer;
 import me.cortex.nv.gl.images.DepthOnlyFrameBuffer;
@@ -114,6 +118,7 @@ System.out.println(minx+","+maxx+","+minz+","+maxz);*/
     long otherFrameRecord = System.nanoTime();
     public void renderFrame(Frustum frustum, ChunkRenderMatrices crm, ChunkCameraContext cam) {//NOTE: can use any of the command list rendering commands to basicly draw X indirects using the same shader, thus allowing for terrain to be rendered very efficently
         if (sectionManager.getRegionManager().regionCount() == 0) return;//Dont render anything if there is nothing to render
+        Vector3i chunkPos = new Vector3i(cam.blockX>>4, cam.blockY>>4, cam.blockZ>>4);
 
 
         int visibleRegions = 0;
@@ -121,20 +126,21 @@ System.out.println(minx+","+maxx+","+minz+","+maxz);*/
         {
             var rm = sectionManager.getRegionManager();
             //The region data indicies is located at the end of the sceneUniform
-            long addr = sectionManager.uploadStream.getUpload(sceneUniform, SCENE_SIZE, rm.regionCount()*2);
             //TODO: Sort the regions from closest to furthest from the camera
+            IntSortedSet regions = new IntAVLTreeSet();
             for (int i = 0; i < rm.maxRegionIndex(); i++) {
                 if (rm.isRegionVisible(frustum, i)) {
+                    regions.add((rm.distance(i, chunkPos.x, chunkPos.y, chunkPos.z)<<16)|i);
+
                     visibleRegions++;
-                    MemoryUtil.memPutShort(addr, (short) i);
-                    addr += 2;
                 }
             }
-
+            long[] addr = new long[]{sectionManager.uploadStream.getUpload(sceneUniform, SCENE_SIZE, visibleRegions*2)};
+            regions.forEach(i-> MemoryUtil.memPutShort((addr[0]+=2)-2, (short) i));
         }
+
         {
             //TODO: maybe segment the uniform buffer into 2 parts, always updating and static where static holds pointers
-            Vector3i chunkPos = new Vector3i(cam.blockX>>4, cam.blockY>>4, cam.blockZ>>4);
             Vector3f delta = new Vector3f((cam.blockX-(chunkPos.x<<4))+cam.deltaX, (cam.blockY-(chunkPos.y<<4))+cam.deltaY, (cam.blockZ-(chunkPos.z<<4))+cam.deltaZ);
 
             long addr = sectionManager.uploadStream.getUpload(sceneUniform, 0, SCENE_SIZE);
@@ -197,7 +203,7 @@ System.out.println(minx+","+maxx+","+minz+","+maxz);*/
             //glEnable(GL_CONSERVATIVE_RASTERIZATION_NV);
             //glEnable(GL_SAMPLE_SHADING);
             //glMinSampleShadingARB(0.0f);
-            glDisable(GL_CULL_FACE);
+            //glDisable(GL_CULL_FACE);
             terrainRasterizer.raster(prevRegionCount, terrainCommandBuffer);
             //glEnable(GL_CULL_FACE);
         }
