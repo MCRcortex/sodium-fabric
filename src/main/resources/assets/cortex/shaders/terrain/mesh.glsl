@@ -39,7 +39,7 @@ void main() {
     //uvec4 quad = terrainData[(floatBitsToUint(originAndBaseData.w)+(gl_GlobalInvocationID.x))<<1];
     u64vec4 quad = terrainData[(floatBitsToUint(originAndBaseData.w)+(gl_GlobalInvocationID.x))];
 
-    vec3 origin = vec3((quad.x>>48), ((quad.x>>32)&0xFFFF), ((quad.x>>16)&0xFFFF))*(32.0/65536.0)-8;
+    vec3 origin = vec3((quad.x>>48), ((quad.x>>32)&0xFFFF), ((quad.x>>16)&0xFFFF))*(32.0/65535.0)-8;
     vec3 vA = vec3(((quad.x>>8)&0xFF),(quad.x&0xFF),((quad.y>>56)&0xFF))*(2.0f/255)-1;
     vec3 vB = vec3(((quad.y>>48)&0xFF),((quad.y>>40)&0xFF),((quad.y>>32)&0xFF))*(2.0f/255)-1;
 

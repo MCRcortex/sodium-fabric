@@ -126,6 +126,6 @@ public class CompactQuadFormat {
     }
 
     private static byte packOffsetPos(float offset) {
-        return (byte) Math.round((offset+1)*(255.0/2.0));
+        return (byte) ((byte) (offset*127)+128);
     }
 }
